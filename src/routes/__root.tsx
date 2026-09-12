@@ -36,7 +36,7 @@ export const Route = createRootRoute({
       <head>
         <HeadContent />
       </head>
-      <body className="bg-page text-ink font-display">
+      <body className="bg-page text-ink m-0 min-h-svh w-full font-display">
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />

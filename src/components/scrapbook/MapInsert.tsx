@@ -13,7 +13,7 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
   const t = useT();
 
   return (
-    <section id="route-map" className="relative mx-auto w-full max-w-5xl scroll-mt-6 px-4 py-8 md:px-8 md:py-12">
+    <section id="route-map" className="relative mx-auto w-full max-w-7xl scroll-mt-6 px-4 py-8 md:px-10 md:py-12 lg:px-16">
       <SlideIn from="left">
         <div className="relative mb-6 max-w-lg">
           <h2 className="font-display text-day leading-tight font-semibold text-ink">{t("map.title")}</h2>

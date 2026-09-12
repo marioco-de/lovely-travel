@@ -12,7 +12,7 @@ export function HeroCollage() {
   const t = useT();
 
   return (
-    <section className="relative mx-auto w-full max-w-5xl px-4 pt-4 pb-8 md:px-8 md:pt-6 md:pb-16">
+    <section className="relative mx-auto w-full max-w-7xl px-4 pt-4 pb-8 md:px-10 md:pt-6 md:pb-16 lg:px-16">
       <header className="relative mb-8 max-w-xl pr-28 md:mb-10 md:pr-36">
         <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">
           {t("album.kicker")}

@@ -77,10 +77,15 @@
     background: var(--color-page);
     color: var(--color-ink);
     overflow-x: hidden;
+    width: 100%;
+    min-height: 100svh;
   }
 
   body {
     overflow-x: hidden;
+    width: 100%;
+    min-height: 100svh;
+    margin: 0;
   }
 
   h1,
@@ -137,6 +142,8 @@ body {
   position: relative;
   isolation: isolate;
   overflow-x: hidden;
+  width: 100%;
+  min-width: 100%;
   box-shadow: inset 22px 0 28px -24px rgb(61 42 28 / 0.22);
 }
 
@@ -318,6 +325,7 @@ body {
 }
 
 .day-wash {
+  width: 100%;
   background-color: color-mix(in oklab, var(--day-tint, var(--color-lagoon)) 5%, transparent);
 }
 
