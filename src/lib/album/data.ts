@@ -3,6 +3,8 @@ import type { MessageKey } from "@/lib/i18n/messages";
 export type PhotoKind = "landscape" | "portrait" | "polaroid" | "detail";
 export type SlideFrom = "left" | "right";
 export type RotateDir = "left" | "right" | "leftSoft" | "rightSoft" | "none";
+export type CornerStyle = "classic" | "scalloped" | "ink";
+export type PaperVariant = "azulejos" | "sardinhas";
 
 export type AlbumPhoto = {
   id: string;
@@ -13,6 +15,7 @@ export type AlbumPhoto = {
   kind: PhotoKind;
   rotate: RotateDir;
   slideFrom: SlideFrom;
+  corners?: CornerStyle;
 };
 
 export type DayStop = {
@@ -21,6 +24,7 @@ export type DayStop = {
   placeKey: MessageKey;
   captionKey: MessageKey;
   pin: { x: number; y: number; label: "left" | "right" | "bottom" };
+  paper: PaperVariant;
   photos: AlbumPhoto[];
 };
 
@@ -40,6 +44,7 @@ export const heroPhotos = {
     kind: "landscape",
     rotate: "leftSoft",
     slideFrom: "left",
+    corners: "classic",
   },
   courtyard: {
     id: "courtyard",
@@ -60,6 +65,7 @@ export const heroPhotos = {
     kind: "detail",
     rotate: "left",
     slideFrom: "left",
+    corners: "scalloped",
   },
 } as const satisfies Record<string, AlbumPhoto>;
 
@@ -70,6 +76,7 @@ export const days: DayStop[] = [
     placeKey: "day.porto.place",
     captionKey: "day.porto.caption",
     pin: { x: 90, y: 82, label: "left" },
+    paper: "azulejos",
     photos: [
       {
         id: "ribeira",
@@ -80,6 +87,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "leftSoft",
         slideFrom: "left",
+        corners: "classic",
       },
     ],
   },
@@ -89,6 +97,7 @@ export const days: DayStop[] = [
     placeKey: "day.coimbra.place",
     captionKey: "day.coimbra.caption",
     pin: { x: 110, y: 134, label: "right" },
+    paper: "azulejos",
     photos: [
       {
         id: "rooftops",
@@ -99,6 +108,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "rightSoft",
         slideFrom: "right",
+        corners: "scalloped",
       },
       {
         id: "se",
@@ -118,6 +128,7 @@ export const days: DayStop[] = [
     placeKey: "day.lisbon.place",
     captionKey: "day.lisbon.caption",
     pin: { x: 76, y: 200, label: "left" },
+    paper: "azulejos",
     photos: [
       {
         id: "alfama",
@@ -128,6 +139,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "leftSoft",
         slideFrom: "left",
+        corners: "ink",
       },
       {
         id: "tram",
@@ -147,6 +159,7 @@ export const days: DayStop[] = [
     placeKey: "day.algarve.place",
     captionKey: "day.algarve.caption",
     pin: { x: 98, y: 290, label: "right" },
+    paper: "sardinhas",
     photos: [
       {
         id: "cliffs",
@@ -157,6 +170,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "leftSoft",
         slideFrom: "left",
+        corners: "classic",
       },
       {
         id: "cove",

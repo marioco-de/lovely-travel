@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { days, MAP_VIEW, pinPercent, PORTUGAL_PATH, routePath } from "@/lib/album/data";
 import { useT } from "@/lib/i18n/locale";
+import { PaperLayer } from "./PaperLayer";
 import { SlideIn } from "./SlideIn";
 import { Stamp } from "./Stamp";
 import { WaxPin } from "./WaxPin";
@@ -15,7 +16,9 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
   const path = routePath(days);
 
   return (
-    <section id="route-map" className="mx-auto w-full max-w-5xl scroll-mt-6 px-4 py-8 md:px-8 md:py-12">
+    <section id="route-map" className="relative mx-auto w-full max-w-5xl scroll-mt-6 px-4 py-8 md:px-8 md:py-12">
+      <PaperLayer variant="azulejos" />
+      <div className="relative z-10">
       <SlideIn from="left">
         <div className="mb-6 max-w-lg">
           <h2 className="font-display text-day leading-tight font-semibold text-ink">{t("map.title")}</h2>
@@ -110,7 +113,6 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
                       className={cn(
                         "caption-strip absolute whitespace-nowrap px-1.5 py-0.5 font-typewriter text-caption leading-none tracking-wide",
                         active ? "text-coral" : "text-lagoon-deep",
-                        active ? "text-coral" : "text-ink",
                         stop.pin.label === "left" && "top-1/2 right-full mr-1 -translate-y-1/2",
                         stop.pin.label === "right" && "top-1/2 left-full ml-1 -translate-y-1/2",
                         stop.pin.label === "bottom" && "top-full mt-1",
@@ -125,6 +127,7 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
           </div>
         </figure>
       </SlideIn>
+      </div>
     </section>
   );
 }

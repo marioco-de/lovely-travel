@@ -1,6 +1,7 @@
 import { heroPhotos } from "@/lib/album/data";
 import { useT } from "@/lib/i18n/locale";
 import { Frame } from "./Frame";
+import { PaperLayer } from "./PaperLayer";
 import { PhotoCaption } from "./PhotoCaption";
 import { Polaroid } from "./Polaroid";
 import { Pearl } from "./Pearl";
@@ -54,9 +55,14 @@ export function HeroCollage() {
         <SlideIn
           from="left"
           delayMs={140}
-          className="z-10 mt-10 w-[62%] max-w-xs self-start md:mt-12 md:ml-6 md:w-[34%] md:max-w-sm"
+          className="relative z-10 mt-10 w-[72%] max-w-sm self-start md:mt-12 md:ml-6 md:w-[38%] md:max-w-sm"
         >
-          <Frame photo={heroPhotos.fruit} />
+          <div className="paper-patch relative px-5 py-5">
+            <PaperLayer variant="sardinhas" />
+            <div className="relative z-10">
+              <Frame photo={heroPhotos.fruit} />
+            </div>
+          </div>
         </SlideIn>
 
         <Stamp

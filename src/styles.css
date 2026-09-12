@@ -59,6 +59,9 @@
   --text-place: clamp(1.35rem, 1.1rem + 0.8vw, 1.85rem);
   --text-title: clamp(2.4rem, 1.5rem + 3.2vw, 4.4rem);
   --text-day: clamp(1.7rem, 1.3rem + 1.4vw, 2.4rem);
+  --size-corner: 2.15rem;
+  --size-corner-lg: 2.65rem;
+  --paper-layer-opacity: 0.4;
 }
 
 @layer base {
@@ -211,6 +214,94 @@ body {
   filter: contrast(1.05);
 }
 
+.photo-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.photo-corner {
+  position: absolute;
+  width: var(--size-corner);
+  height: var(--size-corner);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+@media (min-width: 768px) {
+  .photo-corner {
+    width: var(--size-corner-lg);
+    height: var(--size-corner-lg);
+  }
+}
+
+.photo-corner--tl {
+  top: 0;
+  left: 0;
+}
+
+.photo-corner--tr {
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.photo-corner--bl {
+  bottom: 0;
+  left: 0;
+  transform: scaleY(-1);
+}
+
+.photo-corner--br {
+  bottom: 0;
+  right: 0;
+  transform: scale(-1);
+}
+
+.photo-corners--classic .photo-corner {
+  background-image: url("/patterns/corner-classic.svg");
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
+}
+
+.photo-corners--scalloped .photo-corner {
+  background-image: url("/patterns/corner-scalloped.svg");
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.18));
+}
+
+.photo-corners--ink .photo-corner {
+  background-image: url("/patterns/corner-ink.svg");
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+
+.paper-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--paper-layer-opacity);
+  mix-blend-mode: multiply;
+  background-repeat: repeat;
+}
+
+.paper-layer--azulejos {
+  opacity: 0.46;
+  background-image: url("/patterns/azulejos.svg");
+  background-size: 4.25rem 4.25rem;
+}
+
+.paper-layer--sardinhas {
+  opacity: 0.5;
+  background-image: url("/patterns/sardinhas.svg");
+  background-size: 7.25rem 4.5rem;
+}
+
+.paper-patch > .paper-layer {
+  inset: 0.35rem;
+  border-radius: var(--radius-sm);
+}
+
 .pearl {
   background:
     radial-gradient(circle at 32% 28%, var(--color-pearl-shine) 0 18%, transparent 42%),
@@ -326,11 +417,13 @@ body {
 
 .days-rail {
   position: relative;
+  z-index: 1;
 }
 
 .days-rail::before {
   content: "";
   position: absolute;
+  z-index: 2;
   top: 0.5rem;
   bottom: 0.5rem;
   left: 0.7rem;
