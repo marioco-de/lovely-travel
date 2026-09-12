@@ -35,7 +35,7 @@ export function Polaroid({ photo, className }: PolaroidProps) {
     <figure className={cn("photo-block relative", className)}>
       <div className={cn("photo-print relative", rotateClass[photo.rotate])}>
         <div className="polaroid-shadow relative w-full overflow-visible rounded-xs bg-mat">
-          <Tape className="-top-2.5 left-1/2 w-[4.75rem] -translate-x-1/2" rotation={3} />
+          <Tape className="-top-3.5 left-1/2 w-[8.5rem] -translate-x-1/2" rotation={3} />
           <div className="relative p-2.5 pb-1.5">
             <div className="relative aspect-square overflow-hidden bg-page-deep">
               {src ? (

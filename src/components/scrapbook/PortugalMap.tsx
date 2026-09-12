@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { landPin, routePath } from "@/lib/album/data";
+import { routePath } from "@/lib/album/data";
+import { landPinForPlace, PLACES } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { WaxPin } from "./WaxPin";
@@ -7,6 +8,7 @@ import { WaxPin } from "./WaxPin";
 type PortugalMapProps = {
   variant?: "hero" | "aside";
   activeId: string | null;
+  focusId?: string | null;
   onSelect: (id: string) => void;
   className?: string;
 };
@@ -14,6 +16,7 @@ type PortugalMapProps = {
 export function PortugalMap({
   variant = "hero",
   activeId,
+  focusId,
   onSelect,
   className,
 }: PortugalMapProps) {
@@ -21,9 +24,17 @@ export function PortugalMap({
   const locale = useLocale((s) => s.locale);
   const hiddenPins = useAlbum((s) => s.hiddenPins);
   const days = useAlbum((s) => s.layout.days);
-  const visible = days.filter((stop) => !hiddenPins[stop.id]);
-  const points = visible.map((stop) => (variant === "aside" ? landPin(stop.pin) : stop.pin));
-  const path = routePath(points);
+  const shown = days.filter((stop) => {
+    if (hiddenPins[stop.id]) return false;
+    if (variant === "aside" && focusId) return stop.id === focusId;
+    return true;
+  });
+
+  const points = shown.map((stop) => {
+    if (variant === "aside") return landPinForPlace(stop.id);
+    return stop.pin;
+  });
+  const path = variant === "hero" ? routePath(points) : "";
 
   return (
     <div
@@ -39,25 +50,28 @@ export function PortugalMap({
         alt={variant === "hero" ? t("map.alt") : ""}
         className="portugal-map-art"
       />
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        aria-hidden="true"
-      >
-        <path d={path} className="route-dash" />
-      </svg>
-      {visible.map((stop, i) => {
+      {path ? (
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden="true"
+        >
+          <path d={path} className="route-dash" />
+        </svg>
+      ) : null}
+      {shown.map((stop, i) => {
         const point = points[i];
         if (!point) return null;
         const active = activeId === stop.id;
         const name = pairText(stop.place, locale);
+        const place = PLACES[stop.id];
         return (
           <button
             key={stop.id}
             type="button"
             onClick={() => onSelect(stop.id)}
-            aria-label={`${name} — ${t("ui.openDay")}`}
+            aria-label={`${place?.address ?? name} — ${t("ui.openDay")}`}
             aria-current={active ? "true" : undefined}
             className={cn(
               "map-pin pointer-events-auto absolute -translate-x-1/2 -translate-y-[70%]",
@@ -66,7 +80,7 @@ export function PortugalMap({
             style={{ left: `${point.x}%`, top: `${point.y}%` }}
           >
             <span className="relative flex min-h-11 min-w-11 flex-col items-center justify-end">
-              <WaxPin active={active} />
+              <WaxPin active={active || variant === "aside"} />
               {variant === "hero" && (
                 <span
                   className={cn(

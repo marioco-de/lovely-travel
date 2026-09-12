@@ -1,9 +1,20 @@
 import type { MessageKey } from "@/lib/i18n/messages";
+import { pinForPlace } from "./places";
 
 export type PhotoKind = "landscape" | "portrait" | "polaroid" | "detail";
 export type SlideFrom = "left" | "right";
 export type RotateDir = "left" | "right" | "leftSoft" | "rightSoft" | "none";
-export type CornerStyle = "classic" | "scalloped" | "ink";
+export type CornerStyle =
+  | "black"
+  | "kraft"
+  | "gold"
+  | "scallop"
+  | "leather"
+  | "brass"
+  | "ivory"
+  | "olive"
+  | "burgundy"
+  | "vellum";
 export type CornerSet = "all" | "diagonal" | "top";
 export type PaperVariant = "azulejos" | "sardinhas" | "vines" | "waves";
 
@@ -30,6 +41,19 @@ export type DayStop = {
   photos: AlbumPhoto[];
 };
 
+export const CORNER_STYLES: CornerStyle[] = [
+  "black",
+  "kraft",
+  "gold",
+  "scallop",
+  "leather",
+  "brass",
+  "ivory",
+  "olive",
+  "burgundy",
+  "vellum",
+];
+
 export const MAP_VIEW = { w: 220, h: 360 } as const;
 
 /** Mainland Portugal silhouette in MAP_VIEW coordinates. */
@@ -46,7 +70,7 @@ export const heroPhotos = {
     kind: "landscape",
     rotate: "leftSoft",
     slideFrom: "left",
-    corners: "classic",
+    corners: "black",
     cornerSet: "all",
   },
   courtyard: {
@@ -68,7 +92,7 @@ export const heroPhotos = {
     kind: "detail",
     rotate: "left",
     slideFrom: "left",
-    corners: "scalloped",
+    corners: "scallop",
     cornerSet: "diagonal",
   },
 } as const satisfies Record<string, AlbumPhoto>;
@@ -79,7 +103,7 @@ export const days: DayStop[] = [
     labelKey: "day.porto.label",
     placeKey: "day.porto.place",
     captionKey: "day.porto.caption",
-    pin: { x: 47.5, y: 33.5, label: "left" },
+    pin: pinForPlace("porto"),
     paper: "azulejos",
     photos: [
       {
@@ -91,7 +115,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "leftSoft",
         slideFrom: "left",
-        corners: "classic",
+        corners: "kraft",
         cornerSet: "diagonal",
       },
     ],
@@ -101,8 +125,8 @@ export const days: DayStop[] = [
     labelKey: "day.coimbra.label",
     placeKey: "day.coimbra.place",
     captionKey: "day.coimbra.caption",
-    pin: { x: 51.2, y: 45, label: "right" },
-    paper: "azulejos",
+    pin: pinForPlace("coimbra"),
+    paper: "vines",
     photos: [
       {
         id: "rooftops",
@@ -113,7 +137,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "rightSoft",
         slideFrom: "right",
-        corners: "scalloped",
+        corners: "gold",
         cornerSet: "all",
       },
       {
@@ -133,8 +157,8 @@ export const days: DayStop[] = [
     labelKey: "day.lisbon.label",
     placeKey: "day.lisbon.place",
     captionKey: "day.lisbon.caption",
-    pin: { x: 44.8, y: 58.8, label: "left" },
-    paper: "azulejos",
+    pin: pinForPlace("lisbon"),
+    paper: "waves",
     photos: [
       {
         id: "alfama",
@@ -145,7 +169,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "leftSoft",
         slideFrom: "left",
-        corners: "ink",
+        corners: "leather",
         cornerSet: "all",
       },
       {
@@ -165,8 +189,8 @@ export const days: DayStop[] = [
     labelKey: "day.algarve.label",
     placeKey: "day.algarve.place",
     captionKey: "day.algarve.caption",
-    pin: { x: 49.2, y: 76.8, label: "right" },
-    paper: "azulejos",
+    pin: pinForPlace("algarve"),
+    paper: "sardinhas",
     photos: [
       {
         id: "cliffs",
@@ -177,7 +201,7 @@ export const days: DayStop[] = [
         kind: "landscape",
         rotate: "leftSoft",
         slideFrom: "left",
-        corners: "classic",
+        corners: "brass",
         cornerSet: "top",
       },
       {
@@ -211,14 +235,3 @@ export function routePath(points: { x: number; y: number }[]): string {
   return d;
 }
 
-/** Crop of portugal-map.jpg that shows only the country, no tropical frame. */
-export const MAP_LAND_CROP = { x0: 360, y0: 240, x1: 800, y1: 1360, srcW: 1200, srcH: 1600 };
-
-export function landPin(pin: { x: number; y: number }) {
-  const px = (pin.x / 100) * MAP_LAND_CROP.srcW;
-  const py = (pin.y / 100) * MAP_LAND_CROP.srcH;
-  return {
-    x: ((px - MAP_LAND_CROP.x0) / (MAP_LAND_CROP.x1 - MAP_LAND_CROP.x0)) * 100,
-    y: ((py - MAP_LAND_CROP.y0) / (MAP_LAND_CROP.y1 - MAP_LAND_CROP.y0)) * 100,
-  };
-}

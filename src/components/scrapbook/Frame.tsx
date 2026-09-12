@@ -30,7 +30,7 @@ export function Frame({ photo, className, showCaption = true, priority = false }
   const t = useT();
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const isDetail = photo.kind === "detail";
-  const corners = "corners" in photo ? (photo.corners ?? (isDetail ? "scalloped" : "classic")) : "classic";
+  const corners = "corners" in photo ? (photo.corners ?? (isDetail ? "scallop" : "black")) : "black";
   const cornerSet: CornerSet =
     "cornerSet" in photo && photo.cornerSet ? photo.cornerSet : isDetail ? "diagonal" : "all";
   const alt = isCatalog(photo) ? t(photo.altKey) : photo.alt;

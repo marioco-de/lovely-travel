@@ -5,6 +5,7 @@ import {
   catalogSrc,
   emptyBlock,
   emptyDay,
+  mergeLayout,
   seedLayout,
   type AlbumLayout,
   type BlockKind,
@@ -205,7 +206,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         photos,
         texts: { en: en ?? {}, de: de ?? {} },
         hiddenPins: readHiddenPins(),
-        layout: isLayout(savedLayout) ? savedLayout : seedLayout(),
+        layout: isLayout(savedLayout) ? mergeLayout(savedLayout) : seedLayout(),
         saveStatus: "saved",
       });
     } catch {

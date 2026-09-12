@@ -1,5 +1,5 @@
 import { de, en } from "@/lib/i18n/messages";
-import { days, heroPhotos, type AlbumPhoto, type CornerSet, type CornerStyle, type PaperVariant, type PhotoKind, type RotateDir } from "./data";
+import { CORNER_STYLES, days, heroPhotos, type AlbumPhoto, type CornerSet, type CornerStyle, type PaperVariant, type PhotoKind, type RotateDir } from "./data";
 
 export type I18nPair = { en: string; de: string };
 
@@ -69,10 +69,9 @@ export function cornersFor(id: string, index: number): { corners: CornerStyle; c
   if (photo?.corners) {
     return { corners: photo.corners, cornerSet: photo.cornerSet ?? "all" };
   }
-  const styles: CornerStyle[] = ["classic", "scalloped", "ink"];
   const sets: CornerSet[] = ["all", "diagonal", "top"];
   return {
-    corners: styles[index % 3] ?? "classic",
+    corners: CORNER_STYLES[index % CORNER_STYLES.length] ?? "black",
     cornerSet: sets[index % 3] ?? "all",
   };
 }
@@ -110,6 +109,18 @@ export function seedLayout(): AlbumLayout {
   };
 }
 
+export function mergeLayout(saved: AlbumLayout): AlbumLayout {
+  const seed = seedLayout();
+  return {
+    ...saved,
+    days: saved.days.map((day) => {
+      const fromSeed = seed.days.find((item) => item.id === day.id);
+      if (!fromSeed) return day;
+      return { ...day, paper: fromSeed.paper, pin: fromSeed.pin };
+    }),
+  };
+}
+
 export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
   const photoCount = kind === "collage" ? 2 : kind === "photo" || kind === "polaroid" ? 1 : 0;
   return {
@@ -131,7 +142,7 @@ export function emptyDay(index: number): LayoutDay {
     place,
     label: { en: `Day ${n}`, de: `Tag ${n}` },
     pin: { x: 48, y: 52, label: index % 2 === 0 ? "left" : "right" },
-    paper: "azulejos",
+    paper: (["azulejos", "vines", "waves", "sardinhas"] as const)[index % 4] ?? "azulejos",
     blocks: [],
   };
 }
