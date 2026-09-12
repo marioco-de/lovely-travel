@@ -217,7 +217,7 @@ body {
 
 .photo-corners {
   position: absolute;
-  inset: -0.2rem;
+  inset: -0.28rem;
   pointer-events: none;
   z-index: 4;
   overflow: visible;
