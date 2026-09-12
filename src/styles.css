@@ -62,7 +62,7 @@
   --text-day: clamp(1.45rem, 1.15rem + 0.9vw, 1.95rem);
   --size-corner: 2.45rem;
   --size-corner-lg: 3rem;
-  --paper-layer-opacity: 0.12;
+  --paper-layer-opacity: 0.24;
 }
 
 @layer base {
@@ -261,18 +261,20 @@ body {
   transform: scale(-1);
 }
 
-.photo-corners--classic .photo-corner {
-  background-image: url("/patterns/corner-classic.svg");
+.photo-corner svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.photo-corners--classic .photo-corner,
+.photo-corners--scalloped .photo-corner {
+  background-image: none;
   filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
 }
 
-.photo-corners--scalloped .photo-corner {
-  background-image: url("/patterns/corner-scalloped.svg");
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.18));
-}
-
 .photo-corners--ink .photo-corner {
-  background-image: url("/patterns/corner-ink.svg");
+  background-image: none;
   mix-blend-mode: multiply;
   opacity: 0.9;
 }
@@ -284,31 +286,29 @@ body {
   pointer-events: none;
   opacity: var(--paper-layer-opacity);
   mix-blend-mode: multiply;
-  background-repeat: repeat;
+}
+
+.paper-layer-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .paper-layer--azulejos {
-  opacity: 0.11;
-  background-image: url("/patterns/azulejos.svg");
-  background-size: 5.5rem 5.5rem;
+  opacity: 0.24;
 }
 
 .paper-layer--sardinhas {
-  opacity: 0.12;
-  background-image: url("/patterns/sardinhas.svg");
-  background-size: 9rem 5.6rem;
+  opacity: 0.26;
 }
 
 .paper-layer--vines {
-  opacity: 0.11;
-  background-image: url("/patterns/vines.svg");
-  background-size: 5.75rem 5.75rem;
+  opacity: 0.24;
 }
 
 .paper-layer--waves {
-  opacity: 0.11;
-  background-image: url("/patterns/waves.svg");
-  background-size: 7.5rem 3.75rem;
+  opacity: 0.24;
 }
 
 .day-wash {
