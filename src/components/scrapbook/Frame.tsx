@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/locale";
+import { usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, RotateDir } from "@/lib/album/data";
 import { DevelopingImage } from "./DevelopingImage";
 import { Pearl } from "./Pearl";
+import { PhotoCaption } from "./PhotoCaption";
 
 const rotateClass: Record<RotateDir, string> = {
   left: "rotate-left",
@@ -49,10 +51,11 @@ function InkCorner({ corner }: { corner: "tl" | "tr" | "bl" | "br" }) {
 
 export function Frame({ photo, className, showCaption = true, priority = false }: FrameProps) {
   const t = useT();
+  const src = usePhotoSrc(photo);
   const isDetail = photo.kind === "detail";
 
   return (
-    <figure className={cn("relative", rotateClass[photo.rotate], className)}>
+    <figure className={cn("photo-block relative", rotateClass[photo.rotate], className)}>
       <div className="photo-shadow relative bg-mat p-2 md:p-2.5">
         <div
           className={cn(
@@ -60,7 +63,7 @@ export function Frame({ photo, className, showCaption = true, priority = false }
             isDetail ? "aspect-4/3" : "aspect-video",
           )}
         >
-          <DevelopingImage src={photo.src} alt={t(photo.altKey)} priority={priority} />
+          <DevelopingImage key={src} src={src} alt={t(photo.altKey)} priority={priority} />
         </div>
         <InkCorner corner="tl" />
         <InkCorner corner="tr" />
@@ -69,12 +72,7 @@ export function Frame({ photo, className, showCaption = true, priority = false }
         <Pearl size="sm" className="absolute top-1 left-8" />
         <Pearl size="sm" className="absolute top-1 right-8" />
       </div>
-      {showCaption && (
-        <figcaption className="caption-strip relative z-20 mx-4 mt-3 -rotate-1 px-3 py-2.5 md:mx-6">
-          <p className="font-script text-place leading-snug text-lagoon-deep">{t(photo.placeKey)}</p>
-          <p className="mt-1 font-script text-caption leading-snug text-ink-soft">{t(photo.captionKey)}</p>
-        </figcaption>
-      )}
+      {showCaption && <PhotoCaption place={t(photo.placeKey)} caption={t(photo.captionKey)} />}
     </figure>
   );
 }

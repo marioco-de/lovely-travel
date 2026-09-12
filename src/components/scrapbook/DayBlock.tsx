@@ -32,14 +32,15 @@ export function DayBlock({ day, index, active }: DayBlockProps) {
           className={cn("size-16 shrink-0 md:size-20", active && "is-active")}
         />
         <div className="min-w-0">
-          <h3 className="font-display text-day leading-tight font-semibold text-ink">{t(day.placeKey)}</h3>
-          <p className="mt-2 max-w-md font-script text-caption leading-snug text-ink-soft">{t(day.captionKey)}</p>
+          <h3 className="font-typewriter text-day leading-snug tracking-wide text-lagoon-deep">
+            {t(day.placeKey)}
+          </h3>
         </div>
       </div>
 
       <div
         className={cn(
-          "flex flex-col items-stretch gap-8 md:flex-row md:items-start md:gap-8",
+          "flex flex-col items-stretch gap-10 md:flex-row md:items-start md:gap-8",
           reverse && "md:flex-row-reverse",
         )}
       >
@@ -50,7 +51,7 @@ export function DayBlock({ day, index, active }: DayBlockProps) {
             delayMs={i * 70}
             className={cn("w-full min-w-0", polaroid ? "md:basis-3/5" : "md:basis-5/6")}
           >
-            <Frame photo={photo} showCaption={false} />
+            <Frame photo={photo} />
           </SlideIn>
         ))}
         {polaroid && (

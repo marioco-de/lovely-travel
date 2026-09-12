@@ -108,7 +108,8 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
                     <WaxPin active={active} />
                     <span
                       className={cn(
-                        "caption-strip absolute whitespace-nowrap px-1.5 py-0.5 font-script text-caption leading-none",
+                        "caption-strip absolute whitespace-nowrap px-1.5 py-0.5 font-typewriter text-caption leading-none tracking-wide",
+                        active ? "text-coral" : "text-lagoon-deep",
                         active ? "text-coral" : "text-ink",
                         stop.pin.label === "left" && "top-1/2 right-full mr-1 -translate-y-1/2",
                         stop.pin.label === "right" && "top-1/2 left-full ml-1 -translate-y-1/2",

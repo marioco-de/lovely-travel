@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { days } from "@/lib/album/data";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { AlbumEditor } from "./AlbumEditor";
 import { DayBlock } from "./DayBlock";
 import { HeroCollage } from "./HeroCollage";
 import { LanguageToggle } from "./LanguageToggle";
@@ -13,6 +14,7 @@ export function AlbumPage() {
   const t = useT();
   const reduced = usePrefersReducedMotion();
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     document.title = t("meta.title");
@@ -56,6 +58,15 @@ export function AlbumPage() {
       <div className="pointer-events-none sticky top-0 z-30 flex justify-end px-3 pt-3 md:px-6">
         <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
           <LanguageToggle />
+          <Stamp
+            as="button"
+            variant="rect"
+            labelKey="ui.edit"
+            rotation={-3}
+            pressed={editing}
+            onClick={() => setEditing(true)}
+            className="px-3 py-2"
+          />
           <ShareStamp />
         </div>
       </div>
@@ -75,6 +86,8 @@ export function AlbumPage() {
         <p className="max-w-md font-script text-caption text-ink-soft">{t("footer.colophon")}</p>
         <Stamp labelKey="stamp.passport" variant="round" rotation={-6} />
       </footer>
+
+      <AlbumEditor open={editing} onClose={() => setEditing(false)} />
     </div>
   );
 }

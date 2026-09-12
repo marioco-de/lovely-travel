@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { create } from "zustand";
+import { useAlbum } from "@/lib/album/store";
 import { messages, type Locale, type MessageKey } from "./messages";
 
 const STORAGE_KEY = "album-locale";
@@ -26,7 +27,12 @@ export const useLocale = create<LocaleState>((set) => ({
 
 export function useT() {
   const locale = useLocale((s) => s.locale);
-  return (key: MessageKey) => messages[locale][key] ?? messages.en[key];
+  const texts = useAlbum((s) => s.texts);
+  return (key: MessageKey) => {
+    const override = texts[locale]?.[key];
+    if (override !== undefined) return override;
+    return messages[locale][key] ?? messages.en[key];
+  };
 }
 
 export function hydrateLocale() {
@@ -47,6 +53,7 @@ export function hydrateLocale() {
 export function LocaleHydrator() {
   useEffect(() => {
     hydrateLocale();
+    void useAlbum.getState().hydrate();
   }, []);
   return null;
 }
