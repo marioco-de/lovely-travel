@@ -26,9 +26,9 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       id={`day-${day.id}`}
       data-day={day.id}
       data-paper={day.paper}
-      className={cn("day-wash relative scroll-mt-8 py-10 md:py-16", `day-wash--${day.paper}`)}
+      className={cn("day-wash relative isolate scroll-mt-8 py-10 md:py-16", `day-wash--${day.paper}`)}
     >
-      <PaperLayer variant={day.paper} />
+      <PaperLayer variant="azulejos" />
       <div className="relative z-10">
         <div className="relative z-20 mb-6 flex items-start gap-4 pl-8 md:mb-8 md:pl-16">
           <DayMark index={index} active={active} rotation={index % 2 === 0 ? -10 : 8} />

@@ -97,7 +97,7 @@ export const days: DayStop[] = [
     placeKey: "day.coimbra.place",
     captionKey: "day.coimbra.caption",
     pin: { x: 31, y: 44, label: "right" },
-    paper: "vines",
+    paper: "azulejos",
     photos: [
       {
         id: "rooftops",
@@ -128,7 +128,7 @@ export const days: DayStop[] = [
     placeKey: "day.lisbon.place",
     captionKey: "day.lisbon.caption",
     pin: { x: 25, y: 61, label: "left" },
-    paper: "waves",
+    paper: "azulejos",
     photos: [
       {
         id: "alfama",
@@ -159,7 +159,7 @@ export const days: DayStop[] = [
     placeKey: "day.algarve.place",
     captionKey: "day.algarve.caption",
     pin: { x: 29, y: 83, label: "right" },
-    paper: "sardinhas",
+    paper: "azulejos",
     photos: [
       {
         id: "cliffs",
