@@ -2,6 +2,7 @@ import { useT } from "@/lib/i18n/locale";
 import { PortugalMap } from "./PortugalMap";
 import { SlideIn } from "./SlideIn";
 import { Stamp } from "./Stamp";
+import { Tape } from "./Tape";
 
 type MapInsertProps = {
   activeId: string | null;
@@ -23,8 +24,18 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
         </div>
       </SlideIn>
 
-      <SlideIn from="right" delayMs={80} className="relative mx-auto w-full max-w-xl">
+      <SlideIn from="right" delayMs={80} className="relative mx-auto w-full max-w-xl overflow-visible">
+        <Tape
+          variant="plaid"
+          rotation={18}
+          className="-top-3 right-[8%] w-28"
+        />
         <PortugalMap variant="hero" activeId={activeId} onSelect={onSelect} />
+        <Tape
+          variant="plaid"
+          rotation={-12}
+          className="-bottom-3 left-[28%] w-32"
+        />
         <Stamp
           labelKey="stamp.route"
           variant="postal"

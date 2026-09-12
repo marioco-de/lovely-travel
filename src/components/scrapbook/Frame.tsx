@@ -3,7 +3,6 @@ import { useT } from "@/lib/i18n/locale";
 import { usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, RotateDir } from "@/lib/album/data";
 import { DevelopingImage } from "./DevelopingImage";
-import { Pearl } from "./Pearl";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoCorners } from "./PhotoCorners";
 
@@ -31,7 +30,7 @@ export function Frame({ photo, className, showCaption = true, priority = false }
   return (
     <figure className={cn("photo-block relative", className)}>
       <div className={cn("photo-print relative", rotateClass[photo.rotate])}>
-        <div className="photo-shadow relative bg-mat p-2 md:p-2.5">
+        <div className="photo-shadow relative overflow-visible bg-mat p-2 md:p-2.5">
           <div
             className={cn(
               "relative overflow-hidden bg-page-deep",
@@ -41,8 +40,6 @@ export function Frame({ photo, className, showCaption = true, priority = false }
             <DevelopingImage key={src} src={src} alt={t(photo.altKey)} priority={priority} />
           </div>
           <PhotoCorners variant={corners} />
-          <Pearl size="sm" className="absolute top-1 left-8 z-10" />
-          <Pearl size="sm" className="absolute top-1 right-8 z-10" />
         </div>
       </div>
       {showCaption && <PhotoCaption place={t(photo.placeKey)} caption={t(photo.captionKey)} />}
