@@ -24,7 +24,7 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
         </div>
       </SlideIn>
 
-      <SlideIn from="right" delayMs={80} className="relative mx-auto w-full max-w-xl overflow-visible">
+      <SlideIn from="right" delayMs={80} className="relative mx-auto w-full max-w-3xl overflow-hidden">
         <Tape
           variant="plaid"
           rotation={18}

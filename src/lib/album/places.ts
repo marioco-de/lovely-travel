@@ -1,4 +1,10 @@
-/** Real stop coordinates (WGS84), from municipal / map sources — not guessed. */
+export type GeoHit = {
+  lat: number;
+  lng: number;
+  address: string;
+};
+
+/** Real stop coordinates (WGS84). */
 export type PlaceRecord = {
   id: string;
   name: string;

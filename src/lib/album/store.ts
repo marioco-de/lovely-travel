@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Locale, MessageKey } from "@/lib/i18n/messages";
 import { days, heroPhotos, type AlbumPhoto } from "./data";
+import { geocodePortugal } from "./geocode";
 import {
   catalogSrc,
   emptyBlock,
@@ -142,6 +143,7 @@ async function readAllPhotos() {
 
 let saveTimer: number | undefined;
 let layoutTimer: number | undefined;
+let geoTimer: number | undefined;
 
 function isLayout(value: unknown): value is AlbumLayout {
   if (!value || typeof value !== "object") return false;
@@ -263,6 +265,20 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         place: { ...day.place, [locale]: value },
       })),
     );
+    const day = get().layout.days.find((item) => item.id === dayId);
+    const query = day ? `${day.place.de || day.place.en}` : value;
+    if (typeof window === "undefined") return;
+    window.clearTimeout(geoTimer);
+    geoTimer = window.setTimeout(() => {
+      void geocodePortugal(query).then((hit) => {
+        if (!hit) return;
+        persistLayout(
+          set,
+          get,
+          mapDays(get().layout, dayId, (item) => ({ ...item, geo: hit })),
+        );
+      });
+    }, 640);
   },
   setDayPin: (dayId, pin) => {
     persistLayout(

@@ -1,5 +1,16 @@
 import { de, en } from "@/lib/i18n/messages";
-import { CORNER_STYLES, days, heroPhotos, type AlbumPhoto, type CornerSet, type CornerStyle, type PaperVariant, type PhotoKind, type RotateDir } from "./data";
+import {
+  CORNER_STYLES,
+  days,
+  heroPhotos,
+  type AlbumPhoto,
+  type CornerSet,
+  type CornerStyle,
+  type PaperVariant,
+  type PhotoKind,
+  type RotateDir,
+} from "./data";
+import { PLACES, type GeoHit } from "./places";
 
 export type I18nPair = { en: string; de: string };
 
@@ -20,6 +31,7 @@ export type LayoutDay = {
   place: I18nPair;
   label: I18nPair;
   pin: { x: number; y: number; label: "left" | "right" | "bottom" };
+  geo?: GeoHit;
   paper: PaperVariant;
   blocks: LayoutBlock[];
 };
@@ -44,9 +56,10 @@ export type PrintPhoto = {
 const emptyPair = (): I18nPair => ({ en: "", de: "" });
 
 export function newId(prefix: string) {
-  const rand = typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const rand =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `${prefix}-${rand}`;
 }
 
@@ -96,12 +109,14 @@ export function seedLayout(): AlbumLayout {
     version: 1,
     days: days.map((day) => {
       const place = pairFrom(day.placeKey);
+      const known = PLACES[day.id];
       return {
         id: day.id,
         builtIn: true,
         place,
         label: pairFrom(day.labelKey),
         pin: { ...day.pin },
+        geo: known ? { lat: known.lat, lng: known.lng, address: known.address } : undefined,
         paper: day.paper,
         blocks: day.photos.map((photo) => photoToBlock(photo, place)),
       };
@@ -116,7 +131,7 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
     days: saved.days.map((day) => {
       const fromSeed = seed.days.find((item) => item.id === day.id);
       if (!fromSeed) return day;
-      return { ...day, paper: fromSeed.paper, pin: fromSeed.pin };
+      return { ...day, paper: fromSeed.paper, pin: fromSeed.pin, geo: day.geo ?? fromSeed.geo };
     }),
   };
 }
@@ -150,4 +165,11 @@ export function emptyDay(index: number): LayoutDay {
 export function rotateFor(index: number): RotateDir {
   const cycle: RotateDir[] = ["leftSoft", "right", "left", "rightSoft"];
   return cycle[index % cycle.length] ?? "none";
+}
+
+export function dayGeo(day: { id: string; geo?: GeoHit }): GeoHit | null {
+  if (day.geo) return day.geo;
+  const known = PLACES[day.id];
+  if (!known) return null;
+  return { lat: known.lat, lng: known.lng, address: known.address };
 }

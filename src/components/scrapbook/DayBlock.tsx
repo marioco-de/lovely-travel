@@ -25,6 +25,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const reverse = index % 2 === 1;
   const placeName = pairText(day.place, locale);
   const place = PLACES[day.id];
+  const address = day.geo?.address ?? place?.address;
 
   function toPrint(photoId: string, i: number, placeLabel: string, caption: string): PrintPhoto {
     const mount = cornersFor(photoId, i + index);
@@ -52,7 +53,14 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       )}
     >
       <PaperLayer variant={day.paper} />
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl items-start gap-8 px-4 md:grid-cols-[minmax(0,1fr)_10.5rem] md:px-10 lg:grid-cols-[minmax(0,1fr)_13rem] lg:px-16">
+      <PortugalMap
+        variant="aside"
+        activeId={day.id}
+        focusId={day.id}
+        onSelect={onSelect}
+        className="hidden md:block"
+      />
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
         <div className="min-w-0">
           <div className="relative z-20 mb-6 flex items-start gap-4 pl-8 md:mb-8 md:pl-16">
             <DayMark index={index} active={active} rotation={index % 2 === 0 ? -10 : 8} />
@@ -60,8 +68,8 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
               <h3 className="place-type text-center font-typewriter text-day leading-snug text-lagoon-deep md:text-left">
                 — {placeName} —
               </h3>
-              {place ? (
-                <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink-soft">{place.address}</p>
+              {address ? (
+                <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink-soft">{address}</p>
               ) : null}
             </div>
           </div>
@@ -137,14 +145,6 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
             })}
           </div>
         </div>
-
-        <PortugalMap
-          variant="aside"
-          activeId={day.id}
-          focusId={day.id}
-          onSelect={onSelect}
-          className="pointer-events-none sticky top-10 hidden md:block"
-        />
       </div>
     </article>
   );

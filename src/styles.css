@@ -60,8 +60,8 @@
   --text-place: clamp(0.95rem, 0.82rem + 0.35vw, 1.15rem);
   --text-title: clamp(2.4rem, 1.5rem + 3.2vw, 4.4rem);
   --text-day: clamp(1.45rem, 1.15rem + 0.9vw, 1.95rem);
-  --size-corner: 4.1rem;
-  --size-corner-lg: 5rem;
+  --size-corner: 2.15rem;
+  --size-corner-lg: 2.6rem;
   --paper-layer-opacity: 0.16;
 }
 
@@ -550,29 +550,61 @@ body {
 }
 
 .portugal-map--hero {
-  aspect-ratio: 3 / 4;
-  max-height: 42rem;
-  overflow: visible;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  min-height: 22rem;
+  max-height: 34rem;
+  overflow: hidden;
 }
 
-.portugal-map--hero .portugal-map-art {
-  object-fit: contain;
+.portugal-map--aside,
+.portugal-map--flush {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(52vw, 28rem);
+  height: 100%;
+  margin: 0;
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom left, #000 20%, #000 42%, transparent 76%);
+  mask-image: linear-gradient(to bottom left, #000 20%, #000 42%, transparent 76%);
 }
 
-.portugal-map--aside {
-  aspect-ratio: 440 / 1120;
-  opacity: 0.78;
-  -webkit-mask-image: linear-gradient(to left, #000 48%, transparent 100%);
-  mask-image: linear-gradient(to left, #000 48%, transparent 100%);
+.portugal-leaflet-canvas.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: var(--color-page-deep);
+  font: inherit;
 }
 
-.portugal-map--aside .portugal-map-art {
-  object-fit: contain;
-  object-position: top right;
+.portugal-leaflet .leaflet-tile-pane {
+  filter: sepia(0.24) saturate(0.78) contrast(0.96);
 }
 
-.portugal-map--aside .map-pin {
-  pointer-events: auto;
+.portugal-leaflet .leaflet-control-attribution {
+  font-size: 0.6rem;
+  background: rgb(243 230 201 / 0.82);
+}
+
+.map-pin-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.leaflet-wax .wax-seal {
+  transform: scale(0.72);
+  transform-origin: bottom center;
+}
+
+.leaflet-tooltip {
+  background: var(--color-mat);
+  border: 0;
+  box-shadow: 0 2px 8px rgb(61 42 28 / 0.16);
+  color: var(--color-lagoon-deep);
+  font-family: var(--font-typewriter);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
 }
 
 .album-field {
