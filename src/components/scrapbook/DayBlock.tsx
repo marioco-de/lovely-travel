@@ -1,25 +1,41 @@
 import { cn } from "@/lib/utils";
-import type { DayStop } from "@/lib/album/data";
-import { useT } from "@/lib/i18n/locale";
+import { catalogSrc, rotateFor, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
+import { pairText, useAlbum } from "@/lib/album/store";
+import { useLocale } from "@/lib/i18n/locale";
 import { DayMark } from "./DayMark";
 import { Frame } from "./Frame";
+import { NoteCard } from "./NoteCard";
 import { PaperLayer } from "./PaperLayer";
+import { PlaceCard } from "./PlaceCard";
 import { Polaroid } from "./Polaroid";
 import { PortugalMap } from "./PortugalMap";
 import { SlideIn } from "./SlideIn";
 
 type DayBlockProps = {
-  day: DayStop;
+  day: LayoutDay;
   index: number;
   active: boolean;
   onSelect: (id: string) => void;
 };
 
 export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
-  const t = useT();
+  const locale = useLocale((s) => s.locale);
+  const photos = useAlbum((s) => s.photos);
   const reverse = index % 2 === 1;
-  const polaroid = day.photos.find((p) => p.kind === "polaroid");
-  const framed = day.photos.filter((p) => p.kind !== "polaroid");
+  const placeName = pairText(day.place, locale);
+
+  function toPrint(photoId: string, i: number, place: string, caption: string): PrintPhoto {
+    return {
+      id: photoId,
+      src: photos[photoId] ?? catalogSrc(photoId),
+      alt: caption || place || placeName,
+      place,
+      caption,
+      kind: "landscape",
+      rotate: rotateFor(i + index),
+      corners: "classic",
+    };
+  }
 
   return (
     <article
@@ -36,40 +52,79 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
         <div className="relative z-20 mb-6 flex items-start gap-4 pl-8 md:mb-8 md:pl-16">
           <DayMark index={index} active={active} rotation={index % 2 === 0 ? -10 : 8} />
           <div className="min-w-0">
-            <h3 className="place-type font-typewriter text-day leading-snug text-lagoon-deep">
-              {t(day.placeKey)}
-            </h3>
+            <h3 className="place-type font-typewriter text-day leading-snug text-lagoon-deep">{placeName}</h3>
           </div>
         </div>
 
-        <div
-          className={cn(
-            "grid grid-cols-1 items-start gap-10 md:grid-cols-5 md:gap-8",
-            reverse && "md:[&_.day-frame]:col-start-3",
-          )}
-        >
-          {framed.map((photo, i) => (
-            <SlideIn
-              key={photo.id}
-              from="left"
-              delayMs={i * 70}
-              className={cn("day-frame min-w-0", polaroid ? "md:col-span-3" : "md:col-span-4")}
-            >
-              <Frame photo={photo} />
-            </SlideIn>
-          ))}
-          {polaroid && (
-            <SlideIn
-              from="left"
-              delayMs={90}
-              className={cn(
-                "relative z-10 min-w-0 w-3/4 max-w-xs justify-self-end md:col-span-2 md:w-auto md:max-w-none md:justify-self-stretch",
-                reverse && "md:col-start-1 md:row-start-1",
-              )}
-            >
-              <Polaroid photo={polaroid} />
-            </SlideIn>
-          )}
+        <div className="relative z-10 flex flex-col gap-10">
+          {day.blocks.map((block, blockIndex) => {
+            const blockPlace = pairText(block.place, locale) || placeName;
+            const blockCaption = pairText(block.caption, locale);
+            const body = pairText(block.body, locale);
+            const visibleIds = block.photoIds.filter((id) => photos[id] || catalogSrc(id));
+
+            if (block.kind === "note") {
+              return <NoteCard key={block.id} place={blockPlace} body={body} />;
+            }
+            if (block.kind === "place") {
+              return <PlaceCard key={block.id} place={blockPlace} caption={blockCaption || body} />;
+            }
+            if (block.kind === "polaroid") {
+              const id = visibleIds[0] ?? block.photoIds[0];
+              if (!id) return null;
+              return (
+                <SlideIn
+                  key={block.id}
+                  from="left"
+                  className="w-3/4 max-w-xs self-end md:w-[38%] md:max-w-sm"
+                >
+                  <Polaroid
+                    photo={{
+                      ...toPrint(id, blockIndex, blockPlace, blockCaption),
+                      kind: "polaroid",
+                      rotate: "right",
+                    }}
+                  />
+                </SlideIn>
+              );
+            }
+            if (block.kind === "collage") {
+              if (visibleIds.length === 0) return null;
+              const [first, ...rest] = visibleIds;
+              if (!first) return null;
+              return (
+                <div
+                  key={block.id}
+                  className={cn(
+                    "grid grid-cols-1 items-start gap-8 md:grid-cols-5",
+                    reverse && "md:[&_.day-frame]:col-start-1",
+                  )}
+                >
+                  <SlideIn from="left" className="day-frame min-w-0 md:col-span-3">
+                    <Frame photo={toPrint(first, blockIndex, blockPlace, blockCaption)} />
+                  </SlideIn>
+                  {rest[0] ? (
+                    <SlideIn from="left" delayMs={80} className="min-w-0 w-3/4 max-w-xs justify-self-end md:col-span-2 md:w-auto md:max-w-none">
+                      <Polaroid
+                        photo={{
+                          ...toPrint(rest[0], blockIndex + 1, blockPlace, blockCaption),
+                          kind: "polaroid",
+                          rotate: "left",
+                        }}
+                      />
+                    </SlideIn>
+                  ) : null}
+                </div>
+              );
+            }
+            const id = visibleIds[0] ?? block.photoIds[0];
+            if (!id || (!photos[id] && !catalogSrc(id))) return null;
+            return (
+              <SlideIn key={block.id} from="left" className="day-frame max-w-3xl">
+                <Frame photo={toPrint(id, blockIndex, blockPlace, blockCaption)} />
+              </SlideIn>
+            );
+          })}
         </div>
 
         <PortugalMap

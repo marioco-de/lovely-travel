@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { days } from "@/lib/album/data";
+import { useAlbum } from "@/lib/album/store";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { AlbumEditor } from "./AlbumEditor";
@@ -13,6 +13,7 @@ import { Stamp } from "./Stamp";
 export function AlbumPage() {
   const t = useT();
   const reduced = usePrefersReducedMotion();
+  const days = useAlbum((s) => s.layout.days);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
   const [editing, setEditing] = useState(false);
 
@@ -21,6 +22,11 @@ export function AlbumPage() {
     const description = document.querySelector('meta[name="description"]');
     if (description) description.setAttribute("content", t("meta.description"));
   }, [t]);
+
+  useEffect(() => {
+    if (!days[0]) return;
+    setActiveId((current) => (days.some((day) => day.id === current) ? current : (days[0]?.id ?? null)));
+  }, [days]);
 
   useEffect(() => {
     const sections = days
@@ -40,7 +46,7 @@ export function AlbumPage() {
     );
     for (const el of sections) io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [days]);
 
   function openDay(id: string) {
     setActiveId(id);

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { days, landPin, routePath } from "@/lib/album/data";
-import { useAlbum } from "@/lib/album/store";
-import { useT } from "@/lib/i18n/locale";
+import { landPin, routePath } from "@/lib/album/data";
+import { pairText, useAlbum } from "@/lib/album/store";
+import { useLocale, useT } from "@/lib/i18n/locale";
 import { WaxPin } from "./WaxPin";
 
 type PortugalMapProps = {
@@ -18,7 +18,9 @@ export function PortugalMap({
   className,
 }: PortugalMapProps) {
   const t = useT();
+  const locale = useLocale((s) => s.locale);
   const hiddenPins = useAlbum((s) => s.hiddenPins);
+  const days = useAlbum((s) => s.layout.days);
   const visible = days.filter((stop) => !hiddenPins[stop.id]);
   const points = visible.map((stop) => (variant === "aside" ? landPin(stop.pin) : stop.pin));
   const path = routePath(points);
@@ -49,12 +51,13 @@ export function PortugalMap({
         const point = points[i];
         if (!point) return null;
         const active = activeId === stop.id;
+        const name = pairText(stop.place, locale);
         return (
           <button
             key={stop.id}
             type="button"
             onClick={() => onSelect(stop.id)}
-            aria-label={`${t(stop.placeKey)} — ${t("ui.openDay")}`}
+            aria-label={`${name} — ${t("ui.openDay")}`}
             aria-current={active ? "true" : undefined}
             className={cn(
               "map-pin pointer-events-auto absolute -translate-x-1/2 -translate-y-[70%]",
@@ -74,7 +77,7 @@ export function PortugalMap({
                     stop.pin.label === "bottom" && "top-full mt-1",
                   )}
                 >
-                  {t(stop.placeKey)}
+                  {name}
                 </span>
               )}
             </span>
