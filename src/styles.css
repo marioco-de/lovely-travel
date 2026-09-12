@@ -278,16 +278,19 @@ body {
   height: 100%;
 }
 
-.photo-corners--classic .photo-corner,
+.photo-corners--classic .photo-corner {
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.28));
+}
+
 .photo-corners--scalloped .photo-corner {
-  background-image: none;
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
+  width: calc(var(--size-corner) * 1.08);
+  height: calc(var(--size-corner) * 1.08);
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2));
 }
 
 .photo-corners--ink .photo-corner {
-  background-image: none;
   mix-blend-mode: multiply;
-  opacity: 0.9;
+  opacity: 0.88;
 }
 
 .paper-layer {

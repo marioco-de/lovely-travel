@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/locale";
 import { usePhotoSrc } from "@/lib/album/store";
-import type { AlbumPhoto, RotateDir } from "@/lib/album/data";
+import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
 import type { PrintPhoto } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
 import { PhotoCaption } from "./PhotoCaption";
@@ -31,6 +31,8 @@ export function Frame({ photo, className, showCaption = true, priority = false }
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const isDetail = photo.kind === "detail";
   const corners = "corners" in photo ? (photo.corners ?? (isDetail ? "scalloped" : "classic")) : "classic";
+  const cornerSet: CornerSet =
+    "cornerSet" in photo && photo.cornerSet ? photo.cornerSet : isDetail ? "diagonal" : "all";
   const alt = isCatalog(photo) ? t(photo.altKey) : photo.alt;
   const place = isCatalog(photo) ? t(photo.placeKey) : photo.place;
   const caption = isCatalog(photo) ? t(photo.captionKey) : photo.caption;
@@ -53,7 +55,7 @@ export function Frame({ photo, className, showCaption = true, priority = false }
               </div>
             )}
           </div>
-          <PhotoCorners variant={corners} />
+          <PhotoCorners variant={corners} set={cornerSet} />
         </div>
       </div>
       {showCaption && <PhotoCaption place={place} caption={caption} />}

@@ -4,6 +4,7 @@ export type PhotoKind = "landscape" | "portrait" | "polaroid" | "detail";
 export type SlideFrom = "left" | "right";
 export type RotateDir = "left" | "right" | "leftSoft" | "rightSoft" | "none";
 export type CornerStyle = "classic" | "scalloped" | "ink";
+export type CornerSet = "all" | "diagonal" | "top";
 export type PaperVariant = "azulejos" | "sardinhas" | "vines" | "waves";
 
 export type AlbumPhoto = {
@@ -16,6 +17,7 @@ export type AlbumPhoto = {
   rotate: RotateDir;
   slideFrom: SlideFrom;
   corners?: CornerStyle;
+  cornerSet?: CornerSet;
 };
 
 export type DayStop = {
@@ -45,6 +47,7 @@ export const heroPhotos = {
     rotate: "leftSoft",
     slideFrom: "left",
     corners: "classic",
+    cornerSet: "all",
   },
   courtyard: {
     id: "courtyard",
@@ -66,6 +69,7 @@ export const heroPhotos = {
     rotate: "left",
     slideFrom: "left",
     corners: "scalloped",
+    cornerSet: "diagonal",
   },
 } as const satisfies Record<string, AlbumPhoto>;
 
@@ -88,6 +92,7 @@ export const days: DayStop[] = [
         rotate: "leftSoft",
         slideFrom: "left",
         corners: "classic",
+        cornerSet: "diagonal",
       },
     ],
   },
@@ -109,6 +114,7 @@ export const days: DayStop[] = [
         rotate: "rightSoft",
         slideFrom: "right",
         corners: "scalloped",
+        cornerSet: "all",
       },
       {
         id: "se",
@@ -140,6 +146,7 @@ export const days: DayStop[] = [
         rotate: "leftSoft",
         slideFrom: "left",
         corners: "ink",
+        cornerSet: "all",
       },
       {
         id: "tram",
@@ -171,6 +178,7 @@ export const days: DayStop[] = [
         rotate: "leftSoft",
         slideFrom: "left",
         corners: "classic",
+        cornerSet: "top",
       },
       {
         id: "cove",

@@ -1,5 +1,5 @@
 import { de, en } from "@/lib/i18n/messages";
-import { days, heroPhotos, type PaperVariant, type PhotoKind, type RotateDir } from "./data";
+import { days, heroPhotos, type AlbumPhoto, type CornerSet, type CornerStyle, type PaperVariant, type PhotoKind, type RotateDir } from "./data";
 
 export type I18nPair = { en: string; de: string };
 
@@ -37,7 +37,8 @@ export type PrintPhoto = {
   caption: string;
   kind: PhotoKind;
   rotate: RotateDir;
-  corners?: "classic" | "scalloped" | "ink";
+  corners?: CornerStyle;
+  cornerSet?: CornerSet;
 };
 
 const emptyPair = (): I18nPair => ({ en: "", de: "" });
@@ -50,13 +51,30 @@ export function newId(prefix: string) {
 }
 
 export function catalogSrc(id: string): string {
+  return catalogPhoto(id)?.src ?? "";
+}
+
+export function catalogPhoto(id: string): AlbumPhoto | undefined {
   const hero = Object.values(heroPhotos).find((item) => item.id === id);
-  if (hero) return hero.src;
+  if (hero) return hero;
   for (const day of days) {
     const photo = day.photos.find((item) => item.id === id);
-    if (photo) return photo.src;
+    if (photo) return photo;
   }
-  return "";
+  return undefined;
+}
+
+export function cornersFor(id: string, index: number): { corners: CornerStyle; cornerSet: CornerSet } {
+  const photo = catalogPhoto(id);
+  if (photo?.corners) {
+    return { corners: photo.corners, cornerSet: photo.cornerSet ?? "all" };
+  }
+  const styles: CornerStyle[] = ["classic", "scalloped", "ink"];
+  const sets: CornerSet[] = ["all", "diagonal", "top"];
+  return {
+    corners: styles[index % 3] ?? "classic",
+    cornerSet: sets[index % 3] ?? "all",
+  };
 }
 
 function pairFrom(enKey: keyof typeof en, deFallback?: string): I18nPair {

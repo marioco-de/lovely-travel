@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { catalogSrc, rotateFor, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
+import { catalogSrc, cornersFor, rotateFor, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale } from "@/lib/i18n/locale";
 import { DayMark } from "./DayMark";
@@ -25,6 +25,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const placeName = pairText(day.place, locale);
 
   function toPrint(photoId: string, i: number, place: string, caption: string): PrintPhoto {
+    const mount = cornersFor(photoId, i + index);
     return {
       id: photoId,
       src: photos[photoId] ?? catalogSrc(photoId),
@@ -33,7 +34,8 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       caption,
       kind: "landscape",
       rotate: rotateFor(i + index),
-      corners: "classic",
+      corners: mount.corners,
+      cornerSet: mount.cornerSet,
     };
   }
 
