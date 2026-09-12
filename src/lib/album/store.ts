@@ -13,13 +13,37 @@ type AlbumState = {
   ready: boolean;
   photos: Record<string, string>;
   texts: AlbumTexts;
+  hiddenPins: Record<string, boolean>;
   hydrate: () => Promise<void>;
   setPhoto: (id: string, file: File) => Promise<void>;
   setText: (locale: Locale, key: MessageKey, value: string) => void;
+  togglePin: (id: string) => void;
   reset: () => Promise<void>;
 };
 
 const emptyTexts = (): AlbumTexts => ({ en: {}, de: {} });
+
+const PIN_KEY = "tropical-album-pins";
+
+function readHiddenPins(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(PIN_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as Record<string, boolean>;
+  } catch {
+    return {};
+  }
+}
+
+function writeHiddenPins(hiddenPins: Record<string, boolean>) {
+  try {
+    localStorage.setItem(PIN_KEY, JSON.stringify(hiddenPins));
+  } catch {
+    /* ignore */
+  }
+}
 
 function openDb() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -127,9 +151,10 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   ready: false,
   photos: {},
   texts: emptyTexts(),
+  hiddenPins: {},
   hydrate: async () => {
     if (typeof indexedDB === "undefined") {
-      set({ ready: true });
+      set({ ready: true, hiddenPins: readHiddenPins() });
       return;
     }
     try {
@@ -146,9 +171,10 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         ready: true,
         photos,
         texts: { en: en ?? {}, de: de ?? {} },
+        hiddenPins: readHiddenPins(),
       });
     } catch {
-      set({ ready: true });
+      set({ ready: true, hiddenPins: readHiddenPins() });
     }
   },
   setPhoto: async (id, file) => {
@@ -171,9 +197,17 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     set({ texts });
     scheduleTextSave(texts);
   },
+  togglePin: (id) => {
+    const hiddenPins = { ...get().hiddenPins };
+    if (hiddenPins[id]) delete hiddenPins[id];
+    else hiddenPins[id] = true;
+    set({ hiddenPins });
+    writeHiddenPins(hiddenPins);
+  },
   reset: async () => {
     for (const url of Object.values(get().photos)) URL.revokeObjectURL(url);
-    set({ photos: {}, texts: emptyTexts() });
+    set({ photos: {}, texts: emptyTexts(), hiddenPins: {} });
+    writeHiddenPins({});
     try {
       await Promise.all([idbClear(PHOTO_STORE), idbClear(TEXT_STORE)]);
     } catch {

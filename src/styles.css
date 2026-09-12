@@ -14,10 +14,11 @@
   --color-mat: #fbf6ec;
   --color-stamp: #4a2c18;
   --color-tape: #e6c97a;
+  --color-route: #c12a21;
 
   --font-display: "Fraunces", "Times New Roman", serif;
   --font-script: "Caveat", "Segoe Script", cursive;
-  --font-typewriter: "Courier Prime", "American Typewriter", "Courier New", ui-monospace, monospace;
+  --font-typewriter: "Special Elite", "Courier Prime", "American Typewriter", "Courier New", ui-monospace, monospace;
   --font-sans: "Fraunces", "Times New Roman", serif;
 
   --radius-xs: 0.25rem;
@@ -56,12 +57,12 @@
 
   --text-kicker: clamp(0.75rem, 0.7rem + 0.2vw, 0.8125rem);
   --text-caption: clamp(1.05rem, 0.95rem + 0.4vw, 1.25rem);
-  --text-place: clamp(1.35rem, 1.1rem + 0.8vw, 1.85rem);
+  --text-place: clamp(0.95rem, 0.82rem + 0.35vw, 1.15rem);
   --text-title: clamp(2.4rem, 1.5rem + 3.2vw, 4.4rem);
-  --text-day: clamp(1.7rem, 1.3rem + 1.4vw, 2.4rem);
-  --size-corner: 2.15rem;
-  --size-corner-lg: 2.65rem;
-  --paper-layer-opacity: 0.4;
+  --text-day: clamp(1.45rem, 1.15rem + 0.9vw, 1.95rem);
+  --size-corner: 2.45rem;
+  --size-corner-lg: 3rem;
+  --paper-layer-opacity: 0.12;
 }
 
 @layer base {
@@ -216,9 +217,10 @@ body {
 
 .photo-corners {
   position: absolute;
-  inset: 0;
+  inset: -0.2rem;
   pointer-events: none;
-  z-index: 3;
+  z-index: 4;
+  overflow: visible;
 }
 
 .photo-corner {
@@ -286,15 +288,47 @@ body {
 }
 
 .paper-layer--azulejos {
-  opacity: 0.46;
+  opacity: 0.11;
   background-image: url("/patterns/azulejos.svg");
-  background-size: 4.25rem 4.25rem;
+  background-size: 5.5rem 5.5rem;
 }
 
 .paper-layer--sardinhas {
-  opacity: 0.5;
+  opacity: 0.12;
   background-image: url("/patterns/sardinhas.svg");
-  background-size: 7.25rem 4.5rem;
+  background-size: 9rem 5.6rem;
+}
+
+.paper-layer--vines {
+  opacity: 0.11;
+  background-image: url("/patterns/vines.svg");
+  background-size: 5.75rem 5.75rem;
+}
+
+.paper-layer--waves {
+  opacity: 0.11;
+  background-image: url("/patterns/waves.svg");
+  background-size: 7.5rem 3.75rem;
+}
+
+.day-wash {
+  background-color: color-mix(in oklab, var(--day-tint, var(--color-lagoon)) 5%, transparent);
+}
+
+.day-wash--azulejos {
+  --day-tint: var(--color-lagoon);
+}
+
+.day-wash--vines {
+  --day-tint: var(--color-palm);
+}
+
+.day-wash--waves {
+  --day-tint: var(--color-lagoon-deep);
+}
+
+.day-wash--sardinhas {
+  --day-tint: var(--color-coral);
 }
 
 .paper-patch > .paper-layer {
@@ -359,23 +393,67 @@ body {
   }
 }
 
-.polaroid-emulsion {
-  filter: grayscale(1) contrast(0.46) brightness(1.18) saturate(0);
+.develop-stage {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
-.polaroid-emulsion.is-developed {
+.polaroid-emulsion {
+  position: relative;
+  z-index: 0;
+  display: block;
+  filter: grayscale(1) contrast(0.7) brightness(1.5) saturate(0);
+}
+
+.develop-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: #8e8f89;
+}
+
+.develop-stage.is-developed .develop-veil {
+  animation: veil-lift var(--motion-develop) var(--ease-smooth-out) forwards;
+}
+
+.develop-stage.is-developed .polaroid-emulsion {
   animation: develop-film var(--motion-develop) var(--ease-smooth-out) forwards;
+}
+
+@keyframes veil-lift {
+  0%,
+  14% {
+    opacity: 1;
+  }
+  38% {
+    opacity: 0.52;
+  }
+  54% {
+    opacity: 0.12;
+  }
+  70%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes develop-film {
   0% {
-    filter: grayscale(1) contrast(0.46) brightness(1.18) saturate(0);
+    filter: grayscale(1) contrast(0.7) brightness(1.55) saturate(0);
   }
-  38% {
-    filter: grayscale(0.55) contrast(0.72) brightness(1.12) saturate(0.35);
+  34% {
+    filter: grayscale(0.12) contrast(1.28) brightness(1.1) saturate(2.4) hue-rotate(152deg);
+  }
+  52% {
+    filter: grayscale(0) contrast(1.12) brightness(1.04) saturate(1.65) hue-rotate(-16deg) sepia(0.28);
   }
   100% {
-    filter: grayscale(0) contrast(1) brightness(1) saturate(1);
+    filter: grayscale(0) contrast(1) brightness(1) saturate(1) hue-rotate(0deg);
   }
 }
 
@@ -393,12 +471,73 @@ body {
   background: var(--color-mat);
   box-shadow: var(--shadow-photo);
   color: var(--color-ink);
+  overflow: visible;
+}
+
+.place-type {
+  letter-spacing: 0.04em;
+  mix-blend-mode: multiply;
+  opacity: 0.92;
+  text-shadow: 0.35px 0 0 rgb(61 42 28 / 0.18);
 }
 
 .photo-block {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.photo-print {
+  overflow: visible;
+}
+
+.portugal-seal {
+  width: 5.25rem;
+  height: 5.25rem;
+  color: var(--color-stamp);
+  mix-blend-mode: multiply;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.lang-fan-leaf {
+  position: absolute;
+  right: calc(100% + 0.4rem);
+  top: 0.35rem;
+  z-index: 5;
+}
+
+.portugal-map {
+  position: relative;
+  background: transparent;
+}
+
+.portugal-map-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 1;
+}
+
+.portugal-map--hero {
+  aspect-ratio: 3 / 4;
+  max-height: 42rem;
+}
+
+.portugal-map--hero .portugal-map-art {
+  object-fit: contain;
+}
+
+.portugal-map--aside {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgb(0 0 0 / 0.35) 28%, #000 62%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgb(0 0 0 / 0.35) 28%, #000 62%);
+}
+
+.portugal-map--aside .map-pin {
+  pointer-events: auto;
 }
 
 .album-field {
@@ -449,12 +588,11 @@ body {
 
 .route-dash {
   fill: none;
-  stroke: var(--color-stamp);
-  stroke-width: 1.35;
-  stroke-dasharray: 3.2 2.6;
+  stroke: var(--color-route);
+  stroke-width: 1.55;
+  stroke-dasharray: 3.2 2.4;
   stroke-linecap: round;
-  opacity: 0.78;
-  mix-blend-mode: multiply;
+  opacity: 0.92;
 }
 
 .wax-seal {
@@ -547,11 +685,17 @@ body {
   }
 
   .polaroid-emulsion,
-  .polaroid-emulsion.is-developed {
+  .polaroid-emulsion.is-developed,
+  .develop-stage.is-developed .polaroid-emulsion {
     animation: none;
     filter: none;
     transform: none;
     transition: none;
+  }
+
+  .develop-veil {
+    opacity: 0;
+    animation: none;
   }
 
   .wax-seal,

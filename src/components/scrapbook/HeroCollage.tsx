@@ -12,7 +12,7 @@ export function HeroCollage() {
   const t = useT();
 
   return (
-    <section className="relative mx-auto w-full max-w-5xl overflow-x-clip px-4 pt-4 pb-8 md:px-8 md:pt-6 md:pb-16">
+    <section className="relative mx-auto w-full max-w-5xl px-4 pt-4 pb-8 md:px-8 md:pt-6 md:pb-16">
       <header className="relative mb-8 max-w-xl pr-28 md:mb-10 md:pr-36">
         <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">
           {t("album.kicker")}
@@ -20,7 +20,7 @@ export function HeroCollage() {
         <h1 className="mt-2 font-display text-title leading-tight font-semibold tracking-tight text-ink">
           {t("album.title")}
         </h1>
-        <p className="mt-3 font-typewriter text-place tracking-wide text-lagoon-deep">{t("album.year")}</p>
+        <p className="place-type mt-3 font-typewriter text-place text-lagoon-deep">{t("album.year")}</p>
         <Stamp
           labelKey="stamp.azores"
           variant="round"
@@ -34,7 +34,7 @@ export function HeroCollage() {
         <div className="relative w-[92%] max-w-3xl self-start md:w-[78%]">
           <div className="photo-block">
             <SlideIn from="left">
-              <Frame photo={heroPhotos.lagoon} priority showCaption={false} />
+              <Frame photo={heroPhotos.lagoon} priority showCaption={false} seal />
             </SlideIn>
             <PhotoCaption
               as="div"

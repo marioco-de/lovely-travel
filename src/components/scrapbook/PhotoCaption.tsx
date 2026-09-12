@@ -19,13 +19,14 @@ export function PhotoCaption({
   return (
     <Tag
       className={cn(
+        "min-w-0",
         variant === "band"
           ? "relative z-20 px-1.5 pt-3 pb-3.5"
           : "caption-strip relative z-20 mx-3 -mt-3 px-3 py-2.5 -rotate-1 md:mx-5",
         className,
       )}
     >
-      <p className="font-typewriter text-place leading-snug tracking-wide text-lagoon-deep">{place}</p>
+      <p className="place-type font-typewriter text-place leading-snug text-lagoon-deep">{place}</p>
       <p className="mt-1 font-script text-caption leading-snug text-ink-soft">{caption}</p>
     </Tag>
   );

@@ -4,7 +4,7 @@ export type PhotoKind = "landscape" | "portrait" | "polaroid" | "detail";
 export type SlideFrom = "left" | "right";
 export type RotateDir = "left" | "right" | "leftSoft" | "rightSoft" | "none";
 export type CornerStyle = "classic" | "scalloped" | "ink";
-export type PaperVariant = "azulejos" | "sardinhas";
+export type PaperVariant = "azulejos" | "sardinhas" | "vines" | "waves";
 
 export type AlbumPhoto = {
   id: string;
@@ -75,7 +75,7 @@ export const days: DayStop[] = [
     labelKey: "day.porto.label",
     placeKey: "day.porto.place",
     captionKey: "day.porto.caption",
-    pin: { x: 90, y: 82, label: "left" },
+    pin: { x: 27, y: 31, label: "left" },
     paper: "azulejos",
     photos: [
       {
@@ -96,8 +96,8 @@ export const days: DayStop[] = [
     labelKey: "day.coimbra.label",
     placeKey: "day.coimbra.place",
     captionKey: "day.coimbra.caption",
-    pin: { x: 110, y: 134, label: "right" },
-    paper: "azulejos",
+    pin: { x: 31, y: 44, label: "right" },
+    paper: "vines",
     photos: [
       {
         id: "rooftops",
@@ -127,8 +127,8 @@ export const days: DayStop[] = [
     labelKey: "day.lisbon.label",
     placeKey: "day.lisbon.place",
     captionKey: "day.lisbon.caption",
-    pin: { x: 76, y: 200, label: "left" },
-    paper: "azulejos",
+    pin: { x: 25, y: 61, label: "left" },
+    paper: "waves",
     photos: [
       {
         id: "alfama",
@@ -158,7 +158,7 @@ export const days: DayStop[] = [
     labelKey: "day.algarve.label",
     placeKey: "day.algarve.place",
     captionKey: "day.algarve.caption",
-    pin: { x: 98, y: 290, label: "right" },
+    pin: { x: 29, y: 83, label: "right" },
     paper: "sardinhas",
     photos: [
       {
@@ -195,7 +195,7 @@ export function routePath(stops: DayStop[]): string {
     const prev = stops[i - 1];
     const next = stops[i];
     if (!prev || !next) continue;
-    const sway = i % 2 === 0 ? 10 : -8;
+    const sway = i % 2 === 0 ? 4 : -3;
     const cx = (prev.pin.x + next.pin.x) / 2 + sway;
     const cy = (prev.pin.y + next.pin.y) / 2;
     d += ` Q ${cx} ${cy} ${next.pin.x} ${next.pin.y}`;
@@ -205,7 +205,7 @@ export function routePath(stops: DayStop[]): string {
 
 export function pinPercent(stop: DayStop) {
   return {
-    left: `${(stop.pin.x / MAP_VIEW.w) * 100}%`,
-    top: `${(stop.pin.y / MAP_VIEW.h) * 100}%`,
+    left: `${stop.pin.x}%`,
+    top: `${stop.pin.y}%`,
   };
 }

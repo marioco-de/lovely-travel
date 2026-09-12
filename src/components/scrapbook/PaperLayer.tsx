@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-
-type PaperVariant = "azulejos" | "sardinhas";
+import type { PaperVariant } from "@/lib/album/data";
 
 type PaperLayerProps = {
   variant: PaperVariant;

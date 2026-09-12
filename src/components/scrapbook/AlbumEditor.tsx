@@ -15,6 +15,8 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
   const t = useT();
   const titleId = useId();
   const reset = useAlbum((s) => s.reset);
+  const hiddenPins = useAlbum((s) => s.hiddenPins);
+  const togglePin = useAlbum((s) => s.togglePin);
 
   useEffect(() => {
     if (!open) return;
@@ -83,6 +85,27 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
           {Object.values(heroPhotos).map((photo) => (
             <PhotoEditor key={photo.id} photo={photo} />
           ))}
+        </EditorSection>
+
+        <EditorSection title={t("ui.pins")}>
+          <div className="flex flex-wrap gap-2">
+            {days.map((day) => {
+              const hidden = Boolean(hiddenPins[day.id]);
+              return (
+                <Stamp
+                  key={day.id}
+                  as="button"
+                  variant="rect"
+                  labelKey={day.placeKey}
+                  rotation={hidden ? -6 : 5}
+                  pressed={!hidden}
+                  onClick={() => togglePin(day.id)}
+                  className="px-3 py-2"
+                />
+              );
+            })}
+          </div>
+          <p className="font-script text-caption text-ink-soft">{t("ui.routeHint")}</p>
         </EditorSection>
 
         {days.map((day) => (

@@ -10,30 +10,34 @@ type DevelopingImageProps = {
 };
 
 export function DevelopingImage({ src, alt, className, priority = false }: DevelopingImageProps) {
-  const { ref, inView } = useInView<HTMLImageElement>({
+  const { ref, inView } = useInView<HTMLDivElement>({
     threshold: 0.12,
     rootMargin: "0px 0px -6% 0px",
   });
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const el = ref.current;
-    if (el?.complete && el.naturalWidth > 0) setLoaded(true);
+    setLoaded(false);
+  }, [src]);
+
+  useEffect(() => {
+    const img = ref.current?.querySelector("img");
+    if (img?.complete && img.naturalWidth > 0) setLoaded(true);
   }, [ref, src]);
 
+  const developed = inView && loaded;
+
   return (
-    <img
-      ref={ref}
-      src={src}
-      alt={alt}
-      loading={priority ? "eager" : "lazy"}
-      fetchPriority={priority ? "high" : "auto"}
-      onLoad={() => setLoaded(true)}
-      className={cn(
-        "polaroid-emulsion h-full w-full object-cover",
-        inView && loaded && "is-developed",
-        className,
-      )}
-    />
+    <div ref={ref} className={cn("develop-stage", developed && "is-developed", className)}>
+      <img
+        src={src}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+        onLoad={() => setLoaded(true)}
+        className="polaroid-emulsion h-full w-full object-cover"
+      />
+      <span className="develop-veil" aria-hidden="true" />
+    </div>
   );
 }
