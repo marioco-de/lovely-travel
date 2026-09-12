@@ -73,9 +73,8 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       <PortugalMap
         variant="aside"
         activeId={active ? day.id : null}
-        focusId={day.id}
         onSelect={onSelect}
-        className="pointer-events-none absolute inset-y-6 right-0 z-0 hidden w-[42%] md:block"
+        className="pointer-events-none absolute top-2 right-0 z-0 hidden w-[min(38%,18rem)] md:block"
       />
     </article>
   );

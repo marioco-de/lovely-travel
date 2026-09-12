@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { days, routePath } from "@/lib/album/data";
+import { days, landPin, routePath } from "@/lib/album/data";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { WaxPin } from "./WaxPin";
@@ -7,7 +7,6 @@ import { WaxPin } from "./WaxPin";
 type PortugalMapProps = {
   variant?: "hero" | "aside";
   activeId: string | null;
-  focusId?: string;
   onSelect: (id: string) => void;
   className?: string;
 };
@@ -15,15 +14,14 @@ type PortugalMapProps = {
 export function PortugalMap({
   variant = "hero",
   activeId,
-  focusId,
   onSelect,
   className,
 }: PortugalMapProps) {
   const t = useT();
   const hiddenPins = useAlbum((s) => s.hiddenPins);
   const visible = days.filter((stop) => !hiddenPins[stop.id]);
-  const path = routePath(visible);
-  const focus = days.find((stop) => stop.id === (focusId ?? activeId));
+  const points = visible.map((stop) => (variant === "aside" ? landPin(stop.pin) : stop.pin));
+  const path = routePath(points);
 
   return (
     <div
@@ -35,14 +33,9 @@ export function PortugalMap({
       )}
     >
       <img
-        src="/photos/portugal-map.jpg"
+        src={variant === "aside" ? "/photos/portugal-land.jpg" : "/photos/portugal-map.jpg"}
         alt={variant === "hero" ? t("map.alt") : ""}
         className="portugal-map-art"
-        style={
-          variant === "aside" && focus
-            ? { objectPosition: `${focus.pin.x}% ${focus.pin.y}%` }
-            : undefined
-        }
       />
       <svg
         viewBox="0 0 100 100"
@@ -52,7 +45,9 @@ export function PortugalMap({
       >
         <path d={path} className="route-dash" />
       </svg>
-      {visible.map((stop) => {
+      {visible.map((stop, i) => {
+        const point = points[i];
+        if (!point) return null;
         const active = activeId === stop.id;
         return (
           <button
@@ -65,7 +60,7 @@ export function PortugalMap({
               "map-pin pointer-events-auto absolute -translate-x-1/2 -translate-y-[70%]",
               active && "is-active",
             )}
-            style={{ left: `${stop.pin.x}%`, top: `${stop.pin.y}%` }}
+            style={{ left: `${point.x}%`, top: `${point.y}%` }}
           >
             <span className="relative flex min-h-11 min-w-11 flex-col items-center justify-end">
               <WaxPin active={active} />

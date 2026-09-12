@@ -75,7 +75,7 @@ export const days: DayStop[] = [
     labelKey: "day.porto.label",
     placeKey: "day.porto.place",
     captionKey: "day.porto.caption",
-    pin: { x: 27, y: 31, label: "left" },
+    pin: { x: 47.5, y: 33.5, label: "left" },
     paper: "azulejos",
     photos: [
       {
@@ -96,7 +96,7 @@ export const days: DayStop[] = [
     labelKey: "day.coimbra.label",
     placeKey: "day.coimbra.place",
     captionKey: "day.coimbra.caption",
-    pin: { x: 31, y: 44, label: "right" },
+    pin: { x: 51.2, y: 45, label: "right" },
     paper: "azulejos",
     photos: [
       {
@@ -127,7 +127,7 @@ export const days: DayStop[] = [
     labelKey: "day.lisbon.label",
     placeKey: "day.lisbon.place",
     captionKey: "day.lisbon.caption",
-    pin: { x: 25, y: 61, label: "left" },
+    pin: { x: 44.8, y: 58.8, label: "left" },
     paper: "azulejos",
     photos: [
       {
@@ -158,7 +158,7 @@ export const days: DayStop[] = [
     labelKey: "day.algarve.label",
     placeKey: "day.algarve.place",
     captionKey: "day.algarve.caption",
-    pin: { x: 29, y: 83, label: "right" },
+    pin: { x: 49.2, y: 76.8, label: "right" },
     paper: "azulejos",
     photos: [
       {
@@ -186,26 +186,31 @@ export const days: DayStop[] = [
   },
 ];
 
-export function routePath(stops: DayStop[]): string {
-  if (stops.length === 0) return "";
-  const first = stops[0];
+export function routePath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return "";
+  const first = points[0];
   if (!first) return "";
-  let d = `M ${first.pin.x} ${first.pin.y}`;
-  for (let i = 1; i < stops.length; i++) {
-    const prev = stops[i - 1];
-    const next = stops[i];
+  let d = `M ${first.x} ${first.y}`;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const next = points[i];
     if (!prev || !next) continue;
-    const sway = i % 2 === 0 ? 4 : -3;
-    const cx = (prev.pin.x + next.pin.x) / 2 + sway;
-    const cy = (prev.pin.y + next.pin.y) / 2;
-    d += ` Q ${cx} ${cy} ${next.pin.x} ${next.pin.y}`;
+    const sway = i % 2 === 0 ? 3 : -2.5;
+    const cx = (prev.x + next.x) / 2 + sway;
+    const cy = (prev.y + next.y) / 2;
+    d += ` Q ${cx} ${cy} ${next.x} ${next.y}`;
   }
   return d;
 }
 
-export function pinPercent(stop: DayStop) {
+/** Crop of portugal-map.jpg that shows only the country, no tropical frame. */
+export const MAP_LAND_CROP = { x0: 360, y0: 240, x1: 800, y1: 1360, srcW: 1200, srcH: 1600 };
+
+export function landPin(pin: { x: number; y: number }) {
+  const px = (pin.x / 100) * MAP_LAND_CROP.srcW;
+  const py = (pin.y / 100) * MAP_LAND_CROP.srcH;
   return {
-    left: `${stop.pin.x}%`,
-    top: `${stop.pin.y}%`,
+    x: ((px - MAP_LAND_CROP.x0) / (MAP_LAND_CROP.x1 - MAP_LAND_CROP.x0)) * 100,
+    y: ((py - MAP_LAND_CROP.y0) / (MAP_LAND_CROP.y1 - MAP_LAND_CROP.y0)) * 100,
   };
 }
