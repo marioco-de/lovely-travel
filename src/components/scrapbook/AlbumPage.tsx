@@ -7,7 +7,6 @@ import { DayBlock } from "./DayBlock";
 import { HeroCollage } from "./HeroCollage";
 import { LanguageToggle } from "./LanguageToggle";
 import { MapInsert } from "./MapInsert";
-import { PortugalSeal } from "./PortugalSeal";
 import { ShareStamp } from "./ShareStamp";
 import { Stamp } from "./Stamp";
 
@@ -91,7 +90,7 @@ export function AlbumPage() {
 
       <footer className="mx-auto flex max-w-5xl flex-col items-start gap-4 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-8">
         <p className="max-w-md font-script text-caption text-ink-soft">{t("footer.colophon")}</p>
-        <PortugalSeal className="size-20" rotation={-8} />
+        <Stamp labelKey="stamp.passport" variant="round" rotation={-6} />
       </footer>
 
       <AlbumEditor open={editing} onClose={() => setEditing(false)} />

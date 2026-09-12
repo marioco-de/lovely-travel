@@ -34,7 +34,7 @@ export function HeroCollage() {
         <div className="relative w-[92%] max-w-3xl self-start md:w-[78%]">
           <div className="photo-block">
             <SlideIn from="left">
-              <Frame photo={heroPhotos.lagoon} priority showCaption={false} seal />
+              <Frame photo={heroPhotos.lagoon} priority showCaption={false} />
             </SlideIn>
             <PhotoCaption
               as="div"

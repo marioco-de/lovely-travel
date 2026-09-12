@@ -6,7 +6,6 @@ import { DevelopingImage } from "./DevelopingImage";
 import { Pearl } from "./Pearl";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoCorners } from "./PhotoCorners";
-import { PortugalSeal } from "./PortugalSeal";
 
 const rotateClass: Record<RotateDir, string> = {
   left: "rotate-left",
@@ -21,10 +20,9 @@ type FrameProps = {
   className?: string;
   showCaption?: boolean;
   priority?: boolean;
-  seal?: boolean;
 };
 
-export function Frame({ photo, className, showCaption = true, priority = false, seal = false }: FrameProps) {
+export function Frame({ photo, className, showCaption = true, priority = false }: FrameProps) {
   const t = useT();
   const src = usePhotoSrc(photo);
   const isDetail = photo.kind === "detail";
@@ -46,9 +44,6 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
           <Pearl size="sm" className="absolute top-1 left-8 z-10" />
           <Pearl size="sm" className="absolute top-1 right-8 z-10" />
         </div>
-        {seal && (
-          <PortugalSeal className="pointer-events-none absolute -right-3 -bottom-4 z-20 size-16 md:size-20" />
-        )}
       </div>
       {showCaption && <PhotoCaption place={t(photo.placeKey)} caption={t(photo.captionKey)} />}
     </figure>

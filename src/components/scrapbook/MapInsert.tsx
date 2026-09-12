@@ -1,6 +1,5 @@
 import { useT } from "@/lib/i18n/locale";
 import { PortugalMap } from "./PortugalMap";
-import { PortugalSeal } from "./PortugalSeal";
 import { SlideIn } from "./SlideIn";
 import { Stamp } from "./Stamp";
 
@@ -21,7 +20,6 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
           <p className="mt-3 font-display text-kicker tracking-widest text-lagoon-deep uppercase">
             {t("ui.routeHint")}
           </p>
-          <PortugalSeal className="absolute -top-4 right-0 size-16 md:-right-8 md:size-20" delayMs={160} rotation={12} />
         </div>
       </SlideIn>
 

@@ -493,15 +493,6 @@ body {
   overflow: visible;
 }
 
-.portugal-seal {
-  width: 5.25rem;
-  height: 5.25rem;
-  color: var(--color-stamp);
-  mix-blend-mode: multiply;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
 .lang-fan-leaf {
   position: absolute;
   right: calc(100% + 0.4rem);
