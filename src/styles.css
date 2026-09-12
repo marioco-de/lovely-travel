@@ -1,0 +1,447 @@
+@import "tailwindcss";
+
+@theme {
+  --color-page: #f3e6c9;
+  --color-page-deep: #e8d4b0;
+  --color-ink: #3d2a1c;
+  --color-ink-soft: #6b4e3d;
+  --color-lagoon: #1f7a6e;
+  --color-lagoon-deep: #155e55;
+  --color-coral: #c45c42;
+  --color-palm: #4f6b3a;
+  --color-pearl: #f7f2e8;
+  --color-pearl-shine: #fffdf8;
+  --color-mat: #fbf6ec;
+  --color-stamp: #4a2c18;
+  --color-tape: #e6c97a;
+
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-script: "Caveat", "Segoe Script", cursive;
+  --font-sans: "Fraunces", "Times New Roman", serif;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-photo: 0.125rem;
+
+  --shadow-photo:
+    0 12px 28px -10px rgb(61 42 28 / 0.38), 0 3px 8px -3px rgb(61 42 28 / 0.22);
+  --shadow-polaroid:
+    0 16px 32px -12px rgb(61 42 28 / 0.42), 0 4px 10px -4px rgb(61 42 28 / 0.18);
+  --shadow-insert:
+    0 18px 40px -16px rgb(61 42 28 / 0.4), 0 2px 0 rgb(61 42 28 / 0.08);
+
+  --rotate-left: -6deg;
+  --rotate-left-soft: -2.5deg;
+  --rotate-right: 5.5deg;
+  --rotate-right-soft: 2.25deg;
+
+  --slide-distance: 3.25rem;
+
+  --motion-stagger: 40ms;
+  --motion-micro: 80ms;
+  --motion-quick: 150ms;
+  --motion-fast: 250ms;
+  --motion-medium: 350ms;
+  --motion-slow: 400ms;
+  --motion-emphasis: 500ms;
+  --motion-develop: 5s;
+  --motion-stamp: 420ms;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-stamp: cubic-bezier(0.34, 1.35, 0.64, 1);
+
+  --text-kicker: clamp(0.75rem, 0.7rem + 0.2vw, 0.8125rem);
+  --text-caption: clamp(1.05rem, 0.95rem + 0.4vw, 1.25rem);
+  --text-place: clamp(1.35rem, 1.1rem + 0.8vw, 1.85rem);
+  --text-title: clamp(2.4rem, 1.5rem + 3.2vw, 4.4rem);
+  --text-day: clamp(1.7rem, 1.3rem + 1.4vw, 2.4rem);
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-page);
+    color: var(--color-ink);
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  img {
+    outline: 1px solid rgb(61 42 28 / 0.12);
+    outline-offset: -1px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-lagoon) 28%, var(--color-page));
+    color: var(--color-ink);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  min-height: 100svh;
+  background-color: var(--color-page);
+  background-image:
+    radial-gradient(ellipse at 18% 0%, rgb(31 122 110 / 0.08), transparent 42%),
+    radial-gradient(ellipse at 92% 18%, rgb(196 92 66 / 0.06), transparent 36%),
+    radial-gradient(ellipse at 50% 100%, rgb(79 107 58 / 0.05), transparent 40%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgb(61 42 28 / 0.018) 3px,
+      rgb(61 42 28 / 0.018) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 4px,
+      rgb(61 42 28 / 0.016) 4px,
+      rgb(61 42 28 / 0.016) 5px
+    );
+}
+
+.album-sheet {
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  box-shadow: inset 22px 0 28px -24px rgb(61 42 28 / 0.22);
+}
+
+.album-sheet::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.24  0 0 0 0 0.16  0 0 0 0 0.11  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.album-sheet > * {
+  position: relative;
+  z-index: 2;
+}
+
+.slide-piece {
+  opacity: 0;
+  filter: blur(4px);
+  transform: translateX(var(--slide-x, 0));
+  transition:
+    opacity var(--motion-slow) var(--ease-smooth-out),
+    transform var(--motion-slow) var(--ease-smooth-out),
+    filter var(--motion-slow) var(--ease-smooth-out);
+}
+
+.slide-piece.from-left {
+  --slide-x: calc(-1 * var(--slide-distance));
+}
+
+.slide-piece.from-right {
+  --slide-x: var(--slide-distance);
+}
+
+.slide-piece.is-in {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateX(0);
+}
+
+.rotate-left {
+  rotate: var(--rotate-left);
+}
+
+.rotate-left-soft {
+  rotate: var(--rotate-left-soft);
+}
+
+.rotate-right {
+  rotate: var(--rotate-right);
+}
+
+.rotate-right-soft {
+  rotate: var(--rotate-right-soft);
+}
+
+.photo-shadow {
+  box-shadow: var(--shadow-photo);
+}
+
+.polaroid-shadow {
+  box-shadow: var(--shadow-polaroid);
+}
+
+.insert-shadow {
+  box-shadow: var(--shadow-insert);
+}
+
+.ink-corner {
+  color: var(--color-stamp);
+  mix-blend-mode: multiply;
+  opacity: 0.88;
+  filter: contrast(1.05);
+}
+
+.pearl {
+  background:
+    radial-gradient(circle at 32% 28%, var(--color-pearl-shine) 0 18%, transparent 42%),
+    radial-gradient(circle at 70% 76%, rgb(31 122 110 / 0.14), transparent 46%),
+    radial-gradient(circle at 50% 50%, var(--color-pearl) 0 62%, rgb(196 180 150 / 0.9) 100%);
+  box-shadow:
+    inset 0 -2px 4px rgb(61 42 28 / 0.12),
+    0 1px 2px rgb(61 42 28 / 0.18);
+}
+
+.stamp-mark {
+  color: var(--color-stamp);
+  mix-blend-mode: multiply;
+  opacity: 0;
+  transform: scale(1.28) rotate(var(--stamp-rot, -8deg)) translateY(-10px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.stamp-mark.is-in {
+  animation: stamp-press var(--motion-stamp) var(--ease-stamp) forwards;
+}
+
+.stamp-mark.is-settled {
+  animation: none;
+  opacity: 0.86;
+  transform: scale(1) rotate(var(--stamp-rot, -8deg)) translateY(0);
+  transition:
+    transform var(--motion-quick) var(--ease-out),
+    opacity var(--motion-quick) var(--ease-out);
+}
+
+.stamp-mark.is-settled:active {
+  transform: scale(0.96) rotate(var(--stamp-rot, -8deg));
+}
+
+.stamp-mark.is-active {
+  opacity: 1;
+  color: var(--color-lagoon-deep);
+}
+
+@keyframes stamp-press {
+  0% {
+    transform: scale(1.28) rotate(var(--stamp-rot, -8deg)) translateY(-10px);
+    opacity: 0;
+  }
+  58% {
+    transform: scale(0.94) rotate(var(--stamp-rot, -8deg)) translateY(1px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(var(--stamp-rot, -8deg)) translateY(0);
+    opacity: 0.86;
+  }
+}
+
+.polaroid-emulsion {
+  filter: grayscale(1) contrast(0.46) brightness(1.18) saturate(0);
+}
+
+.polaroid-emulsion.is-developed {
+  animation: develop-film var(--motion-develop) var(--ease-smooth-out) forwards;
+}
+
+@keyframes develop-film {
+  0% {
+    filter: grayscale(1) contrast(0.46) brightness(1.18) saturate(0);
+  }
+  38% {
+    filter: grayscale(0.55) contrast(0.72) brightness(1.12) saturate(0.35);
+  }
+  100% {
+    filter: grayscale(0) contrast(1) brightness(1) saturate(1);
+  }
+}
+
+.washi-tape {
+  background: linear-gradient(
+    90deg,
+    rgb(230 201 122 / 0.45),
+    rgb(243 230 201 / 0.7) 40%,
+    rgb(230 201 122 / 0.5)
+  );
+  box-shadow: 0 1px 2px rgb(61 42 28 / 0.12);
+}
+
+.caption-strip {
+  background: var(--color-mat);
+  box-shadow: var(--shadow-photo);
+  color: var(--color-ink);
+}
+
+.days-rail {
+  position: relative;
+}
+
+.days-rail::before {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  left: 0.7rem;
+  width: 0;
+  border-left: 2px dashed color-mix(in oklab, var(--color-stamp) 42%, transparent);
+}
+
+@media (min-width: 768px) {
+  .days-rail::before {
+    left: 1.35rem;
+  }
+}
+
+.map-board {
+  aspect-ratio: 11 / 18;
+  background: var(--color-page-deep);
+}
+
+.portugal-stroke {
+  mix-blend-mode: multiply;
+  opacity: 0.88;
+}
+
+.route-dash {
+  fill: none;
+  stroke: var(--color-stamp);
+  stroke-width: 1.35;
+  stroke-dasharray: 3.2 2.6;
+  stroke-linecap: round;
+  opacity: 0.78;
+  mix-blend-mode: multiply;
+}
+
+.wax-seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 46% 54% 48% 52%;
+  background:
+    radial-gradient(circle at 32% 28%, color-mix(in oklab, var(--color-coral) 55%, white) 0 16%, transparent 42%),
+    radial-gradient(circle at 50% 50%, var(--color-coral) 0 62%, color-mix(in oklab, var(--color-coral) 62%, var(--color-ink)));
+  box-shadow:
+    inset 0 1px 0 rgb(255 252 245 / 0.35),
+    inset 0 -2px 3px rgb(61 42 28 / 0.35),
+    0 2px 3px rgb(61 42 28 / 0.28);
+  transform: rotate(-8deg);
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.wax-seal.is-active {
+  width: 1.35rem;
+  height: 1.35rem;
+  background:
+    radial-gradient(circle at 32% 28%, color-mix(in oklab, var(--color-lagoon) 50%, white) 0 16%, transparent 42%),
+    radial-gradient(circle at 50% 50%, var(--color-lagoon) 0 62%, var(--color-lagoon-deep));
+  transform: rotate(-4deg) scale(1.06);
+}
+
+.wax-impress {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 252 245 / 0.28);
+  box-shadow: inset 0 0 0 1px rgb(61 42 28 / 0.18);
+}
+
+.wax-needle {
+  width: 0.12rem;
+  height: 0.9rem;
+  margin-top: -1px;
+  background: linear-gradient(var(--color-stamp), var(--color-ink));
+  border-radius: 9999px;
+}
+
+.wax-needle.is-active {
+  background: linear-gradient(var(--color-lagoon-deep), var(--color-ink));
+}
+
+.map-pin {
+  filter: drop-shadow(0 2px 2px rgb(61 42 28 / 0.28));
+}
+
+.map-pin:focus-visible {
+  outline: 2px solid var(--color-lagoon);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 40;
+  background: var(--color-ink);
+  color: var(--color-page);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-piece {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+
+  .stamp-mark,
+  .stamp-mark.is-in,
+  .stamp-mark.is-settled {
+    animation: none;
+    opacity: 0.86;
+    transform: rotate(var(--stamp-rot, -8deg));
+  }
+
+  .polaroid-emulsion,
+  .polaroid-emulsion.is-developed {
+    animation: none;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+
+  .wax-seal,
+  .wax-seal.is-active {
+    transition: none;
+  }
+}
