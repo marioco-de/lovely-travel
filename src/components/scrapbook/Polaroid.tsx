@@ -119,28 +119,28 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
             <div className="h-11" />
           ) : null}
         </div>
-      </div>
-      <div className="photo-under">
-        {canEdit && src ? (
-          <PhotoEditTools
-            hasSrc
-            title={place}
-            caption={caption}
-            format={format}
-            open={captionOpen}
-            onOpenChange={setCaptionOpen}
-            onFile={(file) => void setPhoto(photo.id, file)}
-            onTitle={writeTitle}
-            onCaption={writeCaption}
-            onClear={clearNote}
-            onCycleFrame={cycleFrame}
-            onCycleFormat={cycleFormat}
-            onRemove={() => {
-              void clearPhoto(photo.id);
-              if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
-            }}
-          />
-        ) : null}
+        <div className="photo-under">
+          {canEdit && src ? (
+            <PhotoEditTools
+              hasSrc
+              title={place}
+              caption={caption}
+              format={format}
+              open={captionOpen}
+              onOpenChange={setCaptionOpen}
+              onFile={(file) => void setPhoto(photo.id, file)}
+              onTitle={writeTitle}
+              onCaption={writeCaption}
+              onClear={clearNote}
+              onCycleFrame={cycleFrame}
+              onCycleFormat={cycleFormat}
+              onRemove={() => {
+                void clearPhoto(photo.id);
+                if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
+              }}
+            />
+          ) : null}
+        </div>
       </div>
     </figure>
   );

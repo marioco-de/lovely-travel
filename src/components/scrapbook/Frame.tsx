@@ -130,29 +130,29 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
           </div>
           {corners === "scallop" ? <PhotoBanderole /> : <PhotoCorners variant={corners} set={cornerSet} />}
         </div>
-      </div>
-      <div className="photo-under">
-        {showCaption && !captionOpen ? <PhotoCaption place={place} caption={caption} /> : null}
-        {canEdit && src ? (
-          <PhotoEditTools
-            hasSrc
-            title={place}
-            caption={caption}
-            format={format}
-            open={captionOpen}
-            onOpenChange={setCaptionOpen}
-            onFile={(file) => void setPhoto(photo.id, file)}
-            onTitle={writeTitle}
-            onCaption={writeCaption}
-            onClear={clearNote}
-            onCycleFrame={cycleFrame}
-            onCycleFormat={cycleFormat}
-            onRemove={() => {
-              void clearPhoto(photo.id);
-              if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
-            }}
-          />
-        ) : null}
+        <div className="photo-under">
+          {showCaption && !captionOpen ? <PhotoCaption place={place} caption={caption} /> : null}
+          {canEdit && src ? (
+            <PhotoEditTools
+              hasSrc
+              title={place}
+              caption={caption}
+              format={format}
+              open={captionOpen}
+              onOpenChange={setCaptionOpen}
+              onFile={(file) => void setPhoto(photo.id, file)}
+              onTitle={writeTitle}
+              onCaption={writeCaption}
+              onClear={clearNote}
+              onCycleFrame={cycleFrame}
+              onCycleFormat={cycleFormat}
+              onRemove={() => {
+                void clearPhoto(photo.id);
+                if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
+              }}
+            />
+          ) : null}
+        </div>
       </div>
     </figure>
   );
