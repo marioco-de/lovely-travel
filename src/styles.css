@@ -60,8 +60,8 @@
   --text-place: clamp(0.95rem, 0.82rem + 0.35vw, 1.15rem);
   --text-title: clamp(2.4rem, 1.5rem + 3.2vw, 4.4rem);
   --text-day: clamp(1.45rem, 1.15rem + 0.9vw, 1.95rem);
-  --size-corner: 2.15rem;
-  --size-corner-lg: 2.6rem;
+  --size-corner: 2.55rem;
+  --size-corner-lg: 3.1rem;
   --paper-layer-opacity: 0.16;
 }
 
@@ -103,6 +103,12 @@
     outline-offset: -1px;
   }
 
+  .photo-corner img,
+  .photo-corners img,
+  .leaflet-tile {
+    outline: none;
+  }
+
   ::selection {
     background: color-mix(in oklab, var(--color-lagoon) 28%, var(--color-page));
     color: var(--color-ink);
@@ -141,7 +147,7 @@ body {
 .album-sheet {
   position: relative;
   isolation: isolate;
-  overflow-x: hidden;
+  overflow-x: visible;
   width: 100%;
   min-width: 100%;
   box-shadow: inset 22px 0 28px -24px rgb(61 42 28 / 0.22);
@@ -165,6 +171,7 @@ body {
 
 .slide-piece {
   opacity: 0;
+  overflow: visible;
   filter: blur(4px);
   transform: translateX(var(--slide-x, 0));
   transition:
@@ -238,8 +245,8 @@ body {
   position: absolute;
   width: var(--size-corner);
   height: var(--size-corner);
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+  overflow: visible;
+  background: none;
 }
 
 @media (min-width: 768px) {
@@ -250,25 +257,25 @@ body {
 }
 
 .photo-corner--tl {
-  top: -0.45rem;
-  left: -0.45rem;
+  top: -0.22rem;
+  left: -0.22rem;
 }
 
 .photo-corner--tr {
-  top: -0.45rem;
-  right: -0.45rem;
+  top: -0.22rem;
+  right: -0.22rem;
   transform: scaleX(-1);
 }
 
 .photo-corner--bl {
-  bottom: -0.45rem;
-  left: -0.45rem;
+  bottom: -0.22rem;
+  left: -0.22rem;
   transform: scaleY(-1);
 }
 
 .photo-corner--br {
-  bottom: -0.45rem;
-  right: -0.45rem;
+  bottom: -0.22rem;
+  right: -0.22rem;
   transform: scale(-1);
 }
 
@@ -278,6 +285,9 @@ body {
   height: 100%;
   object-fit: contain;
   object-position: top left;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .photo-corners .photo-corner {
@@ -802,5 +812,5 @@ body {
   pointer-events: auto;
 }
 .day-wash {
-  overflow-x: clip;
+  overflow-x: visible;
 }

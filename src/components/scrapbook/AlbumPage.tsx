@@ -72,7 +72,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   }
 
   return (
-    <div className="album-sheet min-h-svh w-full overflow-x-clip">
+    <div className="album-sheet min-h-svh w-full overflow-visible">
       <LocaleHydrator />
       <a href="#route-map" className="skip-link font-display text-sm">
         {t("ui.skipToMap")}
@@ -88,7 +88,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
       <HeroCollage onEditTitle={() => setEditing(true)} />
       <MapInsert activeId={activeId} onSelect={openDay} />
 
-      <section className="w-full overflow-x-clip">
+      <section className="w-full overflow-visible">
         <div className="days-rail">
           {days.map((day, index) => (
             <DayBlock
