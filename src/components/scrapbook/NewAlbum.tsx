@@ -1,13 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { unlockTrip } from "@/lib/album/trips";
+import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 
-type EditUnlockProps = {
-  publicHash: string;
-};
-
-export function EditUnlock({ publicHash }: EditUnlockProps) {
+export function NewAlbum() {
   const t = useT();
+  const createRemote = useAlbum((s) => s.createRemote);
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
@@ -16,17 +13,16 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const secret = password.trim();
-    if (!secret || !publicHash) return;
+    if (secret.length < 4) {
+      setError(true);
+      return;
+    }
     setBusy(true);
     setError(false);
-    try {
-      const result = await unlockTrip({ data: { publicHash, password: secret } });
-      if (result?.editHash) {
-        window.location.href = `/e/${result.editHash}`;
-        return;
-      }
-    } catch {
-      /* wrong password */
+    const created = await createRemote(secret);
+    if (created?.editHash) {
+      window.location.href = `/e/${created.editHash}`;
+      return;
     }
     setError(true);
     setBusy(false);
@@ -39,19 +35,20 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
         onClick={() => setOpen(true)}
         className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
       >
-        {t("ui.editAlbum")}
+        {t("ui.newAlbum")}
       </button>
     );
   }
 
   return (
-    <form onSubmit={(event) => void onSubmit(event)} className="flex flex-wrap items-center gap-2">
+    <form onSubmit={(event) => void onSubmit(event)} className="flex max-w-md flex-wrap items-center gap-2">
       <input
         type="password"
-        autoComplete="current-password"
+        autoComplete="new-password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        placeholder={t("ui.editPassword")}
+        placeholder={t("ui.choosePassword")}
+        minLength={4}
         className="album-field max-w-[14rem] py-1.5 text-sm"
         autoFocus
       />
@@ -60,9 +57,9 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
         disabled={busy}
         className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline disabled:opacity-50"
       >
-        {t("ui.editUnlock")}
+        {t("ui.createAlbum")}
       </button>
-      {error ? <span className="font-script text-sm text-coral">{t("ui.editPasswordWrong")}</span> : null}
+      {error ? <span className="font-script text-sm text-coral">{t("ui.createFailed")}</span> : null}
     </form>
   );
 }

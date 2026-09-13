@@ -59,7 +59,7 @@ type AlbumState = {
   sourceLocale: Locale;
   bindTrip: (opts: { mode: "demo" | "view" | "edit"; publicHash?: string; editHash?: string }) => Promise<void>;
   ensureLocale: (locale: Locale) => Promise<void>;
-  createRemote: () => Promise<{ publicHash: string; editHash: string; editPassword?: string } | null>;
+  createRemote: (password: string) => Promise<{ publicHash: string; editHash: string; editPassword?: string } | null>;
 };
 
 const emptyTexts = (): AlbumTexts => Object.fromEntries(LOCALES.map((locale) => [locale, {}])) as AlbumTexts;
@@ -478,7 +478,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       /* keep source language on screen */
     }
   },
-  createRemote: async () => {
+  createRemote: async (password: string) => {
     try {
       const state = get();
       const photos = await encodePhotos(state.photos);
@@ -486,6 +486,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         data: {
           title: state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Tropical Travel",
           sourceLocale: state.sourceLocale,
+          password,
           payload: {
             layout: state.layout,
             texts: state.texts,

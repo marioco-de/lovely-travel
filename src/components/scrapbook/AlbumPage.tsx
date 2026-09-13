@@ -8,6 +8,7 @@ import { EditUnlock } from "./EditUnlock";
 import { HeroCollage } from "./HeroCollage";
 import { LanguageToggle } from "./LanguageToggle";
 import { MapInsert } from "./MapInsert";
+import { NewAlbum } from "./NewAlbum";
 import { ShareStamp } from "./ShareStamp";
 
 type AlbumPageProps = {
@@ -22,7 +23,6 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   const days = useAlbum((s) => s.layout.days);
   const canEdit = useAlbum((s) => s.canEdit);
   const bindTrip = useAlbum((s) => s.bindTrip);
-  const createRemote = useAlbum((s) => s.createRemote);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
 
   useEffect(() => {
@@ -66,11 +66,6 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
     el?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   }
 
-  async function startAlbum() {
-    const created = await createRemote();
-    if (created?.editHash) window.location.href = `/e/${created.editHash}`;
-  }
-
   return (
     <div className="album-sheet min-h-svh w-full overflow-visible">
       <LocaleHydrator />
@@ -104,18 +99,8 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
       </section>
 
       <footer className="mx-auto flex w-full max-w-7xl flex-col items-start gap-4 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-10 lg:px-16">
-        {mode === "demo" ? (
-          <button
-            type="button"
-            onClick={() => void startAlbum()}
-            className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
-          >
-            {t("ui.newAlbum")}
-          </button>
-        ) : (
-          <span />
-        )}
-        {!canEdit ? <EditUnlock publicHash={publicHash} /> : null}
+        {mode === "demo" ? <NewAlbum /> : <span />}
+        {!canEdit && publicHash ? <EditUnlock publicHash={publicHash} /> : null}
       </footer>
     </div>
   );

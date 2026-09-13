@@ -3,8 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import type { Locale } from "@/lib/i18n/messages";
-import { DEFAULT_EDIT_PASSWORD } from "./password";
-import { seedLayout, type AlbumLayout } from "./layout";
+import type { AlbumLayout } from "./layout";
 import type { AlbumTexts } from "./store";
 
 export type TripPayload = {
@@ -54,7 +53,7 @@ function token(bytes: number) {
 }
 
 function hashPassword(password: string) {
-  return createHash("sha256").update(password.trim().toLowerCase()).digest("hex");
+  return createHash("sha256").update(password.trim()).digest("hex");
 }
 
 function sameSecret(left: string, right: string) {
@@ -64,19 +63,10 @@ function sameSecret(left: string, right: string) {
   return timingSafeEqual(a, b);
 }
 
-function memorablePassword() {
-  return DEFAULT_EDIT_PASSWORD;
-}
-
 async function ensurePasswordColumn() {
   const { getSql } = await import("@/lib/db");
   const sql = await getSql();
   await sql.query("alter table trips add column if not exists edit_password_hash text");
-  const digest = hashPassword(DEFAULT_EDIT_PASSWORD);
-  await sql.query(
-    "update trips set edit_password_hash = $1 where edit_password_hash is null or btrim(edit_password_hash) = ''",
-    [digest],
-  );
   return sql;
 }
 
@@ -96,6 +86,7 @@ export const createTrip = createServerFn({ method: "POST" })
     z.object({
       title: z.string().min(1).max(120),
       sourceLocale: z.string().min(2).max(8),
+      password: z.string().min(4).max(80),
       payload: payloadSchema,
     }),
   )
@@ -106,7 +97,7 @@ export const createTrip = createServerFn({ method: "POST" })
     const id = newId();
     const publicHash = token(8);
     const editHash = token(18);
-    const editPassword = memorablePassword();
+    const editPassword = data.password.trim();
     const passwordHash = hashPassword(editPassword);
     const rows = await sql<{
       id: string;
@@ -202,45 +193,23 @@ export const getEditTrip = createServerFn({ method: "GET" })
 export const unlockTrip = createServerFn({ method: "POST" })
   .validator(
     z.object({
-      publicHash: z.string().min(4).max(64).optional().nullable(),
+      publicHash: z.string().min(4).max(64),
       password: z.string().min(1).max(80),
     }),
   )
   .handler(async ({ data }): Promise<{ editHash: string } | null> => {
     const password = data.password.trim();
-    if (!password) return null;
+    const publicHash = data.publicHash.trim();
+    if (!password || !publicHash) return null;
     const digest = hashPassword(password);
-    const publicHash = data.publicHash?.trim() || "";
     const sql = await ensurePasswordColumn();
-    const rows = publicHash
-      ? await sql<{ edit_hash: string; edit_password_hash: string | null }>`
-          select edit_hash, edit_password_hash from trips where public_hash = ${publicHash} limit 1
-        `
-      : await sql<{ edit_hash: string; edit_password_hash: string | null }>`
-          select edit_hash, edit_password_hash from trips
-          where edit_password_hash = ${digest}
-          limit 1
-        `;
-    const row = rows[0];
-    if (row?.edit_password_hash && sameSecret(row.edit_password_hash, digest)) {
-      return { editHash: row.edit_hash };
-    }
-    if (publicHash) return null;
-    if (digest !== hashPassword(DEFAULT_EDIT_PASSWORD)) return null;
-    const id = newId();
-    const nextPublic = token(8);
-    const nextEdit = token(18);
-    const payload = JSON.stringify({
-      layout: seedLayout(),
-      texts: { en: {}, de: {} },
-      hiddenPins: {},
-      photos: {},
-    });
-    await sql`
-      insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
-      values (${id}, ${nextPublic}, ${nextEdit}, ${digest}, ${"Tropical Travel"}, ${"en"}, ${payload}::jsonb)
+    const rows = await sql<{ edit_hash: string; edit_password_hash: string | null }>`
+      select edit_hash, edit_password_hash from trips where public_hash = ${publicHash} limit 1
     `;
-    return { editHash: nextEdit };
+    const row = rows[0];
+    if (!row?.edit_password_hash) return null;
+    if (!sameSecret(row.edit_password_hash, digest)) return null;
+    return { editHash: row.edit_hash };
   });
 
 export const setTripPassword = createServerFn({ method: "POST" })

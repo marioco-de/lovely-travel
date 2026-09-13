@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { DEFAULT_EDIT_PASSWORD } from "@/lib/album/password";
 import { useAlbum } from "@/lib/album/store";
 import { setTripPassword } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -12,7 +11,7 @@ export function EditMenu() {
   const publicHash = useAlbum((s) => s.publicHash);
   const editHash = useAlbum((s) => s.editHash);
   const [open, setOpen] = useState(false);
-  const [password, setPassword] = useState(DEFAULT_EDIT_PASSWORD);
+  const [password, setPassword] = useState("");
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
