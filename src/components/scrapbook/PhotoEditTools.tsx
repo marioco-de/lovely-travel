@@ -3,7 +3,6 @@ import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLabel, type PhotoFormat } from "@/lib/album/layout";
 import { useT } from "@/lib/i18n/locale";
-import { LiveText } from "./LiveText";
 
 type PhotoEditToolsProps = {
   hasSrc: boolean;
@@ -40,7 +39,16 @@ export function PhotoEditTools({
   const fileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [titleText, setTitleText] = useState(title);
+  const [captionText, setCaptionText] = useState(caption);
   const hasNote = Boolean(title.trim() || caption.trim());
+
+  useEffect(() => {
+    setTitleText(title);
+  }, [title]);
+  useEffect(() => {
+    setCaptionText(caption);
+  }, [caption]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -53,6 +61,15 @@ export function PhotoEditTools({
 
   if (!hasSrc) return null;
 
+  function saveTitle(value: string) {
+    const cleaned = value.replace(/\u00a0/g, " ").trim();
+    if (cleaned !== title) onTitle(cleaned);
+  }
+  function saveCaption(value: string) {
+    const cleaned = value.replace(/\u00a0/g, " ").trim();
+    if (cleaned !== caption) onCaption(cleaned);
+  }
+
   return (
     <>
       {open ? (
@@ -61,20 +78,40 @@ export function PhotoEditTools({
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <LiveText
-            value={title}
-            onChange={onTitle}
+          <input
+            value={titleText}
+            aria-label={t("ui.photoTitle")}
             placeholder={t("ui.photoTitle")}
-            className="place-type text-center font-typewriter text-place leading-snug text-lagoon-deep"
+            className="photo-caption-title place-type text-center font-typewriter text-place leading-snug text-lagoon-deep"
+            onChange={(event) => {
+              setTitleText(event.target.value);
+              saveTitle(event.target.value);
+            }}
+            onBlur={() => saveTitle(titleText)}
           />
-          <LiveText
-            value={caption}
-            onChange={onCaption}
+          <textarea
+            value={captionText}
+            aria-label={t("ui.caption")}
             placeholder={t("ui.caption")}
-            className="mt-1 text-center font-script text-caption leading-snug text-ink-soft"
+            rows={3}
+            className="photo-caption-body mt-1 text-center font-script text-caption leading-snug text-ink-soft"
+            onChange={(event) => {
+              setCaptionText(event.target.value);
+              saveCaption(event.target.value);
+            }}
+            onBlur={() => saveCaption(captionText)}
           />
           {hasNote ? (
-            <button type="button" className="photo-caption-clear" onClick={onClear}>
+            <button
+              type="button"
+              className="photo-caption-clear"
+              onClick={() => {
+                setTitleText("");
+                setCaptionText("");
+                onClear();
+                onOpenChange(false);
+              }}
+            >
               {t("ui.removeCaption")}
             </button>
           ) : null}
@@ -96,7 +133,7 @@ export function PhotoEditTools({
             <span aria-hidden="true">⋯</span>
           </button>
           {menuOpen ? (
-            <div className="photo-tab-menu caption-strip">
+            <div className="photo-tab-menu">
               <button
                 type="button"
                 className="photo-tab-menu-item"
@@ -105,7 +142,7 @@ export function PhotoEditTools({
                   fileRef.current?.click();
                 }}
               >
-                {t("ui.edit")}
+                {t("ui.changePhoto")}
               </button>
               <button
                 type="button"
@@ -115,7 +152,7 @@ export function PhotoEditTools({
                   onOpenChange(true);
                 }}
               >
-                {t("ui.addCaption")}
+                {hasNote ? t("ui.changeCaption") : t("ui.addCaption")}
               </button>
               <button
                 type="button"
@@ -125,7 +162,7 @@ export function PhotoEditTools({
                   onRemove();
                 }}
               >
-                {t("ui.delete")}
+                {t("ui.deletePhoto")}
               </button>
             </div>
           ) : null}

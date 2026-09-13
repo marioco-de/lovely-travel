@@ -853,11 +853,11 @@ body {
   align-self: center;
   z-index: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: center;
-  gap: 0.22rem;
-  margin-top: -1.7rem;
-  padding-top: 1.7rem;
+  gap: 0;
+  margin-top: -1.85rem;
+  padding-top: 1.85rem;
   pointer-events: none;
 }
 
@@ -879,11 +879,12 @@ body {
 .photo-tab {
   pointer-events: auto;
   display: grid;
-  width: 2.15rem;
-  min-height: 2.85rem;
-  height: 2.85rem;
+  width: 2.05rem;
+  min-height: 2.75rem;
+  height: 2.75rem;
+  margin-left: -0.12rem;
   place-content: end center;
-  padding-bottom: 0.36rem;
+  padding-bottom: 0.32rem;
   border: 1px solid rgb(61 42 28 / 0.18);
   border-top: 0;
   box-shadow: 0 2px 6px rgb(61 42 28 / 0.12);
@@ -892,6 +893,12 @@ body {
 .photo-tab-more {
   position: relative;
   z-index: 1;
+  display: flex;
+}
+
+.photo-tab-more .photo-tab,
+.photo-tabs > .photo-tab:nth-of-type(1) {
+  margin-left: 0;
 }
 
 .photo-tab--more {
@@ -911,12 +918,30 @@ body {
 
 .photo-tab-menu {
   position: absolute;
-  top: calc(100% - 0.2rem);
+  top: calc(100% - 0.15rem);
   left: 50%;
   z-index: 8;
-  min-width: 10.5rem;
+  min-width: 11.5rem;
   padding: 0.35rem 0.2rem;
   transform: translateX(-40%) rotate(-1deg);
+  background: var(--color-mat);
+  box-shadow: 0 4px 12px -3px rgb(61 42 28 / 0.22), 0 1px 3px rgb(61 42 28 / 0.1);
+}
+
+.photo-caption-title,
+.photo-caption-body {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  resize: none;
+  color: inherit;
+}
+
+.photo-caption-title::placeholder,
+.photo-caption-body::placeholder {
+  color: inherit;
+  opacity: 0.4;
 }
 
 .photo-tab-menu-item {

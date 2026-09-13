@@ -619,7 +619,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
               ...block.photoNotes,
               [photoId]: {
                 ...current,
-                [field]: { ...current[field], [locale]: value },
+                [field]: { ...current[field], en: value, de: value, [locale]: value },
               },
             },
           };
