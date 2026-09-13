@@ -25,6 +25,7 @@ import {
 } from "./layout";
 import { getLocalTripByEdit, getLocalTripByPublic, makeLocalTrip, saveLocalTrip } from "./trips-local";
 
+export const CLEARED_PHOTO = "cleared";
 const DB_NAME = "tropical-album";
 const DB_VERSION = 2;
 const PHOTO_STORE = "photos";
@@ -236,7 +237,7 @@ async function loadPhotoUrls() {
   if (typeof indexedDB === "undefined") return photos;
   const blobs = await readAllPhotos();
   for (const [id, blob] of Object.entries(blobs)) {
-    photos[id] = URL.createObjectURL(blob);
+    photos[id] = blob.size === 0 ? CLEARED_PHOTO : URL.createObjectURL(blob);
   }
   return photos;
 }
@@ -333,11 +334,10 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   clearPhoto: async (id) => {
     const prev = get().photos[id];
     if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-    const next = { ...get().photos };
-    delete next[id];
+    const next = { ...get().photos, [id]: CLEARED_PHOTO };
     set({ photos: next, saveStatus: "saving" });
     try {
-      await idbDelete(PHOTO_STORE, id);
+      await idbSet(PHOTO_STORE, id, new Blob());
       scheduleRemote(get);
       set({ saveStatus: "saved" });
     } catch {
@@ -666,11 +666,15 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       get,
       mapDays(get().layout, dayId, (day) => ({
         ...day,
-        blocks: day.blocks.map((block) =>
-          block.id === blockId && block.photoIds.length > COLLAGE_MIN
-            ? { ...block, photoIds: block.photoIds.filter((id) => id !== photoId) }
-            : block,
-        ),
+        blocks: day.blocks.map((block) => {
+          if (block.id !== blockId) return block;
+          const notes = { ...block.photoNotes };
+          delete notes[photoId];
+          if (block.kind === "collage" && block.photoIds.length > COLLAGE_MIN) {
+            return { ...block, photoIds: block.photoIds.filter((id) => id !== photoId), photoNotes: notes };
+          }
+          return { ...block, photoNotes: notes };
+        }),
       })),
     );
   },
@@ -982,7 +986,11 @@ async function pushRemote(state: AlbumState) {
 export function usePhotoSrc(photo: AlbumPhoto | string, fallback?: string) {
   const id = typeof photo === "string" ? photo : photo.id;
   const builtIn = typeof photo === "string" ? fallback ?? catalogSrc(id) : photo.src;
-  return useAlbum((s) => s.photos[id] ?? builtIn);
+  return useAlbum((s) => {
+    const stored = s.photos[id];
+    if (stored === CLEARED_PHOTO) return "";
+    return stored || builtIn;
+  });
 }
 
 export function pairText(pair: I18nPair, locale: Locale) {

@@ -3,6 +3,7 @@ import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLabel, type PhotoFormat } from "@/lib/album/layout";
 import { useT } from "@/lib/i18n/locale";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type PhotoEditToolsProps = {
   hasSrc: boolean;
@@ -39,6 +40,7 @@ export function PhotoEditTools({
   const fileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
   const [titleText, setTitleText] = useState(title);
   const [captionText, setCaptionText] = useState(caption);
   const hasNote = Boolean(title.trim() || caption.trim());
@@ -134,16 +136,21 @@ export function PhotoEditTools({
           </button>
           {menuOpen ? (
             <div className="photo-tab-menu">
-              <button
-                type="button"
-                className="photo-tab-menu-item"
-                onClick={() => {
-                  setMenuOpen(false);
-                  fileRef.current?.click();
-                }}
-              >
+              <label className="photo-tab-menu-item">
                 {t("ui.changePhoto")}
-              </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="photo-file-input"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) onFile(file);
+                    event.target.value = "";
+                    setMenuOpen(false);
+                  }}
+                />
+              </label>
               <button
                 type="button"
                 className="photo-tab-menu-item"
@@ -159,7 +166,7 @@ export function PhotoEditTools({
                 className="photo-tab-menu-item photo-tab-menu-item--danger"
                 onClick={() => {
                   setMenuOpen(false);
-                  onRemove();
+                  setConfirm(true);
                 }}
               >
                 {t("ui.deletePhoto")}
@@ -173,18 +180,17 @@ export function PhotoEditTools({
         <button type="button" className="photo-tab photo-tab--cycle" aria-label={t("ui.cycleFrame")} onClick={onCycleFrame}>
           <Recycle size={14} strokeWidth={2.4} />
         </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="sr-only"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) onFile(file);
-            event.target.value = "";
-          }}
-        />
       </div>
+      <ConfirmDialog
+        open={confirm}
+        title={t("ui.confirmPhoto")}
+        onCancel={() => setConfirm(false)}
+        onConfirm={() => {
+          setConfirm(false);
+          onClear();
+          onRemove();
+        }}
+      />
     </>
   );
 }

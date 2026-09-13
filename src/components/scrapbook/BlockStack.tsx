@@ -1,6 +1,6 @@
 import { catalogSrc, cornersFor, noteForPhoto, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
 import { nextWritingPaper } from "@/lib/album/papers";
-import { pairText, useAlbum } from "@/lib/album/store";
+import { CLEARED_PHOTO, pairText, useAlbum } from "@/lib/album/store";
 import { useLocale } from "@/lib/i18n/locale";
 import { BlockBar } from "./BlockBar";
 import { CollageBlock } from "./CollageBlock";
@@ -27,7 +27,7 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
     const mount = cornersFor(photoId, i);
     return {
       id: photoId,
-      src: photos[photoId] ?? catalogSrc(photoId),
+      src: photos[photoId] === CLEARED_PHOTO ? "" : photos[photoId] || catalogSrc(photoId),
       alt: caption || title || placeName,
       place: title,
       caption,
@@ -49,7 +49,11 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
         const blockPlace = pairText(block.place, locale) || placeName;
         const blockCaption = pairText(block.caption, locale);
         const body = pairText(block.body, locale);
-        const visibleIds = block.photoIds.filter((id) => photos[id] || catalogSrc(id));
+        const visibleIds = block.photoIds.filter((id) => {
+          const stored = photos[id];
+          if (stored === CLEARED_PHOTO) return false;
+          return Boolean(stored || catalogSrc(id));
+        });
         const photoId = visibleIds[0] ?? block.photoIds[0];
 
         function printOf(id: string, i: number) {
