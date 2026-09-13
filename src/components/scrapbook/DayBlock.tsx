@@ -135,7 +135,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   </button>
                 </div>
               ) : placeLine ? (
-                <p className="day-place-line m-0 text-left font-typewriter text-kicker tracking-wide text-ink">
+                <p className="day-place-line text-left font-typewriter text-kicker tracking-wide">
                   {placeLine}
                 </p>
               ) : null}
