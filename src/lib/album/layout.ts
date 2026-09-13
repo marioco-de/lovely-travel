@@ -139,7 +139,7 @@ export function cornersFor(id: string, index: number): { corners: CornerStyle; c
   if (photo?.corners) {
     return { corners: photo.corners, cornerSet: photo.cornerSet ?? "all" };
   }
-  const sets: CornerSet[] = ["all", "diagonal", "top"];
+  const sets: CornerSet[] = ["all", "diagonal", "slash"];
   return {
     corners: CORNER_STYLES[index % CORNER_STYLES.length] ?? "black",
     cornerSet: sets[index % 3] ?? "all",

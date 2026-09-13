@@ -2,11 +2,17 @@ import { cn } from "@/lib/utils";
 import type { CornerSet, CornerStyle } from "@/lib/album/data";
 
 const ALL = ["tl", "tr", "bl", "br"] as const;
-const SETS: Record<CornerSet, readonly (typeof ALL)[number][]> = {
+const SETS: Record<string, readonly (typeof ALL)[number][]> = {
   all: ALL,
   diagonal: ["tl", "br"],
-  top: ["tl", "tr"],
+  slash: ["tr", "bl"],
 };
+
+function cornerSet(set?: CornerSet | string) {
+  if (set === "diagonal") return SETS.diagonal;
+  if (set === "slash" || set === "top" || set === "bottom") return SETS.slash;
+  return SETS.all;
+}
 
 const SRC: Record<CornerStyle, string> = {
   classic: "/patterns/corner-classic.svg",
@@ -31,7 +37,7 @@ type PhotoCornersProps = {
 export function PhotoCorners({ variant = "black", set = "all", className }: PhotoCornersProps) {
   return (
     <div className={cn("photo-corners", `photo-corners--${variant}`, className)} aria-hidden="true">
-      {SETS[set].map((corner) => (
+      {cornerSet(set).map((corner) => (
         <span key={corner} className={cn("photo-corner", `photo-corner--${corner}`)}>
           <img src={SRC[variant]} alt="" draggable={false} />
         </span>

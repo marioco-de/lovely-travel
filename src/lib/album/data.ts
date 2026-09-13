@@ -16,7 +16,7 @@ export type CornerStyle =
   | "olive"
   | "burgundy"
   | "vellum";
-export type CornerSet = "all" | "diagonal" | "top";
+export type CornerSet = "all" | "diagonal" | "slash";
 export type PaperVariant = "azulejos" | "sardinhas" | "vines" | "waves";
 
 export type AlbumPhoto = {
@@ -204,7 +204,7 @@ export const days: DayStop[] = [
         rotate: "leftSoft",
         slideFrom: "left",
         corners: "brass",
-        cornerSet: "top",
+        cornerSet: "slash",
       },
       {
         id: "cove",
