@@ -179,6 +179,11 @@ body {
   z-index: 2;
 }
 
+.album-sheet > .album-chrome {
+  z-index: 80;
+  isolation: isolate;
+}
+
 .slide-piece {
   opacity: 0;
   overflow: visible;
@@ -726,21 +731,16 @@ body {
 }
 
 .album-chrome {
-  z-index: 40;
+  z-index: 80;
 }
 
 .album-menu-panel {
+  position: fixed;
+  top: 3.35rem;
+  right: 0.75rem;
+  left: auto;
+  z-index: 81;
   max-width: min(18rem, calc(100vw - 1.5rem));
-}
-
-@media (max-width: 640px) {
-  .album-menu-panel {
-    position: fixed;
-    top: 3.4rem;
-    right: 0.75rem;
-    left: auto;
-    width: min(18rem, calc(100vw - 1.5rem));
-  }
 }
 
 .album-menu-lang .lang-fan {
@@ -1301,7 +1301,7 @@ body {
 .lightbox-scrim {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 90;
   display: grid;
   place-items: center;
   padding: 1.25rem;

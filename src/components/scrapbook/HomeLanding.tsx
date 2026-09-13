@@ -20,7 +20,7 @@ export function HomeLanding() {
   return (
     <div className="album-sheet min-h-svh w-full overflow-visible">
       <LocaleHydrator />
-      <div className="album-chrome pointer-events-none sticky top-0 z-40 flex justify-end px-3 pt-3 md:px-6">
+      <div className="album-chrome pointer-events-none sticky top-0 z-80 flex justify-end px-3 pt-3 md:px-6">
         <div className="pointer-events-auto">
           <AlbumMenu variant="home" />
         </div>

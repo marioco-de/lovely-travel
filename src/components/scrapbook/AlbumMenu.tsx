@@ -93,7 +93,7 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
       {open ? (
         <div
           role="menu"
-          className="caption-strip album-menu-panel absolute top-full right-0 z-50 mt-2 min-w-[13.5rem] space-y-3 p-3"
+          className="caption-strip album-menu-panel mt-2 min-w-[13.5rem] space-y-3 p-3"
         >
           <div className="album-menu-lang">
             <p className="mb-2 font-display text-[0.65rem] tracking-widest text-ink-soft uppercase">

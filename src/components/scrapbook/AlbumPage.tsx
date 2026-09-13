@@ -74,7 +74,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
         {t("ui.skipToMap")}
       </a>
 
-      <div className="album-chrome pointer-events-none sticky top-0 z-40 flex justify-end px-3 pt-3 md:px-6">
+      <div className="album-chrome pointer-events-none sticky top-0 z-80 flex justify-end px-3 pt-3 md:px-6">
         <div className="pointer-events-auto">
           <AlbumMenu onEdit={() => setEditorOpen(true)} />
         </div>
