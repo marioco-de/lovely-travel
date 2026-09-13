@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import type { Locale } from "@/lib/i18n/messages";
 import { DEFAULT_EDIT_PASSWORD } from "./password";
-import type { AlbumLayout } from "./layout";
+import { seedLayout, type AlbumLayout } from "./layout";
 import type { AlbumTexts } from "./store";
 
 export type TripPayload = {
@@ -54,7 +54,7 @@ function token(bytes: number) {
 }
 
 function hashPassword(password: string) {
-  return createHash("sha256").update(password).digest("hex");
+  return createHash("sha256").update(password.trim().toLowerCase()).digest("hex");
 }
 
 function sameSecret(left: string, right: string) {
@@ -66,6 +66,18 @@ function sameSecret(left: string, right: string) {
 
 function memorablePassword() {
   return DEFAULT_EDIT_PASSWORD;
+}
+
+async function ensurePasswordColumn() {
+  const { getSql } = await import("@/lib/db");
+  const sql = await getSql();
+  await sql.query("alter table trips add column if not exists edit_password_hash text");
+  const digest = hashPassword(DEFAULT_EDIT_PASSWORD);
+  await sql.query(
+    "update trips set edit_password_hash = $1 where edit_password_hash is null or btrim(edit_password_hash) = ''",
+    [digest],
+  );
+  return sql;
 }
 
 function asPayload(raw: unknown): TripPayload {
@@ -89,6 +101,7 @@ export const createTrip = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<TripRecord> => {
     const { getSql } = await import("@/lib/db");
+    await ensurePasswordColumn();
     const sql = await getSql();
     const id = newId();
     const publicHash = token(8);
@@ -197,30 +210,37 @@ export const unlockTrip = createServerFn({ method: "POST" })
     const password = data.password.trim();
     if (!password) return null;
     const digest = hashPassword(password);
-    const isDefault = password.toLowerCase() === DEFAULT_EDIT_PASSWORD;
     const publicHash = data.publicHash?.trim() || "";
-
-    try {
-      const { getSql } = await import("@/lib/db");
-      const sql = await getSql();
-      const rows = publicHash
-        ? await sql<{ edit_hash: string; edit_password_hash: string | null }>`
-            select edit_hash, edit_password_hash from trips where public_hash = ${publicHash} limit 1
-          `
-        : await sql<{ edit_hash: string; edit_password_hash: string | null }>`
-            select edit_hash, edit_password_hash from trips
-            where edit_hash = ${password} or edit_password_hash = ${digest}
-            limit 1
-          `;
-      const row = rows[0];
-      if (!row) return null;
-      const byHash = sameSecret(row.edit_hash, password);
-      const byPassword = Boolean(row.edit_password_hash) && sameSecret(row.edit_password_hash ?? "", digest);
-      if (byHash || byPassword || isDefault) return { editHash: row.edit_hash };
-      return null;
-    } catch {
-      return null;
+    const sql = await ensurePasswordColumn();
+    const rows = publicHash
+      ? await sql<{ edit_hash: string; edit_password_hash: string | null }>`
+          select edit_hash, edit_password_hash from trips where public_hash = ${publicHash} limit 1
+        `
+      : await sql<{ edit_hash: string; edit_password_hash: string | null }>`
+          select edit_hash, edit_password_hash from trips
+          where edit_password_hash = ${digest}
+          limit 1
+        `;
+    const row = rows[0];
+    if (row?.edit_password_hash && sameSecret(row.edit_password_hash, digest)) {
+      return { editHash: row.edit_hash };
     }
+    if (publicHash) return null;
+    if (digest !== hashPassword(DEFAULT_EDIT_PASSWORD)) return null;
+    const id = newId();
+    const nextPublic = token(8);
+    const nextEdit = token(18);
+    const payload = JSON.stringify({
+      layout: seedLayout(),
+      texts: { en: {}, de: {} },
+      hiddenPins: {},
+      photos: {},
+    });
+    await sql`
+      insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
+      values (${id}, ${nextPublic}, ${nextEdit}, ${digest}, ${"Tropical Travel"}, ${"en"}, ${payload}::jsonb)
+    `;
+    return { editHash: nextEdit };
   });
 
 export const setTripPassword = createServerFn({ method: "POST" })
@@ -231,8 +251,7 @@ export const setTripPassword = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }): Promise<{ ok: true } | { ok: false }> => {
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
+    const sql = await ensurePasswordColumn();
     const rows = await sql<{ id: string }>`
       update trips
       set edit_password_hash = ${hashPassword(data.password)}, updated_at = now()
