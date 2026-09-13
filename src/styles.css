@@ -280,42 +280,59 @@ body {
   pointer-events: none;
   z-index: 6;
   overflow: visible;
+  container-type: size;
 }
 
 .photo-corner {
   position: absolute;
-  width: clamp(1.05rem, 10%, 2.15rem);
-  height: clamp(1.05rem, 10%, 2.15rem);
+  width: 1.55rem;
+  height: 1.55rem;
   overflow: visible;
-  background: none;
+
+@supports (width: 1cqmin) {
+  .photo-corner {
+    width: clamp(0.9rem, 10cqmin, 3.4rem);
+    height: clamp(0.9rem, 10cqmin, 3.4rem);
+  }
 }
 
 .collage-tile .photo-corner {
-  width: clamp(0.82rem, 9%, 1.35rem);
-  height: clamp(0.82rem, 9%, 1.35rem);
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+@supports (width: 1cqmin) {
+  .collage-tile .photo-corner {
+    width: clamp(0.7rem, 8.5cqmin, 1.4rem);
+    height: clamp(0.7rem, 8.5cqmin, 1.4rem);
+  }
 }
 
 .photo-corner--tl {
-  top: -0.18rem;
-  left: -0.18rem;
+  top: -0.14rem;
+  left: -0.14rem;
+  transform: none;
 }
 
 .photo-corner--tr {
-  top: -0.18rem;
-  right: -0.18rem;
+  top: -0.14rem;
+  right: -0.14rem;
   transform: scaleX(-1);
+  transform-origin: center;
 }
 
 .photo-corner--bl {
-  bottom: -0.18rem;
-  left: -0.18rem;
+  bottom: -0.14rem;
+  left: -0.14rem;
   transform: scaleY(-1);
+  transform-origin: center;
 }
 
 .photo-corner--br {
-  bottom: -0.18rem;
-  right: -0.18rem;
+  bottom: -0.14rem;
+  right: -0.14rem;
   transform: scale(-1);
+  transform-origin: center;
 }
 
 .photo-corner img {
