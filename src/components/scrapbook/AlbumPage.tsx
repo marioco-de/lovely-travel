@@ -8,14 +8,26 @@ import { HeroCollage } from "./HeroCollage";
 import { LanguageToggle } from "./LanguageToggle";
 import { MapInsert } from "./MapInsert";
 import { ShareStamp } from "./ShareStamp";
-import { Stamp } from "./Stamp";
 
-export function AlbumPage() {
+type AlbumPageProps = {
+  mode?: "demo" | "view" | "edit";
+  publicHash?: string;
+  editHash?: string;
+};
+
+export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProps) {
   const t = useT();
   const reduced = usePrefersReducedMotion();
   const days = useAlbum((s) => s.layout.days);
+  const canEdit = useAlbum((s) => s.canEdit);
+  const bindTrip = useAlbum((s) => s.bindTrip);
+  const createRemote = useAlbum((s) => s.createRemote);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
   const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    void bindTrip({ mode, publicHash, editHash });
+  }, [bindTrip, mode, publicHash, editHash]);
 
   useEffect(() => {
     document.title = t("meta.title");
@@ -54,8 +66,13 @@ export function AlbumPage() {
     el?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   }
 
+  async function startAlbum() {
+    const created = await createRemote();
+    if (created?.editHash) window.location.href = `/e/${created.editHash}`;
+  }
+
   return (
-    <div className="album-sheet min-h-svh w-full">
+    <div className="album-sheet min-h-svh w-full overflow-x-clip">
       <LocaleHydrator />
       <a href="#route-map" className="skip-link font-display text-sm">
         {t("ui.skipToMap")}
@@ -64,23 +81,14 @@ export function AlbumPage() {
       <div className="pointer-events-none sticky top-0 z-30 flex justify-end px-3 pt-3 md:px-6">
         <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
           <LanguageToggle />
-          <Stamp
-            as="button"
-            variant="rect"
-            labelKey="ui.edit"
-            rotation={-3}
-            pressed={editing}
-            onClick={() => setEditing(true)}
-            className="px-3 py-2"
-          />
           <ShareStamp />
         </div>
       </div>
 
-      <HeroCollage />
+      <HeroCollage onEditTitle={() => setEditing(true)} />
       <MapInsert activeId={activeId} onSelect={openDay} />
 
-      <section className="w-full">
+      <section className="w-full overflow-x-clip">
         <div className="days-rail">
           {days.map((day, index) => (
             <DayBlock
@@ -95,11 +103,28 @@ export function AlbumPage() {
       </section>
 
       <footer className="mx-auto flex w-full max-w-7xl flex-col items-start gap-4 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-10 lg:px-16">
-        <p className="max-w-md font-script text-caption text-ink-soft">{t("footer.colophon")}</p>
-        <Stamp labelKey="stamp.passport" variant="round" rotation={-6} />
+        {mode === "demo" ? (
+          <button
+            type="button"
+            onClick={() => void startAlbum()}
+            className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
+          >
+            {t("ui.newAlbum")}
+          </button>
+        ) : canEdit ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
+          >
+            {t("ui.edit")}
+          </button>
+        ) : (
+          <span />
+        )}
       </footer>
 
-      <AlbumEditor open={editing} onClose={() => setEditing(false)} />
+      {canEdit || mode === "edit" ? <AlbumEditor open={editing} onClose={() => setEditing(false)} /> : null}
     </div>
   );
 }

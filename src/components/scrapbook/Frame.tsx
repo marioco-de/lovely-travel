@@ -6,6 +6,8 @@ import type { PrintPhoto } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoCorners } from "./PhotoCorners";
+import { PhotoEdgeStamp } from "./PhotoEdgeStamp";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 const rotateClass: Record<RotateDir, string> = {
   left: "rotate-left",
@@ -20,13 +22,14 @@ type FrameProps = {
   className?: string;
   showCaption?: boolean;
   priority?: boolean;
+  stamp?: { labelKey: MessageKey; corner: "tl" | "tr" | "bl" | "br"; variant?: "round" | "rect" | "postal"; rotation?: number };
 };
 
 function isCatalog(photo: AlbumPhoto | PrintPhoto): photo is AlbumPhoto {
   return "altKey" in photo && typeof photo.altKey === "string";
 }
 
-export function Frame({ photo, className, showCaption = true, priority = false }: FrameProps) {
+export function Frame({ photo, className, showCaption = true, priority = false, stamp }: FrameProps) {
   const t = useT();
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const isDetail = photo.kind === "detail";
@@ -54,6 +57,15 @@ export function Frame({ photo, className, showCaption = true, priority = false }
                 {t("ui.addPhoto")}
               </div>
             )}
+            {src && stamp ? (
+              <PhotoEdgeStamp
+                src={src}
+                corner={stamp.corner}
+                labelKey={stamp.labelKey}
+                variant={stamp.variant}
+                rotation={stamp.rotation}
+              />
+            ) : null}
           </div>
           <PhotoCorners variant={corners} set={cornerSet} />
         </div>

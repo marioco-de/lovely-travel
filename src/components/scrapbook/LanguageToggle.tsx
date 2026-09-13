@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/lib/i18n/locale";
-import type { Locale } from "@/lib/i18n/messages";
+import { useAlbum } from "@/lib/album/store";
+import { LOCALES, LOCALE_LABEL } from "@/lib/i18n/messages";
 import { Stamp } from "./Stamp";
-
-const LOCALES: Locale[] = ["en", "de"];
 
 export function LanguageToggle() {
   const t = useT();
   const locale = useLocale((s) => s.locale);
   const setLocale = useLocale((s) => s.setLocale);
+  const ensureLocale = useAlbum((s) => s.ensureLocale);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const others = LOCALES.filter((item) => item !== locale);
@@ -38,11 +38,12 @@ export function LanguageToggle() {
             key={code}
             as="button"
             variant="rect"
-            labelKey={code === "en" ? "ui.lang.en" : "ui.lang.de"}
+            labelKey={LOCALE_LABEL[code]}
             rotation={-14 - index * 8}
             delayMs={40}
             onClick={() => {
               setLocale(code);
+              void ensureLocale(code);
               setOpen(false);
             }}
             className="lang-fan-leaf px-2.5 py-2"
@@ -51,7 +52,7 @@ export function LanguageToggle() {
       <Stamp
         as="button"
         variant="rect"
-        labelKey={locale === "en" ? "ui.lang.en" : "ui.lang.de"}
+        labelKey={LOCALE_LABEL[locale]}
         rotation={-6}
         pressed
         onClick={() => setOpen((value) => !value)}

@@ -1,12 +1,16 @@
 import { useState } from "react";
+import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 
 export function ShareStamp() {
   const t = useT();
+  const publicHash = useAlbum((s) => s.publicHash);
   const [copied, setCopied] = useState(false);
 
   async function share() {
-    const url = window.location.href;
+    const url = publicHash
+      ? `${window.location.origin}/t/${publicHash}`
+      : window.location.href;
     try {
       if (navigator.share) {
         await navigator.share({ title: t("album.title"), url });

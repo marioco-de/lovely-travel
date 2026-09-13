@@ -1,7 +1,10 @@
 import { create } from "zustand";
-import type { Locale, MessageKey } from "@/lib/i18n/messages";
+import { LOCALES, type Locale, type MessageKey } from "@/lib/i18n/messages";
 import { days, heroPhotos, type AlbumPhoto } from "./data";
+import { applyFields, collectFields, type AlbumTexts } from "./fields";
 import { geocodePortugal } from "./geocode";
+import { createTrip, getEditTrip, getPublicTrip, saveTrip } from "./trips";
+import { ensureTranslations } from "./translate";
 import {
   catalogSrc,
   emptyBlock,
@@ -21,7 +24,7 @@ const PHOTO_STORE = "photos";
 const TEXT_STORE = "texts";
 const LAYOUT_STORE = "layout";
 
-export type AlbumTexts = Record<Locale, Partial<Record<MessageKey, string>>>;
+export type { AlbumTexts };
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type AlbumState = {
@@ -47,9 +50,17 @@ type AlbumState = {
   patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body">>) => void;
   addPhotoSlot: (dayId: string, blockId: string) => void;
   reset: () => Promise<void>;
+  canEdit: boolean;
+  tripId?: string;
+  publicHash?: string;
+  editHash?: string;
+  sourceLocale: Locale;
+  bindTrip: (opts: { mode: "demo" | "view" | "edit"; publicHash?: string; editHash?: string }) => Promise<void>;
+  ensureLocale: (locale: Locale) => Promise<void>;
+  createRemote: () => Promise<{ publicHash: string; editHash: string } | null>;
 };
 
-const emptyTexts = (): AlbumTexts => ({ en: {}, de: {} });
+const emptyTexts = (): AlbumTexts => Object.fromEntries(LOCALES.map((locale) => [locale, {}])) as AlbumTexts;
 
 const PIN_KEY = "tropical-album-pins";
 
@@ -187,6 +198,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   texts: emptyTexts(),
   hiddenPins: {},
   layout: seedLayout(),
+  canEdit: false,
+  sourceLocale: "en",
   hydrate: async () => {
     if (typeof indexedDB === "undefined") {
       set({ ready: true, hiddenPins: readHiddenPins() });
@@ -231,6 +244,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         await idbSet(PHOTO_STORE, id, blob);
       }
       set({ photos: next, saveStatus: "saved" });
+      scheduleRemote(get);
     } catch {
       set({ photos: next, saveStatus: "error" });
     }
@@ -244,8 +258,11 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     if (typeof window === "undefined") return;
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => {
-      void Promise.all([idbSet(TEXT_STORE, "en", texts.en), idbSet(TEXT_STORE, "de", texts.de)])
-        .then(() => set({ saveStatus: "saved" }))
+      void Promise.all([idbSet(TEXT_STORE, "en", texts.en ?? {}), idbSet(TEXT_STORE, "de", texts.de ?? {})])
+        .then(() => {
+          scheduleRemote(get);
+          set({ saveStatus: "saved" });
+        })
         .catch(() => set({ saveStatus: "error" }));
     }, 280);
   },
@@ -395,6 +412,86 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       set({ saveStatus: "error" });
     }
   },
+  bindTrip: async ({ mode, publicHash, editHash }) => {
+    if (mode === "demo") {
+      set({ canEdit: false, publicHash: undefined, editHash: undefined, tripId: undefined });
+      await get().hydrate();
+      return;
+    }
+    try {
+      const trip = editHash ? await getEditTrip({ data: { hash: editHash } }) : null;
+      const publicTrip = trip ?? (publicHash ? await getPublicTrip({ data: { hash: publicHash } }) : null);
+      if (!publicTrip) {
+        set({ ready: true, canEdit: false });
+        return;
+      }
+      set({
+        ready: true,
+        canEdit: Boolean(editHash && trip?.editHash),
+        tripId: publicTrip.id,
+        publicHash: publicTrip.publicHash,
+        editHash: trip?.editHash,
+        sourceLocale: publicTrip.sourceLocale,
+        layout: isLayout(publicTrip.payload.layout) ? mergeLayout(publicTrip.payload.layout) : seedLayout(),
+        texts: publicTrip.payload.texts ?? emptyTexts(),
+        hiddenPins: publicTrip.payload.hiddenPins ?? {},
+        photos: publicTrip.payload.photos ?? {},
+        saveStatus: "saved",
+      });
+    } catch {
+      set({ ready: true, canEdit: false });
+    }
+  },
+  ensureLocale: async (locale) => {
+    const { sourceLocale, layout, texts, tripId } = get();
+    if (locale === sourceLocale) return;
+    const fields = collectFields(sourceLocale, texts, layout);
+    if (fields.length === 0) return;
+    try {
+      const translated = await ensureTranslations({
+        data: { tripId, sourceLocale, targetLocale: locale, fields },
+      });
+      const next = applyFields(layout, texts, locale, translated);
+      set({ layout: next.layout, texts: next.texts });
+      if (typeof window !== "undefined") {
+        void idbSet(TEXT_STORE, "en", next.texts.en ?? {});
+        void idbSet(TEXT_STORE, "de", next.texts.de ?? {});
+        void idbSet(LAYOUT_STORE, "album", next.layout);
+      }
+      scheduleRemote(get);
+    } catch {
+      /* keep source language on screen */
+    }
+  },
+  createRemote: async () => {
+    try {
+      const state = get();
+      const photos = await encodePhotos(state.photos);
+      const trip = await createTrip({
+        data: {
+          title: state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Tropical Travel",
+          sourceLocale: state.sourceLocale,
+          payload: {
+            layout: state.layout,
+            texts: state.texts,
+            hiddenPins: state.hiddenPins,
+            photos,
+          },
+        },
+      });
+      set({
+        canEdit: true,
+        tripId: trip.id,
+        publicHash: trip.publicHash,
+        editHash: trip.editHash,
+        saveStatus: "saved",
+      });
+      return { publicHash: trip.publicHash, editHash: trip.editHash ?? "" };
+    } catch {
+      set({ saveStatus: "error" });
+      return null;
+    }
+  },
 }));
 
 function persistLayout(
@@ -407,9 +504,64 @@ function persistLayout(
   window.clearTimeout(layoutTimer);
   layoutTimer = window.setTimeout(() => {
     void idbSet(LAYOUT_STORE, "album", get().layout)
-      .then(() => set({ saveStatus: "saved" }))
+      .then(() => {
+        scheduleRemote(get);
+        set({ saveStatus: "saved" });
+      })
       .catch(() => set({ saveStatus: "error" }));
   }, 220);
+}
+
+let remoteTimer: number | undefined;
+
+function scheduleRemote(get: () => AlbumState) {
+  if (typeof window === "undefined") return;
+  if (!get().editHash) return;
+  window.clearTimeout(remoteTimer);
+  remoteTimer = window.setTimeout(() => {
+    void pushRemote(get());
+  }, 700);
+}
+
+async function encodePhotos(photos: Record<string, string>) {
+  const out: Record<string, string> = {};
+  for (const [id, url] of Object.entries(photos)) {
+    if (url.startsWith("data:")) {
+      out[id] = url;
+      continue;
+    }
+    const blob = await idbGet<Blob>(PHOTO_STORE, id);
+    if (blob) out[id] = await blobToDataUrl(blob);
+  }
+  return out;
+}
+
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function pushRemote(state: AlbumState) {
+  if (!state.editHash) return;
+  const photos = await encodePhotos(state.photos);
+  const title = state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Tropical Travel";
+  await saveTrip({
+    data: {
+      editHash: state.editHash,
+      title,
+      sourceLocale: state.sourceLocale,
+      payload: {
+        layout: state.layout,
+        texts: state.texts,
+        hiddenPins: state.hiddenPins,
+        photos,
+      },
+    },
+  });
 }
 
 export function usePhotoSrc(photo: AlbumPhoto | string, fallback?: string) {

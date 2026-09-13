@@ -440,7 +440,7 @@ function LocaleInput({
   typewriter: boolean;
   onChange: (value: string) => void;
 }) {
-  const value = useAlbum((s) => s.texts[locale][messageKey] ?? messages[locale][messageKey]);
+  const value = useAlbum((s) => s.texts[locale]?.[messageKey] ?? messages[locale]?.[messageKey] ?? messages.en[messageKey] ?? "");
   const fieldClass = cn("album-field", typewriter ? "font-typewriter tracking-wide" : "font-script text-caption");
 
   if (multiline) {

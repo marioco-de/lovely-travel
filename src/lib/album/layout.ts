@@ -1,4 +1,4 @@
-import { de, en } from "@/lib/i18n/messages";
+import { de, en, type Locale } from "@/lib/i18n/messages";
 import {
   CORNER_STYLES,
   days,
@@ -12,7 +12,7 @@ import {
 } from "./data";
 import { PLACES, type GeoHit } from "./places";
 
-export type I18nPair = { en: string; de: string };
+export type I18nPair = { en: string; de: string } & Partial<Record<Locale, string>>;
 
 export type BlockKind = "collage" | "photo" | "polaroid" | "place" | "note";
 
@@ -162,9 +162,15 @@ export function emptyDay(index: number): LayoutDay {
   };
 }
 
-export function rotateFor(index: number): RotateDir {
-  const cycle: RotateDir[] = ["leftSoft", "right", "left", "rightSoft"];
-  return cycle[index % cycle.length] ?? "none";
+const ROTATIONS: RotateDir[] = ["leftSoft", "right", "left", "rightSoft", "none"];
+
+export function rotateFor(seed: string | number): RotateDir {
+  const text = String(seed);
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  }
+  return ROTATIONS[Math.abs(h) % ROTATIONS.length] ?? "leftSoft";
 }
 
 export function dayGeo(day: { id: string; geo?: GeoHit }): GeoHit | null {

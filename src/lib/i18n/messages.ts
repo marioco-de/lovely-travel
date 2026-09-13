@@ -8,11 +8,18 @@ export const en = {
   "ui.language": "Language",
   "ui.lang.en": "EN",
   "ui.lang.de": "DE",
+  "ui.lang.pt": "PT",
+  "ui.lang.fr": "FR",
+  "ui.lang.es": "ES",
   "ui.openDay": "Open this day",
   "ui.routeHint": "Tap a wax pin — the day waits down the page",
   "ui.share": "Share",
   "ui.copied": "Copied",
   "ui.skipToMap": "Skip to the route map",
+  "ui.newAlbum": "Start an album",
+  "ui.publicLink": "Public page",
+  "ui.editLink": "Secret edit link",
+  "ui.translating": "Developing the other language…",
   "ui.edit": "Edit",
   "ui.done": "Done",
   "ui.editorTitle": "Fill the album",
@@ -97,11 +104,19 @@ export const en = {
   "day.algarve.cliffs.alt": "Golden Algarve sea cliffs and turquoise water at morning.",
   "day.algarve.cove.caption": "Before the tour boats.",
   "day.algarve.cove.alt": "A quiet ochre cove with a crescent of sand.",
-  "footer.colophon": "A cream-page album. Public — no account, just the page.",
+  "footer.colophon": "",
 } as const;
 
 export type MessageKey = keyof typeof en;
-export type Locale = "en" | "de";
+export const LOCALES = ["en", "de", "pt", "fr", "es"] as const;
+export type Locale = (typeof LOCALES)[number];
+export const LOCALE_LABEL: Record<Locale, MessageKey> = {
+  en: "ui.lang.en",
+  de: "ui.lang.de",
+  pt: "ui.lang.pt",
+  fr: "ui.lang.fr",
+  es: "ui.lang.es",
+};
 
 export const de: Record<MessageKey, string> = {
   "meta.title": "Tropical Travel — Portugal",
@@ -113,11 +128,18 @@ export const de: Record<MessageKey, string> = {
   "ui.language": "Sprache",
   "ui.lang.en": "EN",
   "ui.lang.de": "DE",
+  "ui.lang.pt": "PT",
+  "ui.lang.fr": "FR",
+  "ui.lang.es": "ES",
   "ui.openDay": "Diesen Tag öffnen",
   "ui.routeHint": "Wachs-Pin antippen — der Tag wartet weiter unten",
   "ui.share": "Teilen",
   "ui.copied": "Kopiert",
   "ui.skipToMap": "Zur Routenkarte springen",
+  "ui.newAlbum": "Neues Album",
+  "ui.publicLink": "Öffentliche Seite",
+  "ui.editLink": "Geheimer Bearbeiten-Link",
+  "ui.translating": "Die andere Sprache entwickelt sich…",
   "ui.edit": "Eintragen",
   "ui.done": "Fertig",
   "ui.editorTitle": "Album füllen",
@@ -202,7 +224,51 @@ export const de: Record<MessageKey, string> = {
   "day.algarve.cliffs.alt": "Goldene Algarve-Klippen und türkises Wasser am Morgen.",
   "day.algarve.cove.caption": "Bevor die Boote kamen.",
   "day.algarve.cove.alt": "Eine stille ockerfarbene Bucht mit einem Sandhalbmond.",
-  "footer.colophon": "Ein Album auf Creme-Papier. Öffentlich — kein Konto, nur die Seite.",
+  "footer.colophon": "",
 };
 
-export const messages: Record<Locale, Record<MessageKey, string>> = { en, de };
+const chrome: Record<Locale, Partial<Record<MessageKey, string>>> = {
+  en,
+  de: { ...de, "footer.colophon": "" },
+  pt: {
+    "ui.language": "Língua",
+    "ui.lang.en": "EN",
+    "ui.lang.de": "DE",
+    "ui.lang.pt": "PT",
+    "ui.lang.fr": "FR",
+    "ui.lang.es": "ES",
+    "ui.share": "Partilhar",
+    "ui.copied": "Copiado",
+    "ui.skipToMap": "Saltar para o mapa",
+    "ui.newAlbum": "Começar um álbum",
+    "ui.translating": "A revelar a outra língua…",
+  },
+  fr: {
+    "ui.language": "Langue",
+    "ui.lang.en": "EN",
+    "ui.lang.de": "DE",
+    "ui.lang.pt": "PT",
+    "ui.lang.fr": "FR",
+    "ui.lang.es": "ES",
+    "ui.share": "Partager",
+    "ui.copied": "Copié",
+    "ui.skipToMap": "Aller à la carte",
+    "ui.newAlbum": "Commencer un album",
+    "ui.translating": "L’autre langue se développe…",
+  },
+  es: {
+    "ui.language": "Idioma",
+    "ui.lang.en": "EN",
+    "ui.lang.de": "DE",
+    "ui.lang.pt": "PT",
+    "ui.lang.fr": "FR",
+    "ui.lang.es": "ES",
+    "ui.share": "Compartir",
+    "ui.copied": "Copiado",
+    "ui.skipToMap": "Ir al mapa",
+    "ui.newAlbum": "Empezar un álbum",
+    "ui.translating": "Revelando el otro idioma…",
+  },
+};
+
+export const messages: Record<Locale, Partial<Record<MessageKey, string>>> = chrome;

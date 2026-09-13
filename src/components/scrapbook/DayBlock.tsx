@@ -36,7 +36,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       place: placeLabel,
       caption,
       kind: "landscape",
-      rotate: rotateFor(i + index),
+      rotate: rotateFor(`${photoId}:${day.id}:${i}`),
       corners: mount.corners,
       cornerSet: mount.cornerSet,
     };

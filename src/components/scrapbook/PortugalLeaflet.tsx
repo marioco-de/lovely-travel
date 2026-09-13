@@ -94,11 +94,14 @@ export default function PortugalLeaflet({
       <MapContainer
         center={[start.lat, start.lng]}
         zoom={variant === "aside" ? 11 : 7}
-        scrollWheelZoom={variant === "hero"}
-        dragging={variant === "hero"}
-        doubleClickZoom={variant === "hero"}
-        zoomControl={variant === "hero"}
-        attributionControl={variant === "hero"}
+        scrollWheelZoom={false}
+        dragging={false}
+        doubleClickZoom={false}
+        zoomControl={false}
+        attributionControl={false}
+        touchZoom={false}
+        boxZoom={false}
+        keyboard={false}
         className="portugal-leaflet-canvas h-full w-full"
       >
         <TileLayer
