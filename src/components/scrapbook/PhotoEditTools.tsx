@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { MessageCircle, Pencil, Recycle, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLabel, type PhotoFormat } from "@/lib/album/layout";
 import { useT } from "@/lib/i18n/locale";
@@ -38,27 +38,73 @@ export function PhotoEditTools({
 }: PhotoEditToolsProps) {
   const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const hasNote = Boolean(title.trim() || caption.trim());
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", onPointer);
+    return () => window.removeEventListener("pointerdown", onPointer);
+  }, [menuOpen]);
+
   if (!hasSrc) return null;
 
   return (
     <>
-      <div className="photo-tabs" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
-        <button type="button" className="photo-tab photo-tab--pencil" aria-label={t("ui.replacePhoto")} onClick={() => fileRef.current?.click()}>
-          <Pencil size={14} strokeWidth={2.3} />
-        </button>
-        <button
-          type="button"
-          className={cn("photo-tab photo-tab--caption", open && "is-on")}
-          aria-label={t("ui.addCaption")}
-          aria-expanded={open}
-          onClick={() => onOpenChange(!open)}
-        >
-          <MessageCircle size={14} strokeWidth={2.3} />
-        </button>
-        <button type="button" className="photo-tab photo-tab--trash" aria-label={t("ui.removeSlot")} onClick={onRemove}>
-          <Trash2 size={14} strokeWidth={2.3} />
-        </button>
+      <div
+        className={cn("photo-tabs", menuOpen && "is-open")}
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <div ref={menuRef} className="photo-tab-more">
+          <button
+            type="button"
+            className={cn("photo-tab photo-tab--more", menuOpen && "is-on")}
+            aria-label={t("ui.photoActions")}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((value) => !value)}
+          >
+            <span aria-hidden="true">⋯</span>
+          </button>
+          {menuOpen ? (
+            <div className="photo-tab-menu caption-strip">
+              <button
+                type="button"
+                className="photo-tab-menu-item"
+                onClick={() => {
+                  setMenuOpen(false);
+                  fileRef.current?.click();
+                }}
+              >
+                {t("ui.edit")}
+              </button>
+              <button
+                type="button"
+                className="photo-tab-menu-item"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenChange(true);
+                }}
+              >
+                {t("ui.addCaption")}
+              </button>
+              <button
+                type="button"
+                className="photo-tab-menu-item photo-tab-menu-item--danger"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRemove();
+                }}
+              >
+                {t("ui.delete")}
+              </button>
+            </div>
+          ) : null}
+        </div>
         <button type="button" className="photo-tab photo-tab--format" aria-label={t("ui.photoFormat")} onClick={onCycleFormat}>
           <span>{formatLabel(format)}</span>
         </button>
