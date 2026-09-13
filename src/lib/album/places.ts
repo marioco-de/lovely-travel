@@ -64,7 +64,10 @@ const GEO = {
 const COUNTRY = /^(portugal|spain|deutschland|germany|france|italy|españa|frankreich|europe)$/i;
 const POSTAL = /\b\d{4,5}(?:-\d{3})?\b/g;
 
-/** "Ponta da Piedade, 8600-315 Lagos, Portugal" → "Ponta da Piedade, Lagos" */
+/** "Lisboa, Portugal" → "Lisboa" */
+export function mapPlaceName(value: string) {
+  return value.split(",")[0]?.trim() ?? "";
+}
 export function shortPlaceLine(address: string, city?: string) {
   const parts = address
     .split(",")

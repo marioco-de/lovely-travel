@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { cn } from "@/lib/utils";
 import { dayGeo, COVER_ID } from "@/lib/album/layout";
+import { mapPlaceName } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale } from "@/lib/i18n/locale";
 
@@ -104,7 +105,7 @@ export default function PortugalLeaflet({
     })
     .map((stop) => {
       const geo = dayGeo(stop);
-      return geo ? { stop, geo, name: pairText(stop.place, locale) } : null;
+      return geo ? { stop, geo, name: mapPlaceName(pairText(stop.place, locale)) } : null;
     })
     .filter((row): row is NonNullable<typeof row> => Boolean(row));
 

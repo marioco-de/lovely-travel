@@ -1,4 +1,5 @@
 import { COVER_ID } from "@/lib/album/layout";
+import { mapPlaceName } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { PortugalLocator } from "./PortugalLocator";
@@ -18,7 +19,7 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
   const days = useAlbum((s) => s.layout.days);
   const route = days
     .filter((day) => day.id !== COVER_ID)
-    .map((day) => pairText(day.place, locale).trim())
+    .map((day) => mapPlaceName(pairText(day.place, locale)))
     .filter(Boolean)
     .filter((name, index, list) => list.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index)
     .join(" — ");
