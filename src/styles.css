@@ -179,9 +179,21 @@ body {
   z-index: 2;
 }
 
-.album-sheet > .album-chrome {
-  z-index: 80;
-  isolation: isolate;
+.album-chrome-fixed {
+  position: fixed;
+  top: 0.7rem;
+  right: 0.7rem;
+  z-index: 100000;
+  pointer-events: auto;
+}
+
+.album-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 1;
+  max-width: min(18rem, calc(100vw - 1.5rem));
+  box-shadow: 0 14px 36px rgb(61 42 28 / 0.22);
 }
 
 .slide-piece {
@@ -728,19 +740,6 @@ body {
   right: calc(100% + 0.4rem);
   top: 0.35rem;
   z-index: 5;
-}
-
-.album-chrome {
-  z-index: 80;
-}
-
-.album-menu-panel {
-  position: fixed;
-  top: 3.35rem;
-  right: 0.75rem;
-  left: auto;
-  z-index: 81;
-  max-width: min(18rem, calc(100vw - 1.5rem));
 }
 
 .album-menu-lang .lang-fan {

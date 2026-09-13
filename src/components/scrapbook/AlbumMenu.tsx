@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FEATURED_SLUG } from "@/lib/album/featured";
@@ -19,7 +20,12 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlock, setUnlock] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -70,8 +76,8 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
     setUnlock(true);
   }
 
-  return (
-    <div ref={wrapRef} className="relative">
+  const menu = (
+    <div ref={wrapRef} className="album-chrome-fixed">
       <button
         type="button"
         aria-expanded={open}
@@ -91,10 +97,7 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
         ⋯
       </button>
       {open ? (
-        <div
-          role="menu"
-          className="caption-strip album-menu-panel mt-2 min-w-[13.5rem] space-y-3 p-3"
-        >
+        <div role="menu" className="caption-strip album-menu-panel mt-2 min-w-[13.5rem] space-y-3 p-3">
           <div className="album-menu-lang">
             <p className="mb-2 font-display text-[0.65rem] tracking-widest text-ink-soft uppercase">
               {t("ui.language")}
@@ -139,4 +142,7 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
       ) : null}
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(menu, document.body);
 }

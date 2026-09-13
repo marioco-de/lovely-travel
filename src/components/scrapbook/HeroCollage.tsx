@@ -16,7 +16,7 @@ export function HeroCollage() {
 
   return (
     <section className="relative mx-auto w-full max-w-7xl overflow-visible px-4 pt-4 pb-8 md:px-10 md:pt-6 md:pb-16 lg:px-16">
-      <header className="relative mb-8 max-w-xl pr-28 md:mb-10 md:pr-36">
+      <header className="relative mb-8 max-w-xl pr-16 md:mb-10 md:pr-36">
         <div className="block w-full text-left">
           {canEdit ? (
             <>
