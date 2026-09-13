@@ -9,3 +9,4 @@ screenshots/
 .grok/
 *.log
 .DS_Store
+attachments/
