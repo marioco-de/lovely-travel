@@ -5,6 +5,7 @@ import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
 import type { PrintPhoto } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
 import { PhotoCaption } from "./PhotoCaption";
+import { PhotoBanderole } from "./PhotoBanderole";
 import { PhotoCorners } from "./PhotoCorners";
 import { PhotoEdgeStamp } from "./PhotoEdgeStamp";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -67,7 +68,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
               />
             ) : null}
           </div>
-          <PhotoCorners variant={corners} set={cornerSet} />
+          {corners === "scallop" ? <PhotoBanderole /> : <PhotoCorners variant={corners} set={cornerSet} />}
         </div>
       </div>
       {showCaption && <PhotoCaption place={place} caption={caption} />}

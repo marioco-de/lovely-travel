@@ -93,7 +93,7 @@ export const heroPhotos = {
     rotate: "left",
     slideFrom: "left",
     corners: "scallop",
-    cornerSet: "diagonal",
+    cornerSet: "all",
   },
 } as const satisfies Record<string, AlbumPhoto>;
 

@@ -3,7 +3,6 @@ import { useT } from "@/lib/i18n/locale";
 import { Frame } from "./Frame";
 import { PhotoCaption } from "./PhotoCaption";
 import { Polaroid } from "./Polaroid";
-import { Pearl } from "./Pearl";
 import { SlideIn } from "./SlideIn";
 import { Stamp } from "./Stamp";
 import { useAlbum } from "@/lib/album/store";
@@ -81,9 +80,6 @@ export function HeroCollage({ onEditTitle }: HeroCollageProps) {
             stamp={{ labelKey: "stamp.date", corner: "bl", variant: "rect", rotation: 8 }}
           />
         </SlideIn>
-
-        <Pearl size="lg" className="absolute top-1/4 right-1/4 hidden md:inline-block" />
-        <Pearl size="md" className="absolute bottom-6 left-6" />
       </div>
     </section>
   );
