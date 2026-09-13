@@ -4,7 +4,6 @@ type PhotoBanderoleProps = {
   className?: string;
 };
 
-const CORNERS = ["tl", "tr", "bl", "br"] as const;
 const EDGES = ["top", "right", "bottom", "left"] as const;
 
 export function PhotoBanderole({ className }: PhotoBanderoleProps) {
@@ -13,11 +12,7 @@ export function PhotoBanderole({ className }: PhotoBanderoleProps) {
       {EDGES.map((edge) => (
         <span key={edge} className={cn("banderole-edge", `banderole-edge--${edge}`)} />
       ))}
-      {CORNERS.map((corner) => (
-        <span key={corner} className={cn("photo-corner", `photo-corner--${corner}`)}>
-          <img src="/corners/scallop.png" alt="" draggable={false} />
-        </span>
-      ))}
+      <img src="/corners/scallop.png" alt="" draggable={false} className="photo-corners-sheet" />
     </div>
   );
 }

@@ -63,9 +63,6 @@
   --text-day: clamp(1.45rem, 1.15rem + 0.9vw, 1.95rem);
   --size-corner: 2.55rem;
   --size-corner-lg: 3.1rem;
-  --size-corner-sm: 1.42rem;
-  --size-corner-sm-lg: 1.65rem;
-  --corner-sheet: 5.5;
   --paper-layer-opacity: 0.16;
 }
 
@@ -279,122 +276,51 @@ body {
 
 .photo-corners {
   position: absolute;
-  inset: 0;
+  inset: -0.28rem;
   pointer-events: none;
   z-index: 6;
   overflow: visible;
 }
 
-.photo-corner {
-  position: absolute;
-  width: var(--size-corner);
-  height: var(--size-corner);
-  overflow: hidden;
-  background: none;
-}
-
-@media (min-width: 768px) {
-  .photo-corner {
-    width: var(--size-corner-lg);
-    height: var(--size-corner-lg);
-  }
-}
-
-.photo-corner--tl {
-  top: calc(-0.22rem - 5px);
-  left: calc(-0.22rem - 5px);
-}
-
-.photo-corner--tr {
-  top: calc(-0.22rem - 5px);
-  right: calc(-0.22rem - 5px);
-}
-
-.photo-corner--bl {
-  bottom: calc(-0.22rem - 5px);
-  left: calc(-0.22rem - 5px);
-}
-
-.photo-corner--br {
-  bottom: calc(-0.22rem - 5px);
-  right: calc(-0.22rem - 5px);
-}
-
-.photo-corner img {
-  position: absolute;
+.photo-corners-sheet {
   display: block;
-  width: calc(var(--size-corner) * var(--corner-sheet));
-  height: calc(var(--size-corner) * var(--corner-sheet));
-  max-width: none;
+  width: 100%;
+  height: 100%;
   object-fit: fill;
   outline: none;
   background: transparent;
   box-shadow: none;
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2));
 }
 
-@media (min-width: 768px) {
-  .photo-corner img {
-    width: calc(var(--size-corner-lg) * var(--corner-sheet));
-    height: calc(var(--size-corner-lg) * var(--corner-sheet));
-  }
+.photo-corners-set--diagonal {
+  -webkit-mask-image: linear-gradient(135deg, #000 26%, transparent 26%, transparent 74%, #000 74%);
+  mask-image: linear-gradient(135deg, #000 26%, transparent 26%, transparent 74%, #000 74%);
 }
 
-.photo-corner--tl img {
-  top: 0;
-  left: 0;
+.photo-corners-set--top {
+  -webkit-mask-image: linear-gradient(to bottom, #000 28%, transparent 28%);
+  mask-image: linear-gradient(to bottom, #000 28%, transparent 28%);
 }
 
-.photo-corner--tr img {
-  top: 0;
-  right: 0;
-}
-
-.photo-corner--bl img {
-  bottom: 0;
-  left: 0;
-}
-
-.photo-corner--br img {
-  bottom: 0;
-  right: 0;
-}
-
-.collage-tile .photo-corner {
-  width: var(--size-corner-sm);
-  height: var(--size-corner-sm);
-}
-
-.collage-tile .photo-corner img {
-  width: calc(var(--size-corner-sm) * var(--corner-sheet));
-  height: calc(var(--size-corner-sm) * var(--corner-sheet));
-}
-
-@media (min-width: 768px) {
-  .collage-tile .photo-corner {
-    width: var(--size-corner-sm-lg);
-    height: var(--size-corner-sm-lg);
-  }
-
-  .collage-tile .photo-corner img {
-    width: calc(var(--size-corner-sm-lg) * var(--corner-sheet));
-    height: calc(var(--size-corner-sm-lg) * var(--corner-sheet));
-  }
-}
-
-.photo-corners .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
+.collage-tile .photo-corners,
+.collage-tile .photo-banderole {
+  inset: -0.12rem;
 }
 
 .photo-banderole {
   position: absolute;
-  inset: 0;
+  inset: -0.28rem;
   pointer-events: none;
   z-index: 6;
   overflow: visible;
 }
 
-.photo-banderole .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.18));
+.photo-banderole .photo-corners-sheet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .banderole-edge {
