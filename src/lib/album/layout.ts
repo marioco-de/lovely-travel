@@ -192,7 +192,6 @@ export function emptyDay(index: number, first?: BlockKind): LayoutDay {
     places: [place],
     label: emptyPair(),
     pin: { x: 48, y: 52, label: index % 2 === 0 ? "left" : "right" },
-    pin: { x: 48, y: 52, label: index % 2 === 0 ? "left" : "right" },
     paper: (["azulejos", "vines", "waves", "sardinhas"] as const)[index % 4] ?? "azulejos",
     blocks: first ? [emptyBlock(first, place)] : [],
   };

@@ -92,6 +92,8 @@ export function placeCaption(place?: PlaceRecord | null, fallback?: string) {
   if (fallback) return shortPlaceLine(fallback, place?.city);
   return "";
 }
+
+export function geoToLand(lat: number, lng: number) {
   return {
     x: ((lng - GEO.west) / (GEO.east - GEO.west)) * 100,
     y: ((GEO.north - lat) / (GEO.north - GEO.south)) * 100,
