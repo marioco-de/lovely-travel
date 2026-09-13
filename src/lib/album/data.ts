@@ -44,14 +44,14 @@ export type DayStop = {
 export const CORNER_STYLES: CornerStyle[] = [
   "black",
   "kraft",
-  "gold",
   "scallop",
+  "olive",
+  "vellum",
+  "gold",
   "leather",
   "brass",
   "ivory",
-  "olive",
   "burgundy",
-  "vellum",
 ];
 
 export const MAP_VIEW = { w: 220, h: 360 } as const;

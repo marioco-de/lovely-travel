@@ -3,10 +3,11 @@ import { cn } from "@/lib/utils";
 import { useOpenDayLightbox } from "@/lib/album/lightbox";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
-import type { AlbumPhoto, RotateDir } from "@/lib/album/data";
+import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
 import { nextFrame, nextFormat, type PhotoFormat, type PrintPhoto } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
 import { PhotoCaption } from "./PhotoCaption";
+import { PhotoCorners } from "./PhotoCorners";
 import { PhotoEditTools } from "./PhotoEditTools";
 import { Tape } from "./Tape";
 
@@ -48,6 +49,7 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
   const place = isCatalog(photo) ? t(photo.placeKey) : photo.place;
   const caption = isCatalog(photo) ? t(photo.captionKey) : photo.caption;
   const corners = "corners" in photo ? photo.corners : undefined;
+  const cornerSet: CornerSet = "cornerSet" in photo && photo.cornerSet ? photo.cornerSet : "all";
   const format: PhotoFormat = "format" in photo && photo.format ? photo.format : "original";
   const aspect = format === "fourThree" ? "aspect-[4/3]" : format === "original" && photo.kind !== "polaroid" ? "aspect-video" : "aspect-square";
 
@@ -118,6 +120,7 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
           ) : !captionOpen ? (
             <div className="h-11" />
           ) : null}
+          <PhotoCorners variant={corners ?? "kraft"} set={cornerSet} />
         </div>
         <div className="photo-under">
           {canEdit && src ? (
