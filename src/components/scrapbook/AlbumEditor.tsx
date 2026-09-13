@@ -6,6 +6,8 @@ import { setTripPassword } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 import { messages, type Locale, type MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { DayStarter } from "./DayStarter";
 import { Stamp } from "./Stamp";
 
 type AlbumEditorProps = {
@@ -32,6 +34,7 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
   const saveStatus = useAlbum((s) => s.saveStatus);
   const editHash = useAlbum((s) => s.editHash);
   const publicHash = useAlbum((s) => s.publicHash);
+  const [pickDay, setPickDay] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -129,7 +132,19 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
           {days.map((day) => (
             <DayEditor key={day.id} day={day} />
           ))}
-          <Stamp as="button" variant="postal" labelKey="ui.addDay" rotation={-4} onClick={addDay} className="self-start px-3 py-2" />
+          {pickDay ? (
+            <DayStarter
+              promptKey="ui.pickDayStart"
+              onPick={(kind) => {
+                addDay(kind);
+                setPickDay(false);
+              }}
+            />
+          ) : (
+            <button type="button" className="album-btn self-start" onClick={() => setPickDay(true)}>
+              {t("ui.addDay")}
+            </button>
+          )}
         </EditorSection>
       </div>
     </div>
@@ -141,9 +156,13 @@ function DayEditor({ day }: { day: LayoutDay }) {
   const addBlock = useAlbum((s) => s.addBlock);
   const addCollageFromFiles = useAlbum((s) => s.addCollageFromFiles);
   const removeDay = useAlbum((s) => s.removeDay);
-  const setDayPlace = useAlbum((s) => s.setDayPlace);
+  const setDayPlaceAt = useAlbum((s) => s.setDayPlaceAt);
+  const setDayLabel = useAlbum((s) => s.setDayLabel);
+  const addDayPlace = useAlbum((s) => s.addDayPlace);
+  const removeDayPlace = useAlbum((s) => s.removeDayPlace);
   const setDayPin = useAlbum((s) => s.setDayPin);
   const dropRef = useRef<HTMLDivElement>(null);
+  const [confirm, setConfirm] = useState(false);
 
   return (
     <article className="caption-strip space-y-4 p-4">
@@ -152,18 +171,37 @@ function DayEditor({ day }: { day: LayoutDay }) {
           {day.label.de || day.label.en}
         </h4>
         {!day.builtIn ? (
-          <button
-            type="button"
-            onClick={() => removeDay(day.id)}
-            className="font-typewriter text-kicker tracking-wide text-coral uppercase underline-offset-4 hover:underline"
-          >
+          <button type="button" onClick={() => setConfirm(true)} className="album-btn album-btn--danger">
             {t("ui.removeDay")}
           </button>
         ) : null}
       </div>
 
-      <PairPlain pair={day.place} labelKey="ui.place" typewriter onChange={(locale, value) => setDayPlace(day.id, locale, value)} />
+      <PairPlain pair={day.label} labelKey="ui.dayTitle" onChange={(locale, value) => setDayLabel(day.id, locale, value)} />
 
+      <div className="space-y-3">
+        <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.places")}</p>
+        {(day.places?.length ? day.places : [day.place]).map((item, index) => (
+          <div key={`${day.id}-ed-place-${index}`} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <PairPlain
+                pair={item}
+                labelKey="ui.place"
+                typewriter
+                onChange={(locale, value) => setDayPlaceAt(day.id, index, locale, value)}
+              />
+            </div>
+            {index > 0 ? (
+              <button type="button" className="album-btn album-btn--tiny mb-1" onClick={() => removeDayPlace(day.id, index)}>
+                ×
+              </button>
+            ) : null}
+          </div>
+        ))}
+        <button type="button" className="album-btn" onClick={() => addDayPlace(day.id)}>
+          + {t("ui.addPlaceName")}
+        </button>
+      </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.pinX")}</span>
@@ -231,6 +269,15 @@ function DayEditor({ day }: { day: LayoutDay }) {
       {day.blocks.map((block, index) => (
         <BlockEditor key={block.id} dayId={day.id} block={block} index={index} total={day.blocks.length} />
       ))}
+      <ConfirmDialog
+        open={confirm}
+        title={t("ui.confirmDay")}
+        onCancel={() => setConfirm(false)}
+        onConfirm={() => {
+          removeDay(day.id);
+          setConfirm(false);
+        }}
+      />
     </article>
   );
 }
@@ -253,6 +300,7 @@ function BlockEditor({
   const addPhotoSlot = useAlbum((s) => s.addPhotoSlot);
   const removePhotoSlot = useAlbum((s) => s.removePhotoSlot);
   const kindKey = `ui.block.${block.kind}` as MessageKey;
+  const [confirm, setConfirm] = useState(false);
 
   return (
     <div className="space-y-3 border-t border-dashed border-stamp/25 pt-4">
@@ -260,16 +308,16 @@ function BlockEditor({
         <p className="font-display text-kicker tracking-widest text-lagoon-deep uppercase">{t(kindKey)}</p>
         <div className="flex flex-wrap gap-2">
           {index > 0 ? (
-            <button type="button" className="font-typewriter text-kicker uppercase underline-offset-4 hover:underline" onClick={() => moveBlock(dayId, block.id, -1)}>
+            <button type="button" className="album-btn album-btn--ghost" onClick={() => moveBlock(dayId, block.id, -1)}>
               {t("ui.moveUp")}
             </button>
           ) : null}
           {index < total - 1 ? (
-            <button type="button" className="font-typewriter text-kicker uppercase underline-offset-4 hover:underline" onClick={() => moveBlock(dayId, block.id, 1)}>
+            <button type="button" className="album-btn album-btn--ghost" onClick={() => moveBlock(dayId, block.id, 1)}>
               {t("ui.moveDown")}
             </button>
           ) : null}
-          <button type="button" className="font-typewriter text-kicker text-coral uppercase underline-offset-4 hover:underline" onClick={() => removeBlock(dayId, block.id)}>
+          <button type="button" className="album-btn album-btn--danger" onClick={() => setConfirm(true)}>
             {t("ui.remove")}
           </button>
         </div>
@@ -305,13 +353,22 @@ function BlockEditor({
             <button
               type="button"
               onClick={() => addPhotoSlot(dayId, block.id)}
-              className="grid h-24 w-24 place-items-center border border-dashed border-stamp/40 font-typewriter text-kicker tracking-wide text-lagoon-deep uppercase"
+              className="album-btn grid h-24 w-24 place-items-center border border-dashed border-stamp/40"
             >
-              {t("ui.addSlot")}
+              +
             </button>
           ) : null}
         </div>
       ) : null}
+      <ConfirmDialog
+        open={confirm}
+        title={t("ui.confirmBlock")}
+        onCancel={() => setConfirm(false)}
+        onConfirm={() => {
+          removeBlock(dayId, block.id);
+          setConfirm(false);
+        }}
+      />
     </div>
   );
 }

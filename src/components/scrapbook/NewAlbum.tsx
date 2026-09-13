@@ -33,7 +33,7 @@ export function NewAlbum() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
+        className="album-btn"
       >
         {t("ui.newAlbum")}
       </button>
@@ -55,7 +55,7 @@ export function NewAlbum() {
       <button
         type="submit"
         disabled={busy}
-        className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline disabled:opacity-50"
+        className="album-btn disabled:opacity-50"
       >
         {t("ui.createAlbum")}
       </button>

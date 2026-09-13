@@ -44,8 +44,12 @@ type AlbumState = {
   setText: (locale: Locale, key: MessageKey, value: string) => void;
   togglePin: (id: string) => void;
   setDayPlace: (dayId: string, locale: Locale, value: string) => void;
+  setDayLabel: (dayId: string, locale: Locale, value: string) => void;
+  addDayPlace: (dayId: string) => void;
+  removeDayPlace: (dayId: string, index: number) => void;
+  setDayPlaceAt: (dayId: string, index: number, locale: Locale, value: string) => void;
   setDayPin: (dayId: string, pin: LayoutDay["pin"]) => void;
-  addDay: () => void;
+  addDay: (kind?: BlockKind) => void;
   removeDay: (dayId: string) => void;
   addBlock: (dayId: string, kind: BlockKind) => void;
   insertBlock: (dayId: string, afterId: string, kind: BlockKind) => void;
@@ -66,6 +70,8 @@ type AlbumState = {
   bindTrip: (opts: { mode: "demo" | "view" | "edit"; publicHash?: string; editHash?: string }) => Promise<void>;
   ensureLocale: (locale: Locale) => Promise<void>;
   createRemote: (password: string) => Promise<{ publicHash: string; editHash: string; editPassword?: string } | null>;
+  placeEditId: string | null;
+  setPlaceEditId: (id: string | null) => void;
 };
 
 const emptyTexts = (): AlbumTexts => Object.fromEntries(LOCALES.map((locale) => [locale, {}])) as AlbumTexts;
@@ -207,6 +213,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   hiddenPins: {},
   layout: seedLayout(),
   canEdit: false,
+  placeEditId: null,
+  setPlaceEditId: (id) => set({ placeEditId: id }),
   enableEdit: () => set({ canEdit: true }),
   unlockFeatured: () => {
     writeFeaturedUnlock();
@@ -294,11 +302,70 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     persistLayout(
       set,
       get,
+      mapDays(get().layout, dayId, (day) => {
+        const places = day.places?.length ? [...day.places] : [{ ...day.place }];
+        places[0] = { ...places[0], [locale]: value };
+        return { ...day, place: places[0] ?? { ...day.place, [locale]: value }, places };
+      }),
+    );
+    const day = get().layout.days.find((item) => item.id === dayId);
+    const query = day ? `${day.place.de || day.place.en}` : value;
+    if (typeof window === "undefined") return;
+    window.clearTimeout(geoTimer);
+    geoTimer = window.setTimeout(() => {
+      void geocodePortugal(query).then((hit) => {
+        if (!hit) return;
+        persistLayout(
+          set,
+          get,
+          mapDays(get().layout, dayId, (item) => ({ ...item, geo: hit })),
+        );
+      });
+    }, 640);
+  },
+  setDayLabel: (dayId, locale, value) => {
+    persistLayout(
+      set,
+      get,
       mapDays(get().layout, dayId, (day) => ({
         ...day,
-        place: { ...day.place, [locale]: value },
+        label: { ...day.label, [locale]: value },
       })),
     );
+  },
+  addDayPlace: (dayId) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => ({
+        ...day,
+        places: [...(day.places?.length ? day.places : [day.place]), { en: "", de: "" }],
+      })),
+    );
+  },
+  removeDayPlace: (dayId, index) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => {
+        const places = (day.places?.length ? day.places : [day.place]).filter((_, i) => i !== index);
+        const next = places.length ? places : [{ en: "", de: "" }];
+        return { ...day, places: next, place: next[0] ?? day.place };
+      }),
+    );
+  },
+  setDayPlaceAt: (dayId, index, locale, value) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => {
+        const places = [...(day.places?.length ? day.places : [day.place])];
+        const current = places[index] ?? { en: "", de: "" };
+        places[index] = { ...current, [locale]: value };
+        return { ...day, places, place: index === 0 ? places[0] ?? day.place : day.place };
+      }),
+    );
+    if (index !== 0) return;
     const day = get().layout.days.find((item) => item.id === dayId);
     const query = day ? `${day.place.de || day.place.en}` : value;
     if (typeof window === "undefined") return;
@@ -321,10 +388,10 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       mapDays(get().layout, dayId, (day) => ({ ...day, pin })),
     );
   },
-  addDay: () => {
+  addDay: (kind) => {
     persistLayout(set, get, {
       ...get().layout,
-      days: [...get().layout.days, emptyDay(get().layout.days.length)],
+      days: [...get().layout.days, emptyDay(get().layout.days.length, kind)],
     });
   },
   removeDay: (dayId) => {
@@ -495,6 +562,18 @@ export const useAlbum = create<AlbumState>((set, get) => ({
           });
           return;
         }
+        if (isFeatured) {
+          const saved = typeof indexedDB === "undefined" ? undefined : await idbGet<AlbumLayout>(LAYOUT_STORE, FEATURED_SLUG);
+          set({
+            ready: true,
+            canEdit: featuredUnlocked,
+            publicHash: FEATURED_SLUG,
+            editHash: featuredUnlocked ? FEATURED_EDIT_HASH : undefined,
+            layout: isLayout(saved) ? mergeLayout(saved) : seedLayout(),
+            saveStatus: "saved",
+          });
+          return;
+        }
         await get().hydrate();
         set({
           ready: true,
@@ -584,6 +663,18 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       photos: {},
     };
     const title = "Lovely";
+    const local = typeof window !== "undefined"
+      ? makeLocalTrip({
+          title,
+          sourceLocale: state.sourceLocale,
+          password,
+          payload,
+        })
+      : null;
+    if (local) {
+      await saveLocalTrip(local);
+      sessionStorage.setItem(`album-pw-${local.publicHash}`, password);
+    }
     try {
       const trip = await createTrip({
         data: {
@@ -593,6 +684,16 @@ export const useAlbum = create<AlbumState>((set, get) => ({
           payload,
         },
       });
+      if (local) {
+        await saveLocalTrip({
+          ...local,
+          id: trip.id,
+          publicHash: trip.publicHash,
+          editHash: trip.editHash,
+          payload,
+        });
+        sessionStorage.setItem(`album-pw-${trip.publicHash}`, password);
+      }
       set({
         canEdit: true,
         tripId: trip.id,
@@ -603,23 +704,12 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         hiddenPins: {},
         saveStatus: "saved",
       });
-      if (typeof window !== "undefined") {
-        await saveLocalTrip({ ...trip, payload });
-        if (trip.editPassword) sessionStorage.setItem(`album-pw-${trip.publicHash}`, trip.editPassword);
-      }
       return { publicHash: trip.publicHash, editHash: trip.editHash ?? "", editPassword: trip.editPassword };
     } catch {
-      if (typeof window === "undefined") {
+      if (!local) {
         set({ saveStatus: "error" });
         return null;
       }
-      const local = makeLocalTrip({
-        title,
-        sourceLocale: state.sourceLocale,
-        password,
-        payload,
-      });
-      await saveLocalTrip(local);
       set({
         canEdit: true,
         tripId: local.id,
@@ -630,7 +720,6 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         hiddenPins: {},
         saveStatus: "saved",
       });
-      sessionStorage.setItem(`album-pw-${local.publicHash}`, password);
       return { publicHash: local.publicHash, editHash: local.editHash ?? "", editPassword: password };
     }
   },
@@ -645,8 +734,27 @@ function persistLayout(
   if (typeof window === "undefined") return;
   window.clearTimeout(layoutTimer);
   layoutTimer = window.setTimeout(() => {
-    void idbSet(LAYOUT_STORE, "album", get().layout)
-      .then(() => {
+    const state = get();
+    const key = state.publicHash || state.editHash || "album";
+    void idbSet(LAYOUT_STORE, key, state.layout)
+      .then(async () => {
+        if (state.publicHash && state.editHash) {
+          await saveLocalTrip({
+            id: state.tripId ?? state.editHash,
+            publicHash: state.publicHash,
+            editHash: state.editHash,
+            title: state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely",
+            sourceLocale: state.sourceLocale,
+            payload: {
+              layout: state.layout,
+              texts: state.texts,
+              hiddenPins: state.hiddenPins,
+              photos: {},
+            },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
         scheduleRemote(get);
         set({ saveStatus: "saved" });
       })
@@ -697,28 +805,42 @@ async function pushRemote(state: AlbumState) {
     hiddenPins: state.hiddenPins,
     photos,
   };
-  try {
-    await saveTrip({
-      data: {
-        editHash: state.editHash,
-        title,
-        sourceLocale: state.sourceLocale,
-        payload,
-      },
-    });
-  } catch {
-    if (state.publicHash) {
+  const slim = {
+    layout: state.layout,
+    texts: state.texts,
+    hiddenPins: state.hiddenPins,
+    photos: {} as Record<string, string>,
+  };
+  const encoded = JSON.stringify(payload);
+  const remotePayload = encoded.length > 3_200_000 ? slim : payload;
+  if (state.publicHash) {
+    try {
       await saveLocalTrip({
         id: state.tripId ?? state.editHash,
         publicHash: state.publicHash,
         editHash: state.editHash,
         title,
         sourceLocale: state.sourceLocale,
-        payload,
+        payload: remotePayload,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+    } catch {
+      /* keep going */
     }
+  }
+  try {
+    const result = await saveTrip({
+      data: {
+        editHash: state.editHash,
+        title,
+        sourceLocale: state.sourceLocale,
+        payload: remotePayload,
+      },
+    });
+    if (!result || !("ok" in result) || !result.ok) throw new Error("remote save missed");
+  } catch {
+    /* local copy already written */
   }
 }
 

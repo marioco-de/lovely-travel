@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
-import type { PrintPhoto } from "@/lib/album/layout";
+import { COLLAGE_MAX, COLLAGE_MIN, type PrintPhoto } from "@/lib/album/layout";
+import { useAlbum } from "@/lib/album/store";
+import { useT } from "@/lib/i18n/locale";
 import { Frame } from "./Frame";
 import { PhotoCaption } from "./PhotoCaption";
 import { Polaroid } from "./Polaroid";
@@ -10,6 +12,8 @@ type CollageBlockProps = {
   place: string;
   caption: string;
   reverse?: boolean;
+  dayId?: string;
+  blockId?: string;
   onPlaceChange?: (value: string) => void;
   onCaptionChange?: (value: string) => void;
 };
@@ -19,16 +23,23 @@ export function CollageBlock({
   place,
   caption,
   reverse = false,
+  dayId,
+  blockId,
   onPlaceChange,
   onCaptionChange,
 }: CollageBlockProps) {
-  const count = Math.min(8, Math.max(photos.length, 0));
+  const t = useT();
+  const canEdit = useAlbum((s) => s.canEdit);
+  const addPhotoSlot = useAlbum((s) => s.addPhotoSlot);
+  const removePhotoSlot = useAlbum((s) => s.removePhotoSlot);
+  const count = Math.min(COLLAGE_MAX, Math.max(photos.length, 0));
   if (count === 0) return null;
+  const showControls = canEdit && dayId && blockId;
 
   return (
     <div className="space-y-4">
       <div className={cn("collage-mosaic", `collage-mosaic--n${count}`, reverse && "collage-mosaic--reverse")}>
-        {photos.slice(0, 8).map((photo, index) => {
+        {photos.slice(0, COLLAGE_MAX).map((photo, index) => {
           const polaroid = index % 3 === 1;
           return (
             <SlideIn
@@ -46,6 +57,27 @@ export function CollageBlock({
           );
         })}
       </div>
+      {showControls ? (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            className="album-btn"
+            disabled={count <= COLLAGE_MIN}
+            onClick={() => removePhotoSlot(dayId, blockId, photos[photos.length - 1]?.id ?? "")}
+          >
+            −
+          </button>
+          <span className="font-typewriter text-kicker tracking-wide text-ink-soft">{t("ui.collageRange")}</span>
+          <button
+            type="button"
+            className="album-btn"
+            disabled={count >= COLLAGE_MAX}
+            onClick={() => addPhotoSlot(dayId, blockId)}
+          >
+            +
+          </button>
+        </div>
+      ) : null}
       <PhotoCaption
         place={place}
         caption={caption}

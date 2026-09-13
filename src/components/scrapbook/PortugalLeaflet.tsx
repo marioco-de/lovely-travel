@@ -92,6 +92,8 @@ export default function PortugalLeaflet({
   const locale = useLocale((s) => s.locale);
   const hiddenPins = useAlbum((s) => s.hiddenPins);
   const days = useAlbum((s) => s.layout.days);
+  const canEdit = useAlbum((s) => s.canEdit);
+  const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
 
   const stops = days
     .filter((stop) => {
@@ -169,7 +171,12 @@ export default function PortugalLeaflet({
               key={`${row.stop.id}-${row.geo.lat}-${row.geo.lng}`}
               position={[row.geo.lat, row.geo.lng]}
               icon={active ? icons.active : icons.idle}
-              eventHandlers={{ click: () => onSelect(row.stop.id) }}
+              eventHandlers={{
+                click: () => {
+                  onSelect(row.stop.id);
+                  if (canEdit) setPlaceEditId(row.stop.id);
+                },
+              }}
             >
               {variant === "hero" ? (
                 <Tooltip direction={row.stop.pin.label === "left" ? "left" : "right"} offset={[8, -12]} permanent>

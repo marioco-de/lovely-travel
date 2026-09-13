@@ -100,7 +100,8 @@ export const createTrip = createServerFn({ method: "POST" })
     const editHash = token(18);
     const editPassword = data.password.trim();
     const passwordHash = hashPassword(editPassword);
-    const rows = await sql.query<{
+    const payloadJson = JSON.stringify(data.payload);
+    const rows = await sql<{
       id: string;
       public_hash: string;
       edit_hash: string;
@@ -109,12 +110,11 @@ export const createTrip = createServerFn({ method: "POST" })
       payload: unknown;
       created_at: string;
       updated_at: string;
-    }>(
-      `insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
-       values ($1, $2, $3, $4, $5, $6, $7::jsonb)
-       returning id, public_hash, edit_hash, title, source_locale, payload, created_at::text, updated_at::text`,
-      [id, publicHash, editHash, passwordHash, data.title, data.sourceLocale, JSON.stringify(data.payload)],
-    );
+    }>`
+      insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
+      values (${id}, ${publicHash}, ${editHash}, ${passwordHash}, ${data.title}, ${data.sourceLocale}, ${payloadJson}::jsonb)
+      returning id, public_hash, edit_hash, title, source_locale, payload, created_at::text, updated_at::text
+    `;
     const row = rows[0];
     if (!row) throw new Error("Could not create album");
     return {

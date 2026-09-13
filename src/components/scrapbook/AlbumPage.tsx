@@ -21,6 +21,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   const days = useAlbum((s) => s.layout.days);
   const canEdit = useAlbum((s) => s.canEdit);
   const bindTrip = useAlbum((s) => s.bindTrip);
+  const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
   const [editorOpen, setEditorOpen] = useState(false);
 
@@ -61,6 +62,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
 
   function openDay(id: string) {
     setActiveId(id);
+    if (canEdit) setPlaceEditId(id);
     const el = document.getElementById(`day-${id}`);
     el?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   }
@@ -72,7 +74,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
         {t("ui.skipToMap")}
       </a>
 
-      <div className="pointer-events-none sticky top-0 z-30 flex justify-end px-3 pt-3 md:px-6">
+      <div className="album-chrome pointer-events-none sticky top-0 z-40 flex justify-end px-3 pt-3 md:px-6">
         <div className="pointer-events-auto">
           <AlbumMenu onEdit={() => setEditorOpen(true)} />
         </div>

@@ -29,6 +29,7 @@ export type LayoutDay = {
   id: string;
   builtIn: boolean;
   place: I18nPair;
+  places: I18nPair[];
   label: I18nPair;
   pin: { x: number; y: number; label: "left" | "right" | "bottom" };
   geo?: GeoHit;
@@ -104,16 +105,32 @@ function photoToBlock(photo: (typeof days)[number]["photos"][number], dayPlace: 
   };
 }
 
+function uniquePlaces(primary: I18nPair, extras: I18nPair[]): I18nPair[] {
+  const seen = new Set<string>([primary.en.trim().toLowerCase(), primary.de.trim().toLowerCase()]);
+  const list = [primary];
+  for (const extra of extras) {
+    const key = (extra.en || extra.de).trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    list.push(extra);
+  }
+  return list;
+}
+
 export function seedLayout(): AlbumLayout {
   return {
     version: 1,
     days: days.map((day) => {
       const place = pairFrom(day.placeKey);
       const known = PLACES[day.id];
+      const extras = day.photos
+        .filter((photo) => photo.placeKey)
+        .map((photo) => pairFrom(photo.placeKey));
       return {
         id: day.id,
         builtIn: true,
         place,
+        places: uniquePlaces(place, extras),
         label: pairFrom(day.labelKey),
         pin: { ...day.pin },
         geo: known ? { lat: known.lat, lng: known.lng, address: known.address } : undefined,
@@ -130,8 +147,16 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
     ...saved,
     days: saved.days.map((day) => {
       const fromSeed = seed.days.find((item) => item.id === day.id);
-      if (!fromSeed) return day;
-      return { ...day, paper: fromSeed.paper, pin: fromSeed.pin, geo: day.geo ?? fromSeed.geo };
+      const places = day.places?.length ? day.places : uniquePlaces(day.place, fromSeed?.places ?? []);
+      if (!fromSeed) return { ...day, places };
+      return {
+        ...day,
+        paper: fromSeed.paper,
+        pin: fromSeed.pin,
+        geo: day.geo ?? fromSeed.geo,
+        places,
+        place: places[0] ?? day.place,
+      };
     }),
   };
 }
@@ -151,17 +176,19 @@ export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
   };
 }
 
-export function emptyDay(index: number): LayoutDay {
+export function emptyDay(index: number, first?: BlockKind): LayoutDay {
   const n = String(index + 1).padStart(2, "0");
   const place: I18nPair = { en: "New stop", de: "Neue Station" };
+  const label: I18nPair = { en: `Day ${n}`, de: `Tag ${n}` };
   return {
     id: newId("day"),
     builtIn: false,
     place,
-    label: { en: `Day ${n}`, de: `Tag ${n}` },
+    places: [place],
+    label,
     pin: { x: 48, y: 52, label: index % 2 === 0 ? "left" : "right" },
     paper: (["azulejos", "vines", "waves", "sardinhas"] as const)[index % 4] ?? "azulejos",
-    blocks: [],
+    blocks: first ? [emptyBlock(first, place)] : [],
   };
 }
 

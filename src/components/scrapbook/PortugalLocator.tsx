@@ -5,7 +5,7 @@ export function PortugalLocator() {
 
   return (
     <figure className="country-locator" aria-hidden="true">
-      <img src="/maps/portugal-outline.svg" alt="" className="country-locator-art block h-auto w-full" />
+      <span className="country-locator-art" />
       <figcaption className="country-locator-name">{t("map.country")}</figcaption>
     </figure>
   );

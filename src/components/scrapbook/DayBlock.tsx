@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { catalogSrc, cornersFor, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
 import { PLACES } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
-import { useLocale } from "@/lib/i18n/locale";
+import { useLocale, useT } from "@/lib/i18n/locale";
 import { BlockBar } from "./BlockBar";
 import { CollageBlock } from "./CollageBlock";
 import { DayMark } from "./DayMark";
@@ -24,15 +24,24 @@ type DayBlockProps = {
 };
 
 export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
+  const t = useT();
   const locale = useLocale((s) => s.locale);
   const photos = useAlbum((s) => s.photos);
   const canEdit = useAlbum((s) => s.canEdit);
   const patchBlock = useAlbum((s) => s.patchBlock);
-  const setDayPlace = useAlbum((s) => s.setDayPlace);
+  const setDayLabel = useAlbum((s) => s.setDayLabel);
+  const setDayPlaceAt = useAlbum((s) => s.setDayPlaceAt);
+  const addDayPlace = useAlbum((s) => s.addDayPlace);
+  const removeDayPlace = useAlbum((s) => s.removeDayPlace);
+  const placeEditId = useAlbum((s) => s.placeEditId);
+  const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
   const reverse = index % 2 === 1;
-  const placeName = pairText(day.place, locale);
+  const title = pairText(day.label, locale);
+  const stops = (day.places?.length ? day.places : [day.place]).map((item) => pairText(item, locale)).filter(Boolean);
+  const placeName = stops[0] || pairText(day.place, locale);
   const place = PLACES[day.id];
   const address = day.geo?.address ?? place?.address;
+  const editingPlaces = canEdit && placeEditId === day.id;
 
   function toPrint(photoId: string, i: number, placeLabel: string, caption: string): PrintPhoto {
     const mount = cornersFor(photoId, i + index);
@@ -61,6 +70,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       className={cn(
         "day-wash relative isolate w-full scroll-mt-8 py-12 md:py-20",
         `day-wash--${day.paper}`,
+        canEdit && "is-editing",
       )}
     >
       <PaperLayer variant={day.paper} />
@@ -79,18 +89,59 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
               {canEdit ? (
                 <LiveText
                   tag="h3"
-                  value={placeName}
-                  onChange={(value) => setDayPlace(day.id, locale, value)}
-                  placeholder="Lorem ipsum"
-                  className="place-type text-center font-typewriter text-day leading-snug text-lagoon-deep md:text-left"
+                  value={title}
+                  onChange={(value) => setDayLabel(day.id, locale, value)}
+                  placeholder={t("ui.dayTitle")}
+                  className="font-display text-day leading-snug font-semibold text-ink md:text-left"
                 />
               ) : (
-                <h3 className="place-type text-center font-typewriter text-day leading-snug text-lagoon-deep md:text-left">
-                  — {placeName} —
+                <h3 className="font-display text-center text-day leading-snug font-semibold text-ink md:text-left">
+                  {title}
                 </h3>
               )}
+              {canEdit || editingPlaces ? (
+                <div className="mt-2 space-y-1">
+                  {(day.places?.length ? day.places : [day.place]).map((item, placeIndex) => (
+                    <div key={`${day.id}-place-${placeIndex}`} className="flex items-center gap-2">
+                      <LiveText
+                        tag="p"
+                        value={pairText(item, locale)}
+                        onChange={(value) => setDayPlaceAt(day.id, placeIndex, locale, value)}
+                        placeholder={t("ui.place")}
+                        className="place-type text-left font-typewriter text-kicker tracking-wide text-lagoon-deep"
+                      />
+                      {placeIndex > 0 ? (
+                        <button
+                          type="button"
+                          className="album-btn album-btn--tiny"
+                          onClick={() => removeDayPlace(day.id, placeIndex)}
+                          aria-label={t("ui.remove")}
+                        >
+                          ×
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                  <button type="button" className="album-btn album-btn--ghost mt-1" onClick={() => addDayPlace(day.id)}>
+                    + {t("ui.addPlaceName")}
+                  </button>
+                </div>
+              ) : stops.length ? (
+                <p className="place-type mt-1 text-center font-typewriter text-kicker tracking-wide text-lagoon-deep md:text-left">
+                  — {stops.join(" · ")} —
+                </p>
+              ) : null}
               {address ? (
-                <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink-soft">{address}</p>
+                <p className="mt-1 font-typewriter text-[0.7rem] tracking-wide text-ink-soft">{address}</p>
+              ) : null}
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="mt-2 font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
+                  onClick={() => setPlaceEditId(placeEditId === day.id ? null : day.id)}
+                >
+                  {t("ui.place")}
+                </button>
               ) : null}
             </div>
           </div>
@@ -140,7 +191,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   );
                 }
               } else if (block.kind === "collage") {
-                const tiles = (visibleIds.length ? visibleIds : canEdit ? block.photoIds : []).map((id, i) =>
+                const tiles = (canEdit ? block.photoIds : visibleIds).map((id, i) =>
                   toPrint(id, blockIndex + i, blockPlace, blockCaption),
                 );
                 if (tiles.length === 0) inner = null;
@@ -151,6 +202,8 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                       place={blockPlace}
                       caption={blockCaption}
                       reverse={reverse}
+                      dayId={day.id}
+                      blockId={block.id}
                       onPlaceChange={(value) => patchPair(block, "place", value)}
                       onCaptionChange={(value) => patchPair(block, "caption", value)}
                     />

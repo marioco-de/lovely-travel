@@ -22,6 +22,10 @@ export function collectFields(source: Locale, texts: AlbumTexts, layout: AlbumLa
     if (place) fields.push({ key: `day:${day.id}:place`, text: place });
     const label = pairValue(day.label, source);
     if (label) fields.push({ key: `day:${day.id}:label`, text: label });
+    (day.places ?? []).forEach((item, index) => {
+      const text = pairValue(item, source);
+      if (text) fields.push({ key: `day:${day.id}:places:${index}`, text });
+    });
     for (const block of day.blocks) {
       const blockPlace = pairValue(block.place, source);
       if (blockPlace) fields.push({ key: `block:${block.id}:place`, text: blockPlace });
@@ -42,10 +46,15 @@ export function applyFields(layout: AlbumLayout, texts: AlbumTexts, locale: Loca
   const nextDays = layout.days.map((day) => {
     const place = translated[`day:${day.id}:place`];
     const label = translated[`day:${day.id}:label`];
+    const places = (day.places ?? [day.place]).map((item, index) => {
+      const text = translated[`day:${day.id}:places:${index}`];
+      return text ? { ...item, [locale]: text } : item;
+    });
     return {
       ...day,
       place: place ? { ...day.place, [locale]: place } : day.place,
       label: label ? { ...day.label, [locale]: label } : day.label,
+      places,
       blocks: day.blocks.map((block) => {
         const blockPlace = translated[`block:${block.id}:place`];
         const caption = translated[`block:${block.id}:caption`];

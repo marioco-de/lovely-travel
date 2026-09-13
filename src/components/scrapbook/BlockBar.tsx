@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import type { BlockKind } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const KINDS: { kind: BlockKind; key: "ui.addCollage" | "ui.addPhoto" | "ui.addPolaroid" | "ui.addPlace" | "ui.addNote" }[] = [
   { kind: "collage", key: "ui.addCollage" },
@@ -23,6 +23,7 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
   const moveBlock = useAlbum((s) => s.moveBlock);
   const removeBlock = useAlbum((s) => s.removeBlock);
   const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
       <button type="button" className="block-bar-btn" aria-label={t("ui.moveDown")} onClick={() => moveBlock(dayId, blockId, 1)}>
         ⬇︎
       </button>
-      <button type="button" className="block-bar-btn" aria-label={t("ui.remove")} onClick={() => removeBlock(dayId, blockId)}>
+      <button type="button" className="block-bar-btn" aria-label={t("ui.remove")} onClick={() => setConfirm(true)}>
         ×
       </button>
       <span className="text-ink-soft">—</span>
@@ -61,7 +62,7 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
             <button
               key={item.kind}
               type="button"
-              className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
+              className="album-btn album-btn--ghost"
               onClick={() => {
                 insertBlock(dayId, blockId, item.kind);
                 setOpen(false);
@@ -72,6 +73,15 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
           ))}
         </div>
       ) : null}
+      <ConfirmDialog
+        open={confirm}
+        title={t("ui.confirmBlock")}
+        onCancel={() => setConfirm(false)}
+        onConfirm={() => {
+          removeBlock(dayId, blockId);
+          setConfirm(false);
+        }}
+      />
     </div>
   );
 }

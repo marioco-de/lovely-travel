@@ -3,9 +3,9 @@ import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FEATURED_SLUG } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
-import { useLocale, useT } from "@/lib/i18n/locale";
-import { LOCALES, LOCALE_LABEL } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/locale";
 import { EditUnlock } from "./EditUnlock";
+import { LanguageToggle } from "./LanguageToggle";
 
 type AlbumMenuProps = {
   variant?: "album" | "home";
@@ -14,9 +14,6 @@ type AlbumMenuProps = {
 
 export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
   const t = useT();
-  const locale = useLocale((s) => s.locale);
-  const setLocale = useLocale((s) => s.setLocale);
-  const ensureLocale = useAlbum((s) => s.ensureLocale);
   const publicHash = useAlbum((s) => s.publicHash);
   const canEdit = useAlbum((s) => s.canEdit);
   const [open, setOpen] = useState(false);
@@ -80,7 +77,8 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={t("ui.menu")}
-        onClick={() => {
+        onClick={(event) => {
+          event.stopPropagation();
           setOpen((value) => !value);
           setUnlock(false);
         }}
@@ -95,33 +93,20 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
       {open ? (
         <div
           role="menu"
-          className="caption-strip absolute top-full right-0 z-40 mt-2 min-w-[12.5rem] space-y-3 p-3"
+          className="caption-strip album-menu-panel absolute top-full right-0 z-50 mt-2 min-w-[13.5rem] space-y-3 p-3"
         >
-          <div>
-            <p className="mb-1 font-display text-[0.65rem] tracking-widest text-ink-soft uppercase">
+          <div className="album-menu-lang">
+            <p className="mb-2 font-display text-[0.65rem] tracking-widest text-ink-soft uppercase">
               {t("ui.language")}
             </p>
-            <div className="flex flex-wrap gap-1">
-              {LOCALES.map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setLocale(code);
-                    void ensureLocale(code);
-                  }}
-                  className={cn(
-                    "min-h-9 min-w-9 px-2 font-typewriter text-kicker tracking-wide",
-                    code === locale ? "text-lagoon-deep underline" : "text-ink-soft hover:text-ink",
-                  )}
-                >
-                  {t(LOCALE_LABEL[code])}
-                </button>
-              ))}
-            </div>
+            <LanguageToggle />
           </div>
-          <button type="button" role="menuitem" className="menu-link flex w-full items-center gap-2" onClick={() => void share()}>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-link flex min-h-11 w-full items-center"
+            onClick={() => void share()}
+          >
             — {copied ? t("ui.copied") : t("ui.share")}
           </button>
           {variant === "album" ? (
@@ -129,16 +114,23 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
               <button
                 type="button"
                 role="menuitem"
-                className="menu-link flex w-full items-center gap-2"
+                className="menu-link flex min-h-11 w-full items-center gap-2"
                 onClick={onEditClick}
                 aria-label={t("ui.edit")}
               >
-                — <Pencil size={15} strokeWidth={2.2} />
+                — <Pencil size={16} strokeWidth={2.2} aria-hidden="true" />
                 <span className="sr-only">{t("ui.edit")}</span>
               </button>
               {unlock && !canEdit && publicHash ? (
                 <div className="mt-2">
-                  <EditUnlock publicHash={publicHash} autoOpen />
+                  <EditUnlock
+                    publicHash={publicHash}
+                    autoOpen
+                    onUnlocked={() => {
+                      onEdit?.();
+                      setOpen(false);
+                    }}
+                  />
                 </div>
               ) : null}
             </div>
