@@ -15,14 +15,16 @@ type DayStarterProps = {
   dayId?: string;
   onPick?: (kind: BlockKind) => void;
   promptKey?: MessageKey;
+  leadKey?: MessageKey;
 };
 
-export function DayStarter({ dayId, onPick, promptKey = "ui.pickBlock" }: DayStarterProps) {
+export function DayStarter({ dayId, onPick, promptKey = "ui.addElement", leadKey }: DayStarterProps) {
   const t = useT();
   const addBlock = useAlbum((s) => s.addBlock);
 
   return (
     <div className="caption-strip mx-auto max-w-md space-y-3 p-4 text-center">
+      {leadKey ? <p className="font-script text-caption text-ink">{t(leadKey)}</p> : null}
       <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t(promptKey)}</p>
       <div className="flex flex-wrap justify-center gap-2">
         {DAY_CHOICES.map((item) => (

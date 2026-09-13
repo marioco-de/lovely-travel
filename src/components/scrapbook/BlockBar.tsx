@@ -59,7 +59,9 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
         <span className="text-ink-soft">—</span>
       </div>
       {open ? (
-        <div className="caption-strip relative z-10 flex flex-wrap justify-center gap-2 px-3 py-2">
+        <div className="caption-strip relative z-10 flex flex-col items-center gap-2 px-3 py-3">
+          <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.addElement")}</p>
+          <div className="flex flex-wrap justify-center gap-2">
           {KINDS.map((item) => (
             <button
               key={item.kind}
@@ -73,6 +75,7 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
               {t(item.key)}
             </button>
           ))}
+          </div>
         </div>
       ) : null}
       <ConfirmDialog

@@ -115,7 +115,7 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
           </div>
         );
       })}
-      {canEdit && day.blocks.length === 0 ? <DayStarter dayId={day.id} /> : null}
+      {canEdit && day.blocks.length === 0 ? <DayStarter dayId={day.id} leadKey="ui.dayHappened" /> : null}
     </div>
   );
 }
