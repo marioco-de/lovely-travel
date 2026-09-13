@@ -5,6 +5,7 @@ export type PhotoKind = "landscape" | "portrait" | "polaroid" | "detail";
 export type SlideFrom = "left" | "right";
 export type RotateDir = "left" | "right" | "leftSoft" | "rightSoft" | "none";
 export type CornerStyle =
+  | "classic"
   | "black"
   | "kraft"
   | "gold"
@@ -42,6 +43,7 @@ export type DayStop = {
 };
 
 export const CORNER_STYLES: CornerStyle[] = [
+  "classic",
   "black",
   "kraft",
   "scallop",

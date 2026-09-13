@@ -9,6 +9,7 @@ const SETS: Record<CornerSet, readonly (typeof ALL)[number][]> = {
 };
 
 const SRC: Record<CornerStyle, string> = {
+  classic: "/patterns/corner-classic.svg",
   black: "/patterns/corner-black.svg",
   kraft: "/patterns/corner-kraft.svg",
   gold: "/patterns/corner-gold.svg",
