@@ -868,6 +868,7 @@ body {
 .photo-under .caption-strip {
   position: relative;
   z-index: 2;
+  padding-top: 1.2rem;
 }
 
 .photo-tab {
@@ -930,7 +931,7 @@ body {
   position: relative;
   z-index: 2;
   margin: 0.35rem 0.55rem 0;
-  padding: 0.7rem 0.85rem 0.85rem;
+  padding: 1.1rem 0.85rem 0.85rem;
 }
 
 .photo-caption-clear {

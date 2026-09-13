@@ -25,8 +25,8 @@ export function PhotoCaption({
       className={cn(
         "min-w-0 text-center",
         variant === "band"
-          ? "relative z-20 px-2 pt-3 pb-3.5"
-          : "caption-strip relative z-[1] mx-3 -mt-3 px-3 py-2.5 -rotate-1 md:mx-5",
+          ? "relative z-20 px-2 pt-5 pb-3.5"
+          : "caption-strip relative z-[1] mx-3 -mt-2 px-3.5 pt-5 pb-3 -rotate-1 md:mx-5",
         className,
       )}
     >
