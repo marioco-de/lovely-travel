@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import type { Locale } from "@/lib/i18n/messages";
-import { FEATURED_PASSWORD, FEATURED_SLUG, FEATURED_TITLE } from "./featured";
+import { FEATURED_EDIT_HASH, FEATURED_PASSWORD, FEATURED_SLUG, FEATURED_TITLE } from "./featured";
 import { seedLayout, type AlbumLayout } from "./layout";
 import type { AlbumTexts } from "./store";
 
@@ -202,6 +202,14 @@ export const unlockTrip = createServerFn({ method: "POST" })
     const password = data.password.trim();
     const publicHash = data.publicHash.trim();
     if (!password || !publicHash) return null;
+    if (publicHash === FEATURED_SLUG && password === FEATURED_PASSWORD) {
+      try {
+        await ensureFeaturedTrip();
+      } catch {
+        /* still unlock the named album */
+      }
+      return { editHash: FEATURED_EDIT_HASH };
+    }
     const digest = hashPassword(password);
     const sql = await ensurePasswordColumn();
     const rows = await sql<{ edit_hash: string; edit_password_hash: string | null }>`
@@ -224,6 +232,7 @@ export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
       await sql`
         update trips
         set edit_password_hash = ${digest},
+            edit_hash = ${FEATURED_EDIT_HASH},
             title = ${FEATURED_TITLE},
             updated_at = now()
         where public_hash = ${FEATURED_SLUG}
@@ -231,7 +240,6 @@ export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
       return { publicHash: FEATURED_SLUG };
     }
     const id = newId();
-    const editHash = token(18);
     const payload = JSON.stringify({
       layout: seedLayout(),
       texts: {
@@ -243,7 +251,7 @@ export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
     });
     await sql`
       insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
-      values (${id}, ${FEATURED_SLUG}, ${editHash}, ${digest}, ${FEATURED_TITLE}, ${"de"}, ${payload}::jsonb)
+      values (${id}, ${FEATURED_SLUG}, ${FEATURED_EDIT_HASH}, ${digest}, ${FEATURED_TITLE}, ${"de"}, ${payload}::jsonb)
     `;
     return { publicHash: FEATURED_SLUG };
   },

@@ -3,6 +3,7 @@ import { LOCALES, type Locale, type MessageKey } from "@/lib/i18n/messages";
 import { days, heroPhotos, type AlbumPhoto } from "./data";
 import { applyFields, collectFields, type AlbumTexts } from "./fields";
 import { geocodePortugal } from "./geocode";
+import { FEATURED_EDIT_HASH, FEATURED_SLUG } from "./featured";
 import { createTrip, getEditTrip, getPublicTrip, saveTrip } from "./trips";
 import { ensureTranslations } from "./translate";
 import {
@@ -436,9 +437,16 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     try {
       const trip = editHash ? await getEditTrip({ data: { hash: editHash } }) : null;
       const publicTrip = trip ?? (publicHash ? await getPublicTrip({ data: { hash: publicHash } }) : null);
+      const isFeatured =
+        editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG;
       if (!publicTrip) {
         await get().hydrate();
-        set({ ready: true, canEdit: false, publicHash, editHash: undefined });
+        set({
+          ready: true,
+          canEdit: Boolean(editHash && isFeatured),
+          publicHash: publicHash ?? (isFeatured ? FEATURED_SLUG : undefined),
+          editHash: isFeatured ? FEATURED_EDIT_HASH : undefined,
+        });
         return;
       }
       set({
@@ -455,6 +463,17 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         saveStatus: "saved",
       });
     } catch {
+      const isFeatured = editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG;
+      if (isFeatured) {
+        await get().hydrate();
+        set({
+          ready: true,
+          canEdit: Boolean(editHash),
+          publicHash: FEATURED_SLUG,
+          editHash: editHash ?? FEATURED_EDIT_HASH,
+        });
+        return;
+      }
       set({ ready: true, canEdit: false });
     }
   },

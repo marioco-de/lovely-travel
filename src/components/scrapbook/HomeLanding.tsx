@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { Link } from "@tanstack/react-router";
-import { days, heroPhotos } from "@/lib/album/data";
+import { heroPhotos } from "@/lib/album/data";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { Frame } from "./Frame";
 import { LanguageToggle } from "./LanguageToggle";
@@ -9,8 +8,6 @@ import { Polaroid } from "./Polaroid";
 import { SlideIn } from "./SlideIn";
 import { Stamp } from "./Stamp";
 import { Tape } from "./Tape";
-
-const portoPhoto = days[0]?.photos[0] ?? heroPhotos.courtyard;
 
 export function HomeLanding() {
   const t = useT();
@@ -45,7 +42,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      <section className="relative mx-auto w-full max-w-7xl overflow-visible px-4 pb-8 md:px-10 lg:px-16">
+      <section className="relative mx-auto w-full max-w-7xl overflow-visible px-4 pb-16 md:px-10 lg:px-16">
         <div className="relative w-[88%] max-w-2xl md:w-[58%]">
           <SlideIn from="left">
             <Frame photo={heroPhotos.lagoon} showCaption={false} priority />
@@ -57,24 +54,6 @@ export function HomeLanding() {
             <Polaroid photo={heroPhotos.courtyard} />
           </SlideIn>
         </div>
-      </section>
-
-      <section className="relative mx-auto w-full max-w-7xl overflow-visible px-4 py-10 md:px-10 md:py-16 lg:px-16">
-        <p className="font-display text-kicker tracking-widest text-lagoon-deep uppercase">{t("home.featuredKicker")}</p>
-        <Link
-          to="/portugal-mit-michael"
-          className="group mt-4 block max-w-xl no-underline"
-        >
-          <SlideIn from="left">
-            <div className="relative">
-              <Polaroid photo={portoPhoto} />
-              <Tape variant="kraft" rotation={12} className="-top-2 right-[12%] w-32" />
-            </div>
-          </SlideIn>
-          <h2 className="mt-5 font-display text-day font-semibold text-ink group-hover:underline">{t("home.featured")}</h2>
-          <p className="mt-2 font-script text-caption text-ink-soft">{t("home.featuredLine")}</p>
-          <p className="place-type mt-3 font-typewriter text-place text-lagoon-deep">{t("home.featuredOpen")}</p>
-        </Link>
       </section>
     </div>
   );

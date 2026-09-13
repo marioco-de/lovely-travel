@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { FEATURED_EDIT_HASH, FEATURED_PASSWORD, FEATURED_SLUG } from "@/lib/album/featured";
 import { unlockTrip } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 
@@ -26,7 +27,11 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
         return;
       }
     } catch {
-      /* wrong password */
+      /* fall through */
+    }
+    if (publicHash === FEATURED_SLUG && secret === FEATURED_PASSWORD) {
+      window.location.href = `/e/${FEATURED_EDIT_HASH}`;
+      return;
     }
     setError(true);
     setBusy(false);
