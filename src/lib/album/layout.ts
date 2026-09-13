@@ -16,9 +16,14 @@ export type I18nPair = { en: string; de: string } & Partial<Record<Locale, strin
 
 export type BlockKind = "collage" | "photo" | "polaroid" | "place" | "note";
 
+export type PhotoFormat = "square" | "fourThree" | "original";
+export const PHOTO_FORMATS: PhotoFormat[] = ["square", "fourThree", "original"];
+
 export type PhotoNote = {
   title: I18nPair;
   caption: I18nPair;
+  frame?: CornerStyle;
+  format?: PhotoFormat;
 };
 
 export type LayoutBlock = {
@@ -29,6 +34,7 @@ export type LayoutBlock = {
   caption: I18nPair;
   body: I18nPair;
   photoNotes?: Record<string, PhotoNote>;
+  writingPaper?: string;
 };
 
 export type LayoutDay = {
@@ -58,6 +64,7 @@ export type PrintPhoto = {
   rotate: RotateDir;
   corners?: CornerStyle;
   cornerSet?: CornerSet;
+  format?: PhotoFormat;
 };
 
 const emptyPair = (): I18nPair => ({ en: "", de: "" });
@@ -124,6 +131,22 @@ function photoToBlock(photo: (typeof days)[number]["photos"][number], dayPlace: 
 
 export function emptyPhotoNote(): PhotoNote {
   return { title: emptyPair(), caption: emptyPair() };
+}
+
+export function nextFrame(current?: CornerStyle): CornerStyle {
+  const index = Math.max(0, CORNER_STYLES.indexOf(current ?? "black"));
+  return CORNER_STYLES[(index + 1) % CORNER_STYLES.length] ?? "black";
+}
+
+export function nextFormat(current?: PhotoFormat): PhotoFormat {
+  const index = Math.max(0, PHOTO_FORMATS.indexOf(current ?? "original"));
+  return PHOTO_FORMATS[(index + 1) % PHOTO_FORMATS.length] ?? "original";
+}
+
+export function formatLabel(format?: PhotoFormat) {
+  if (format === "square") return "1:1";
+  if (format === "fourThree") return "4:3";
+  return "orig";
 }
 
 export function noteForPhoto(block: LayoutBlock, photoId: string, index = 0): PhotoNote {
@@ -220,6 +243,7 @@ export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
     caption: emptyPair(),
     body: emptyPair(),
     photoNotes: {},
+    writingPaper: kind === "note" ? "lined" : undefined,
   };
 }
 

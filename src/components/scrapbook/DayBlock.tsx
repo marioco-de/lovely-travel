@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { catalogSrc, cornersFor, isDayNumberLabel, noteForPhoto, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
+import { nextWritingPaper } from "@/lib/album/papers";
 import { PLACES, placeCaption } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
@@ -51,7 +52,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const placeLine = pinLine || extras.join(" · ");
   const editingPlaces = canEdit && placeEditId === day.id;
 
-  function toPrint(photoId: string, i: number, title: string, caption: string): PrintPhoto {
+  function toPrint(photoId: string, i: number, title: string, caption: string, frame?: PrintPhoto["corners"], format?: PrintPhoto["format"]): PrintPhoto {
     const mount = cornersFor(photoId, i + index);
     return {
       id: photoId,
@@ -61,8 +62,9 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       caption,
       kind: "landscape",
       rotate: rotateFor(`${photoId}:${day.id}:${i}`),
-      corners: mount.corners,
+      corners: frame ?? mount.corners,
       cornerSet: mount.cornerSet,
+      format,
     };
   }
 
@@ -91,7 +93,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       />
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 md:px-10 lg:px-16">
         <div className="min-w-0">
-          <div className="relative z-20 mb-6 flex items-start gap-4 pl-8 md:mb-8 md:pl-16">
+          <div className="relative z-20 mb-10 flex items-start gap-4 pl-8 md:mb-14 md:pl-16">
             <DayMark index={index} active={active} rotation={index % 2 === 0 ? -10 : 8} />
             <div className="day-heading-copy min-w-0">
               {canEdit ? (
@@ -151,7 +153,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
             </div>
           </div>
 
-          <div className="relative z-10 flex flex-col gap-10">
+          <div className={cn("day-blocks relative z-10 flex flex-col", canEdit ? "gap-16 pt-4" : "gap-10")}>
             {day.blocks.map((block, blockIndex) => {
               const blockPlace = pairText(block.place, locale) || placeName;
               const blockCaption = pairText(block.caption, locale);
@@ -161,17 +163,26 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
 
               function printOf(id: string, i: number) {
                 const note = noteForPhoto(block, id, i);
-                return toPrint(id, blockIndex + i, pairText(note.title, locale), pairText(note.caption, locale));
+                return toPrint(
+                  id,
+                  blockIndex + i,
+                  pairText(note.title, locale),
+                  pairText(note.caption, locale),
+                  note.frame,
+                  note.format,
+                );
               }
 
               let inner = null;
               if (block.kind === "note") {
                 inner = (
                   <NoteCard
-                    place={blockPlace}
                     body={body}
-                    onPlaceChange={(value) => patchPair(block, "place", value)}
+                    paper={block.writingPaper}
                     onBodyChange={(value) => patchPair(block, "body", value)}
+                    onCyclePaper={() =>
+                      patchBlock(day.id, block.id, { writingPaper: nextWritingPaper(block.writingPaper) })
+                    }
                   />
                 );
               } else if (block.kind === "place") {
@@ -219,7 +230,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
 
               if (!inner && !canEdit) return null;
               return (
-                <div key={block.id} className="relative">
+                <div key={block.id} className="day-block-slot relative">
                   {inner}
                   {canEdit ? <BlockBar dayId={day.id} blockId={block.id} /> : null}
                 </div>

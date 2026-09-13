@@ -36,28 +36,30 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
   }, [open]);
 
   return (
-    <div ref={wrapRef} className="block-bar relative z-20 mt-3 flex flex-wrap items-center justify-center gap-2">
-      <span className="text-ink-soft">—</span>
-      <button type="button" className="block-bar-btn" aria-label={t("ui.moveUp")} onClick={() => moveBlock(dayId, blockId, -1)}>
-        ⬆︎
-      </button>
-      <button
-        type="button"
-        className="block-bar-btn"
-        aria-label={t("ui.addSlot")}
-        onClick={() => setOpen((value) => !value)}
-      >
-        +
-      </button>
-      <button type="button" className="block-bar-btn" aria-label={t("ui.moveDown")} onClick={() => moveBlock(dayId, blockId, 1)}>
-        ⬇︎
-      </button>
-      <button type="button" className="block-bar-btn" aria-label={t("ui.remove")} onClick={() => setConfirm(true)}>
-        ×
-      </button>
-      <span className="text-ink-soft">—</span>
+    <div ref={wrapRef} className="block-bar relative z-10 mt-8 flex flex-col items-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <span className="text-ink-soft">—</span>
+        <button type="button" className="block-bar-btn" aria-label={t("ui.moveUp")} onClick={() => moveBlock(dayId, blockId, -1)}>
+          ⬆︎
+        </button>
+        <button
+          type="button"
+          className="block-bar-btn"
+          aria-label={t("ui.addSlot")}
+          onClick={() => setOpen((value) => !value)}
+        >
+          +
+        </button>
+        <button type="button" className="block-bar-btn" aria-label={t("ui.moveDown")} onClick={() => moveBlock(dayId, blockId, 1)}>
+          ⬇︎
+        </button>
+        <button type="button" className="block-bar-btn" aria-label={t("ui.remove")} onClick={() => setConfirm(true)}>
+          ×
+        </button>
+        <span className="text-ink-soft">—</span>
+      </div>
       {open ? (
-        <div className="caption-strip absolute top-full z-30 mt-2 flex flex-wrap justify-center gap-2 px-3 py-2">
+        <div className="caption-strip relative z-10 flex flex-wrap justify-center gap-2 px-3 py-2">
           {KINDS.map((item) => (
             <button
               key={item.kind}

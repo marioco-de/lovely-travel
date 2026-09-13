@@ -1,37 +1,42 @@
+import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAlbum } from "@/lib/album/store";
+import { useT } from "@/lib/i18n/locale";
 import { LiveText } from "./LiveText";
 import { ScriptLine } from "./PhotoCaption";
 import { SlideIn } from "./SlideIn";
 
 type NoteCardProps = {
-  place: string;
   body: string;
+  paper?: string;
   className?: string;
-  onPlaceChange?: (value: string) => void;
   onBodyChange?: (value: string) => void;
+  onCyclePaper?: () => void;
 };
 
-export function NoteCard({ place, body, className, onPlaceChange, onBodyChange }: NoteCardProps) {
+export function NoteCard({ body, paper = "lined", className, onBodyChange, onCyclePaper }: NoteCardProps) {
+  const t = useT();
   const canEdit = useAlbum((s) => s.canEdit);
-  if (!place && !body && !canEdit) return null;
+  if (!body && !canEdit) return null;
   return (
-    <SlideIn from="left" className={cn("max-w-md", className)}>
-      <div className="caption-strip relative -rotate-1 px-5 py-4 text-center">
-        {canEdit && onPlaceChange ? (
-          <LiveText
-            value={place}
-            onChange={onPlaceChange}
-            placeholder="Lorem ipsum"
-            className="place-type font-typewriter text-place text-lagoon-deep"
-          />
-        ) : place ? (
-          <p className="place-type font-typewriter text-place text-lagoon-deep">— {place} —</p>
-        ) : null}
-        {canEdit && onBodyChange ? (
-          <LiveText value={body} onChange={onBodyChange} className="mt-1 font-script text-caption leading-snug text-ink-soft" />
-        ) : body ? (
-          <ScriptLine>{body}</ScriptLine>
+    <SlideIn from="left" className={cn("max-w-lg", className)}>
+      <div className="write-paper-wrap">
+        <div className={cn("write-paper", `write-paper--${paper}`)}>
+          {canEdit && onBodyChange ? (
+            <LiveText
+              value={body}
+              onChange={onBodyChange}
+              placeholder={t("ui.note")}
+              className="write-paper-text text-left font-script text-caption leading-relaxed text-ink"
+            />
+          ) : body ? (
+            <ScriptLine className="write-paper-text !mt-0 text-left">{body}</ScriptLine>
+          ) : null}
+        </div>
+        {canEdit && onCyclePaper ? (
+          <button type="button" className="paper-flag" aria-label={t("ui.cyclePaper")} onClick={onCyclePaper}>
+            <Recycle size={14} strokeWidth={2.4} />
+          </button>
         ) : null}
       </div>
     </SlideIn>

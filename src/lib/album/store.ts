@@ -20,6 +20,7 @@ import {
   type I18nPair,
   type LayoutBlock,
   type LayoutDay,
+  type PhotoNote,
 } from "./layout";
 import { getLocalTripByEdit, getLocalTripByPublic, makeLocalTrip, saveLocalTrip } from "./trips-local";
 
@@ -58,7 +59,8 @@ type AlbumState = {
   addCollageFromFiles: (dayId: string, files: File[]) => Promise<void>;
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
-  patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body">>) => void;
+  patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body" | "writingPaper">>) => void;
+  setPhotoMeta: (dayId: string, blockId: string, photoId: string, patch: Partial<Pick<PhotoNote, "frame" | "format">>) => void;
   setPhotoNote: (dayId: string, blockId: string, photoId: string, field: "title" | "caption", locale: Locale, value: string) => void;
   clearPhotoNote: (dayId: string, blockId: string, photoId: string) => void;
   addPhotoSlot: (dayId: string, blockId: string) => void;
@@ -569,6 +571,26 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       mapDays(get().layout, dayId, (day) => ({
         ...day,
         blocks: day.blocks.map((block) => (block.id === blockId ? { ...block, ...patch } : block)),
+      })),
+    );
+  },
+  setPhotoMeta: (dayId, blockId, photoId, patch) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => ({
+        ...day,
+        blocks: day.blocks.map((block) => {
+          if (block.id !== blockId) return block;
+          const current = block.photoNotes?.[photoId] ?? emptyPhotoNote();
+          return {
+            ...block,
+            photoNotes: {
+              ...block.photoNotes,
+              [photoId]: { ...current, ...patch },
+            },
+          };
+        }),
       })),
     );
   },

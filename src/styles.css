@@ -779,41 +779,46 @@ body {
   z-index: 2;
 }
 
+.photo-block--tabs {
+  padding-bottom: 2.15rem;
+}
+
 .photo-tabs {
   position: absolute;
-  top: -1.15rem;
-  right: 0.65rem;
+  left: 0.45rem;
+  bottom: -0.1rem;
   z-index: 1;
   display: flex;
-  align-items: flex-end;
-  gap: 0.2rem;
+  align-items: flex-start;
+  gap: 0.18rem;
   pointer-events: none;
 }
 
 .photo-tab {
   pointer-events: auto;
   display: grid;
-  width: 1.9rem;
-  height: 2.55rem;
-  place-content: start center;
-  padding-top: 0.38rem;
+  width: 2rem;
+  min-height: 2.75rem;
+  height: 2.75rem;
+  place-content: end center;
+  padding-bottom: 0.38rem;
   border: 1px solid rgb(61 42 28 / 0.18);
-  border-bottom: 0;
-  box-shadow: 0 -2px 6px rgb(61 42 28 / 0.12);
+  border-top: 0;
+  box-shadow: 0 2px 6px rgb(61 42 28 / 0.12);
 }
 
 .photo-tab--pencil {
   background: #6b3f28;
   color: #f3e6c9;
-  transform: rotate(-5deg);
-  border-radius: 7px 7px 2px 2px;
+  transform: rotate(4deg);
+  border-radius: 2px 2px 7px 7px;
 }
 
 .photo-tab--caption {
   background: #e6d2ae;
   color: #3d2a1c;
-  transform: rotate(3deg);
-  border-radius: 6px 6px 2px 2px;
+  transform: rotate(-3deg);
+  border-radius: 2px 2px 6px 6px;
 }
 
 .photo-tab--caption.is-on {
@@ -823,15 +828,34 @@ body {
 .photo-tab--trash {
   background: #f7efe0;
   color: #6b4e3d;
+  transform: rotate(2deg);
+  border-radius: 2px 2px 7px 7px;
+}
+
+.photo-tab--format {
+  width: 2.35rem;
+  background: #efe4cc;
+  color: #3d2a1c;
+  font-family: var(--font-typewriter);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
   transform: rotate(-2deg);
-  border-radius: 7px 7px 2px 2px;
+  border-radius: 2px 2px 6px 6px;
+}
+
+.photo-tab--cycle {
+  background: #d9c7a3;
+  color: #3d2a1c;
+  transform: rotate(5deg);
+  border-radius: 2px 2px 8px 8px;
 }
 
 .photo-caption-editor {
   position: absolute;
-  top: calc(100% - 0.2rem);
   right: 0.55rem;
+  bottom: 2.55rem;
   left: 0.55rem;
+  top: auto;
   z-index: 12;
   padding: 0.7rem 0.85rem 0.85rem;
 }
@@ -846,6 +870,129 @@ body {
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   color: var(--color-ink-soft);
+}
+
+.day-block-slot {
+  isolation: isolate;
+}
+
+.day-wash.is-editing .day-blocks {
+  position: relative;
+  z-index: 1;
+}
+
+.write-paper-wrap {
+  position: relative;
+  padding-bottom: 1.6rem;
+}
+
+.write-paper {
+  position: relative;
+  z-index: 2;
+  min-height: 11rem;
+  padding: 1.7rem 1.55rem 2rem;
+  box-shadow:
+    0 10px 24px -12px rgb(61 42 28 / 0.28),
+    0 1px 0 rgb(255 255 255 / 0.4) inset;
+}
+
+.write-paper-text {
+  position: relative;
+  z-index: 1;
+  mix-blend-mode: multiply;
+}
+
+.paper-flag {
+  position: absolute;
+  right: 0.7rem;
+  bottom: -0.05rem;
+  z-index: 1;
+  display: grid;
+  width: 2.1rem;
+  height: 2.75rem;
+  place-content: end center;
+  padding-bottom: 0.35rem;
+  border: 1px solid rgb(61 42 28 / 0.18);
+  border-top: 0;
+  border-radius: 2px 2px 8px 8px;
+  background: #d9c7a3;
+  color: #3d2a1c;
+  box-shadow: 0 2px 6px rgb(61 42 28 / 0.12);
+  transform: rotate(4deg);
+}
+
+.write-paper--lined {
+  background-color: #f4ead0;
+  background-image:
+    linear-gradient(rgb(186 92 92 / 0.18) 0 1px, transparent 1px),
+    repeating-linear-gradient(#f4ead0 0 27px, rgb(90 122 168 / 0.28) 27px 28px);
+  background-size: 100% 100%, 100% 28px;
+  background-position: 0 1.55rem, 0 1.55rem;
+}
+
+.write-paper--kraft {
+  background:
+    radial-gradient(circle at 18% 22%, rgb(90 60 32 / 0.12), transparent 36%),
+    radial-gradient(circle at 80% 78%, rgb(40 24 10 / 0.1), transparent 42%),
+    repeating-linear-gradient(90deg, rgb(130 92 50 / 0.08) 0 1px, transparent 1px 3px),
+    #c4a06a;
+}
+
+.write-paper--letter {
+  background:
+    radial-gradient(ellipse at 12% 18%, rgb(160 110 50 / 0.16), transparent 28%),
+    radial-gradient(ellipse at 86% 80%, rgb(120 80 40 / 0.14), transparent 32%),
+    repeating-linear-gradient(#f1dfb8 0 26px, rgb(90 122 168 / 0.2) 26px 27px),
+    #f1dfb8;
+}
+
+.write-paper--grid {
+  background-color: #f7f1e3;
+  background-image:
+    repeating-linear-gradient(rgb(120 140 160 / 0.18) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, rgb(120 140 160 / 0.18) 0 1px, transparent 1px 22px);
+}
+
+.write-paper--deckle {
+  background:
+    radial-gradient(circle at 8% 12%, rgb(255 250 240 / 0.5), transparent 24%),
+    #e8d5b5;
+  box-shadow:
+    0 10px 24px -12px rgb(61 42 28 / 0.28),
+    inset 0 0 0 1px rgb(255 248 232 / 0.35);
+}
+
+.write-paper--mint {
+  background-color: #e4f0e4;
+  background-image: repeating-linear-gradient(#e4f0e4 0 26px, rgb(70 130 110 / 0.22) 26px 27px);
+}
+
+.write-paper--pink {
+  background:
+    radial-gradient(circle at 70% 20%, rgb(255 255 255 / 0.35), transparent 30%),
+    #f3d5d8;
+}
+
+.write-paper--coffee {
+  background:
+    radial-gradient(circle at 22% 70%, rgb(110 70 32 / 0.22) 0 8%, transparent 28%),
+    radial-gradient(circle at 78% 18%, rgb(90 55 24 / 0.16) 0 6%, transparent 24%),
+    repeating-linear-gradient(#f0e2c4 0 28px, rgb(90 122 168 / 0.18) 28px 29px),
+    #f0e2c4;
+}
+
+.write-paper--ruled {
+  background-color: #ece7dc;
+  background-image:
+    linear-gradient(90deg, rgb(220 90 90 / 0.28) 2.2rem, transparent 2.2rem),
+    repeating-linear-gradient(#ece7dc 0 24px, rgb(90 110 140 / 0.28) 24px 25px);
+}
+
+.write-paper--parchment {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(255 248 220 / 0.45), transparent 42%),
+    radial-gradient(ellipse at 40% 100%, rgb(150 110 60 / 0.12), transparent 46%),
+    #ead9b2;
 }
 
 .lang-fan-leaf {

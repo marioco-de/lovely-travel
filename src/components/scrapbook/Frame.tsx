@@ -4,7 +4,7 @@ import { useLightbox } from "@/lib/album/lightbox";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
-import type { PrintPhoto } from "@/lib/album/layout";
+import { nextFrame, nextFormat, type PhotoFormat, type PrintPhoto } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoBanderole } from "./PhotoBanderole";
@@ -46,6 +46,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
   const clearPhotoNote = useAlbum((s) => s.clearPhotoNote);
   const clearPhoto = useAlbum((s) => s.clearPhoto);
   const removePhotoSlot = useAlbum((s) => s.removePhotoSlot);
+  const setPhotoMeta = useAlbum((s) => s.setPhotoMeta);
   const [captionOpen, setCaptionOpen] = useState(false);
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const openLightbox = useLightbox((s) => s.open);
@@ -53,9 +54,12 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
   const corners = "corners" in photo ? (photo.corners ?? (isDetail ? "scallop" : "black")) : "black";
   const cornerSet: CornerSet =
     "cornerSet" in photo && photo.cornerSet ? photo.cornerSet : isDetail ? "diagonal" : "all";
+  const format: PhotoFormat = "format" in photo && photo.format ? photo.format : "original";
   const alt = isCatalog(photo) ? t(photo.altKey) : photo.alt;
   const place = isCatalog(photo) ? t(photo.placeKey) : photo.place;
   const caption = isCatalog(photo) ? t(photo.captionKey) : photo.caption;
+  const aspect =
+    format === "square" ? "aspect-square" : format === "fourThree" ? "aspect-[4/3]" : isDetail ? "aspect-[4/3]" : "aspect-video";
 
   function writeTitle(value: string) {
     if (dayId && blockId) setPhotoNote(dayId, blockId, photo.id, "title", locale, value);
@@ -72,34 +76,18 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
       onCaptionChange?.("");
     }
   }
+  function cycleFrame() {
+    if (dayId && blockId) setPhotoMeta(dayId, blockId, photo.id, { frame: nextFrame(corners) });
+  }
+  function cycleFormat() {
+    if (dayId && blockId) setPhotoMeta(dayId, blockId, photo.id, { format: nextFormat(format) });
+  }
 
   return (
-    <figure className={cn("photo-block relative", className)}>
+    <figure className={cn("photo-block relative", canEdit && src && "photo-block--tabs", className)}>
       <div className={cn("photo-print relative", rotateClass[photo.rotate])}>
-        {canEdit && src ? (
-          <PhotoEditTools
-            hasSrc
-            title={place}
-            caption={caption}
-            open={captionOpen}
-            onOpenChange={setCaptionOpen}
-            onFile={(file) => void setPhoto(photo.id, file)}
-            onTitle={writeTitle}
-            onCaption={writeCaption}
-            onClear={clearNote}
-            onRemove={() => {
-              void clearPhoto(photo.id);
-              if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
-            }}
-          />
-        ) : null}
-        <div className="photo-shadow photo-mat relative overflow-visible bg-mat p-2 md:p-2.5">
-          <div
-            className={cn(
-              "relative overflow-hidden bg-page-deep",
-              isDetail ? "aspect-4/3" : "aspect-video",
-            )}
-          >
+        <div className="photo-shadow photo-mat relative overflow-visible bg-mat p-1.5">
+          <div className={cn("relative overflow-hidden bg-page-deep", aspect)}>
             {src ? (
               <button
                 type="button"
@@ -144,6 +132,26 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
         </div>
       </div>
       {showCaption && !captionOpen ? <PhotoCaption place={place} caption={caption} /> : null}
+      {canEdit && src ? (
+        <PhotoEditTools
+          hasSrc
+          title={place}
+          caption={caption}
+          format={format}
+          open={captionOpen}
+          onOpenChange={setCaptionOpen}
+          onFile={(file) => void setPhoto(photo.id, file)}
+          onTitle={writeTitle}
+          onCaption={writeCaption}
+          onClear={clearNote}
+          onCycleFrame={cycleFrame}
+          onCycleFormat={cycleFormat}
+          onRemove={() => {
+            void clearPhoto(photo.id);
+            if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
+          }}
+        />
+      ) : null}
     </figure>
   );
 }

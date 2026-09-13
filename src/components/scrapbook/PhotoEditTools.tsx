@@ -1,6 +1,7 @@
 import { useRef } from "react";
-import { MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { MessageCircle, Pencil, Recycle, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatLabel, type PhotoFormat } from "@/lib/album/layout";
 import { useT } from "@/lib/i18n/locale";
 import { LiveText } from "./LiveText";
 
@@ -8,11 +9,14 @@ type PhotoEditToolsProps = {
   hasSrc: boolean;
   title: string;
   caption: string;
+  format?: PhotoFormat;
   onFile: (file: File) => void;
   onTitle: (value: string) => void;
   onCaption: (value: string) => void;
   onClear: () => void;
   onRemove: () => void;
+  onCycleFrame: () => void;
+  onCycleFormat: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -21,11 +25,14 @@ export function PhotoEditTools({
   hasSrc,
   title,
   caption,
+  format,
   onFile,
   onTitle,
   onCaption,
   onClear,
   onRemove,
+  onCycleFrame,
+  onCycleFormat,
   open,
   onOpenChange,
 }: PhotoEditToolsProps) {
@@ -37,12 +44,7 @@ export function PhotoEditTools({
   return (
     <>
       <div className="photo-tabs" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
-        <button
-          type="button"
-          className="photo-tab photo-tab--pencil"
-          aria-label={t("ui.replacePhoto")}
-          onClick={() => fileRef.current?.click()}
-        >
+        <button type="button" className="photo-tab photo-tab--pencil" aria-label={t("ui.replacePhoto")} onClick={() => fileRef.current?.click()}>
           <Pencil size={14} strokeWidth={2.3} />
         </button>
         <button
@@ -56,6 +58,12 @@ export function PhotoEditTools({
         </button>
         <button type="button" className="photo-tab photo-tab--trash" aria-label={t("ui.removeSlot")} onClick={onRemove}>
           <Trash2 size={14} strokeWidth={2.3} />
+        </button>
+        <button type="button" className="photo-tab photo-tab--format" aria-label={t("ui.photoFormat")} onClick={onCycleFormat}>
+          <span>{formatLabel(format)}</span>
+        </button>
+        <button type="button" className="photo-tab photo-tab--cycle" aria-label={t("ui.cycleFrame")} onClick={onCycleFrame}>
+          <Recycle size={14} strokeWidth={2.4} />
         </button>
         <input
           ref={fileRef}

@@ -49,7 +49,7 @@ export function CollageBlock({
         })}
       </div>
       {showControls ? (
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           <button
             type="button"
             className="album-btn"
