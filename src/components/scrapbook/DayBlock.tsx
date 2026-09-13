@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { catalogSrc, cornersFor, isDayNumberLabel, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
-import { PLACES } from "@/lib/album/places";
+import { PLACES, placeCaption } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { BlockBar } from "./BlockBar";
@@ -41,7 +41,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const stops = (day.places?.length ? day.places : [day.place]).map((item) => pairText(item, locale)).filter(Boolean);
   const placeName = stops[0] || pairText(day.place, locale);
   const place = PLACES[day.id];
-  const address = day.geo?.address ?? place?.address;
+  const address = placeCaption(place, day.geo?.address ?? place?.address);
   const editingPlaces = canEdit && placeEditId === day.id;
 
   function toPrint(photoId: string, i: number, placeLabel: string, caption: string): PrintPhoto {
@@ -93,10 +93,10 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   value={title}
                   onChange={(value) => setDayLabel(day.id, locale, value)}
                   placeholder={t("ui.dayTitle")}
-                  className="text-left font-display text-day leading-snug font-semibold text-ink"
+                  className="place-type text-left font-typewriter text-day leading-snug text-lagoon-deep"
                 />
               ) : title ? (
-                <h3 className="text-left font-display text-day leading-snug font-semibold text-ink">
+                <h3 className="place-type text-left font-typewriter text-day leading-snug text-lagoon-deep">
                   {title}
                 </h3>
               ) : null}
@@ -132,8 +132,8 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   — {stops.join(" · ")} —
                 </p>
               ) : null}
-              {address ? (
-                <p className="mt-1 font-typewriter text-[0.7rem] tracking-wide text-ink-soft">{address}</p>
+              {address && address.toLowerCase() !== stops.join(" · ").toLowerCase() ? (
+                <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink-soft">{address}</p>
               ) : null}
               {canEdit ? (
                 <button

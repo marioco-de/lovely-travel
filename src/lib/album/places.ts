@@ -65,7 +65,33 @@ const GEO = {
   east: -6.12,
 };
 
-export function geoToLand(lat: number, lng: number) {
+const COUNTRY = /^(portugal|spain|deutschland|germany|france|italy|españa|frankreich|europe)$/i;
+const POSTAL = /\b\d{4,5}(?:-\d{3})?\b/g;
+
+/** "Ponta da Piedade, 8600-315 Lagos, Portugal" → "Ponta da Piedade, Lagos" */
+export function shortPlaceLine(address: string, city?: string) {
+  const parts = address
+    .split(",")
+    .map((part) => part.replace(POSTAL, "").replace(/\s+/g, " ").trim())
+    .filter((part) => part && !COUNTRY.test(part));
+  const unique: string[] = [];
+  for (const part of parts) {
+    if (!unique.some((item) => item.toLowerCase() === part.toLowerCase())) unique.push(part);
+  }
+  if (city && !unique.some((item) => item.toLowerCase() === city.toLowerCase())) {
+    unique.push(city);
+  }
+  return unique.join(", ");
+}
+
+export function placeCaption(place?: PlaceRecord | null, fallback?: string) {
+  if (place?.name && place.city) {
+    if (place.name.toLowerCase() === place.city.toLowerCase()) return place.city;
+    return `${place.name}, ${place.city}`;
+  }
+  if (fallback) return shortPlaceLine(fallback, place?.city);
+  return "";
+}
   return {
     x: ((lng - GEO.west) / (GEO.east - GEO.west)) * 100,
     y: ((GEO.north - lat) / (GEO.north - GEO.south)) * 100,
