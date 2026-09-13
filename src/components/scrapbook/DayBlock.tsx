@@ -40,8 +40,10 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const title = isDayNumberLabel(titleRaw) ? "" : titleRaw;
   const stops = (day.places?.length ? day.places : [day.place]).map((item) => pairText(item, locale)).filter(Boolean);
   const placeName = stops[0] || pairText(day.place, locale);
-  const place = PLACES[day.id];
-  const address = placeCaption(place, day.geo?.address ?? place?.address);
+  const catalog = PLACES[day.id];
+  const pinLine = placeCaption(catalog, day.geo?.address);
+  const extras = stops.filter((stop) => !pinLine || !pinLine.toLowerCase().includes(stop.toLowerCase()));
+  const placeLine = [pinLine, ...extras].filter(Boolean).join(" · ");
   const editingPlaces = canEdit && placeEditId === day.id;
 
   function toPrint(photoId: string, i: number, placeLabel: string, caption: string): PrintPhoto {
@@ -127,13 +129,10 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                     + {t("ui.addPlaceName")}
                   </button>
                 </div>
-              ) : stops.length ? (
-                <p className="place-type mt-1 text-center font-typewriter text-kicker tracking-wide text-lagoon-deep md:text-left">
-                  — {stops.join(" · ")} —
+              ) : placeLine ? (
+                <p className="place-type mt-1 text-left font-typewriter text-kicker tracking-wide text-lagoon-deep">
+                  {placeLine}
                 </p>
-              ) : null}
-              {address && address.toLowerCase() !== stops.join(" · ").toLowerCase() ? (
-                <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink-soft">{address}</p>
               ) : null}
               {canEdit ? (
                 <button

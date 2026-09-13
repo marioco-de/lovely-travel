@@ -54,10 +54,6 @@ export const PLACES: Record<string, PlaceRecord> = {
   },
 };
 
-/**
- * Mainland Portugal extent matching the watercolor silhouette
- * (Minho → Sagres, Cabo da Roca → eastern border), with a little sea padding.
- */
 const GEO = {
   north: 42.18,
   south: 36.72,
@@ -73,7 +69,7 @@ export function shortPlaceLine(address: string, city?: string) {
   const parts = address
     .split(",")
     .map((part) => part.replace(POSTAL, "").replace(/\s+/g, " ").trim())
-    .filter((part) => part && !COUNTRY.test(part));
+    .filter((part) => part.length > 0 && !COUNTRY.test(part));
   const unique: string[] = [];
   for (const part of parts) {
     if (!unique.some((item) => item.toLowerCase() === part.toLowerCase())) unique.push(part);
