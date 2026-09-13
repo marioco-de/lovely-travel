@@ -276,51 +276,92 @@ body {
 
 .photo-corners {
   position: absolute;
-  inset: -0.28rem;
+  inset: 0;
   pointer-events: none;
   z-index: 6;
   overflow: visible;
 }
 
-.photo-corners-sheet {
+.photo-corner {
+  position: absolute;
+  width: clamp(1.05rem, 10%, 2.15rem);
+  height: clamp(1.05rem, 10%, 2.15rem);
+  overflow: visible;
+  background: none;
+}
+
+.collage-tile .photo-corner {
+  width: clamp(0.82rem, 9%, 1.35rem);
+  height: clamp(0.82rem, 9%, 1.35rem);
+}
+
+.photo-corner--tl {
+  top: -0.18rem;
+  left: -0.18rem;
+}
+
+.photo-corner--tr {
+  top: -0.18rem;
+  right: -0.18rem;
+  transform: scaleX(-1);
+}
+
+.photo-corner--bl {
+  bottom: -0.18rem;
+  left: -0.18rem;
+  transform: scaleY(-1);
+}
+
+.photo-corner--br {
+  bottom: -0.18rem;
+  right: -0.18rem;
+  transform: scale(-1);
+}
+
+.photo-corner img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: fill;
+  object-fit: contain;
+  object-position: top left;
   outline: none;
   background: transparent;
   box-shadow: none;
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2));
 }
 
-.photo-corners-set--diagonal {
-  -webkit-mask-image: linear-gradient(135deg, #000 26%, transparent 26%, transparent 74%, #000 74%);
-  mask-image: linear-gradient(135deg, #000 26%, transparent 26%, transparent 74%, #000 74%);
+.photo-corners .photo-corner {
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
 }
 
-.photo-corners-set--top {
-  -webkit-mask-image: linear-gradient(to bottom, #000 28%, transparent 28%);
-  mask-image: linear-gradient(to bottom, #000 28%, transparent 28%);
+.photo-corners--kraft .photo-corner {
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2)) sepia(0.55) saturate(1.15);
 }
 
-.collage-tile .photo-corners,
-.collage-tile .photo-banderole {
-  inset: -0.12rem;
+.photo-corners--gold .photo-corner,
+.photo-corners--brass .photo-corner {
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2)) sepia(0.9) saturate(1.7) hue-rotate(8deg);
+}
+
+.photo-corners--leather .photo-corner,
+.photo-corners--burgundy .photo-corner {
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2)) sepia(0.45) hue-rotate(-18deg) saturate(1.25) brightness(0.86);
+}
+
+.photo-corners--ivory .photo-corner,
+.photo-corners--vellum .photo-corner {
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.16)) brightness(1.12) saturate(0.55);
 }
 
 .photo-banderole {
   position: absolute;
-  inset: -0.28rem;
+  inset: 0;
   pointer-events: none;
   z-index: 6;
   overflow: visible;
 }
 
-.photo-banderole .photo-corners-sheet {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.photo-banderole .photo-corner {
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.18));
 }
 
 .banderole-edge {
