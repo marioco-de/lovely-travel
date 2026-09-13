@@ -77,7 +77,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
         <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
           <LanguageToggle />
           <ShareStamp />
-          {canEdit ? <EditMenu /> : null}
+          {canEdit ? <EditMenu /> : publicHash ? <EditUnlock publicHash={publicHash} /> : null}
         </div>
       </div>
 

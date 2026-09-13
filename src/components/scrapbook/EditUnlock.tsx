@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { FEATURED_EDIT_HASH, FEATURED_PASSWORD, FEATURED_SLUG } from "@/lib/album/featured";
+import { FEATURED_SLUG, matchesFeaturedPassword } from "@/lib/album/featured";
+import { useAlbum } from "@/lib/album/store";
 import { unlockTrip } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 
@@ -9,6 +10,7 @@ type EditUnlockProps = {
 
 export function EditUnlock({ publicHash }: EditUnlockProps) {
   const t = useT();
+  const unlockFeatured = useAlbum((s) => s.unlockFeatured);
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
@@ -17,7 +19,11 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const secret = password.trim();
-    if (!secret || !publicHash) return;
+    if (!secret) return;
+    if (publicHash === FEATURED_SLUG && matchesFeaturedPassword(secret)) {
+      unlockFeatured();
+      return;
+    }
     setBusy(true);
     setError(false);
     try {
@@ -27,11 +33,7 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
         return;
       }
     } catch {
-      /* fall through */
-    }
-    if (publicHash === FEATURED_SLUG && secret === FEATURED_PASSWORD) {
-      window.location.href = `/e/${FEATURED_EDIT_HASH}`;
-      return;
+      /* wrong password */
     }
     setError(true);
     setBusy(false);

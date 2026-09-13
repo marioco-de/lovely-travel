@@ -202,7 +202,7 @@ export const unlockTrip = createServerFn({ method: "POST" })
     const password = data.password.trim();
     const publicHash = data.publicHash.trim();
     if (!password || !publicHash) return null;
-    if (publicHash === FEATURED_SLUG && password === FEATURED_PASSWORD) {
+    if (publicHash === FEATURED_SLUG && password.toLowerCase() === FEATURED_PASSWORD) {
       try {
         await ensureFeaturedTrip();
       } catch {

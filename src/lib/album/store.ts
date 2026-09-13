@@ -3,7 +3,7 @@ import { LOCALES, type Locale, type MessageKey } from "@/lib/i18n/messages";
 import { days, heroPhotos, type AlbumPhoto } from "./data";
 import { applyFields, collectFields, type AlbumTexts } from "./fields";
 import { geocodePortugal } from "./geocode";
-import { FEATURED_EDIT_HASH, FEATURED_SLUG } from "./featured";
+import { FEATURED_EDIT_HASH, FEATURED_SLUG, readFeaturedUnlock, writeFeaturedUnlock } from "./featured";
 import { createTrip, getEditTrip, getPublicTrip, saveTrip } from "./trips";
 import { ensureTranslations } from "./translate";
 import {
@@ -54,6 +54,7 @@ type AlbumState = {
   reset: () => Promise<void>;
   canEdit: boolean;
   enableEdit: () => void;
+  unlockFeatured: () => void;
   tripId?: string;
   publicHash?: string;
   editHash?: string;
@@ -203,6 +204,14 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   layout: seedLayout(),
   canEdit: false,
   enableEdit: () => set({ canEdit: true }),
+  unlockFeatured: () => {
+    writeFeaturedUnlock();
+    set({
+      canEdit: true,
+      publicHash: FEATURED_SLUG,
+      editHash: FEATURED_EDIT_HASH,
+    });
+  },
   sourceLocale: "en",
   hydrate: async () => {
     if (typeof indexedDB === "undefined") {
@@ -439,22 +448,23 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       const publicTrip = trip ?? (publicHash ? await getPublicTrip({ data: { hash: publicHash } }) : null);
       const isFeatured =
         editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG;
+      const featuredUnlocked = isFeatured && (Boolean(editHash) || readFeaturedUnlock());
       if (!publicTrip) {
         await get().hydrate();
         set({
           ready: true,
-          canEdit: Boolean(editHash && isFeatured),
+          canEdit: featuredUnlocked,
           publicHash: publicHash ?? (isFeatured ? FEATURED_SLUG : undefined),
-          editHash: isFeatured ? FEATURED_EDIT_HASH : undefined,
+          editHash: featuredUnlocked ? FEATURED_EDIT_HASH : undefined,
         });
         return;
       }
       set({
         ready: true,
-        canEdit: Boolean(editHash && trip?.editHash),
+        canEdit: Boolean(editHash && trip?.editHash) || featuredUnlocked,
         tripId: publicTrip.id,
-        publicHash: publicTrip.publicHash,
-        editHash: trip?.editHash,
+        publicHash: publicTrip.publicHash || FEATURED_SLUG,
+        editHash: trip?.editHash ?? (featuredUnlocked ? FEATURED_EDIT_HASH : undefined),
         sourceLocale: publicTrip.sourceLocale,
         layout: isLayout(publicTrip.payload.layout) ? mergeLayout(publicTrip.payload.layout) : seedLayout(),
         texts: publicTrip.payload.texts ?? emptyTexts(),
