@@ -1,16 +1,19 @@
 import { cn } from "@/lib/utils";
+import { type TapeStyle, tapeFor } from "@/lib/album/tape";
 
 type TapeProps = {
   className?: string;
   rotation?: number;
-  variant?: "kraft" | "plaid";
+  variant?: TapeStyle;
+  seed?: string;
 };
 
-export function Tape({ className, rotation = 3, variant = "kraft" }: TapeProps) {
+export function Tape({ className, rotation = 3, variant, seed }: TapeProps) {
+  const style = variant ?? tapeFor(seed ?? "tape", 0);
   return (
     <span
       aria-hidden="true"
-      className={cn("washi-tape", variant === "plaid" && "washi-tape--plaid", className)}
+      className={cn("washi-tape", `washi-tape--${style}`, className)}
       style={{ rotate: `${rotation}deg` }}
     />
   );

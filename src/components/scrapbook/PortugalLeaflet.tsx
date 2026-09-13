@@ -36,12 +36,31 @@ function Recenter({
 
   useEffect(() => {
     if (points.length === 0) return;
-    if (variant === "aside" && points[0]) {
-      map.setView([points[0].lat, points[0].lng], 11, { animate: true });
-      return;
-    }
-    const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
-    map.fitBounds(bounds, { padding: [36, 36], maxZoom: 8, animate: true });
+
+    const placePin = () => {
+      if (variant === "aside" && points[0]) {
+        const ll = L.latLng(points[0].lat, points[0].lng);
+        map.setView(ll, 12, { animate: false });
+        map.invalidateSize();
+        const size = map.getSize();
+        if (size.x < 8 || size.y < 8) return;
+        const current = map.latLngToContainerPoint(ll);
+        const target = L.point(size.x * 0.75, size.y * 0.25);
+        map.panBy(current.subtract(target), { animate: false });
+        return;
+      }
+      const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
+      map.fitBounds(bounds, { padding: [36, 36], maxZoom: 8, animate: true });
+    };
+
+    placePin();
+    const retry = window.setTimeout(placePin, 220);
+    const retry2 = window.setTimeout(placePin, 640);
+    map.whenReady(placePin);
+    return () => {
+      window.clearTimeout(retry);
+      window.clearTimeout(retry2);
+    };
   }, [map, key, variant, points]);
 
   return null;
@@ -101,13 +120,13 @@ export default function PortugalLeaflet({
     >
       <MapContainer
         center={[start.lat, start.lng]}
-        zoom={variant === "aside" ? 11 : 7}
+        zoom={variant === "aside" ? 12 : 7}
         maxZoom={16}
         scrollWheelZoom={false}
         dragging={false}
         doubleClickZoom={false}
         zoomControl={false}
-        attributionControl={variant === "hero"}
+        attributionControl={false}
         touchZoom={false}
         boxZoom={false}
         keyboard={false}
