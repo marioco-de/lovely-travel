@@ -26,10 +26,8 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
       </SlideIn>
 
       <SlideIn from="right" delayMs={80} className="relative mx-auto w-full max-w-3xl">
-        <div className="mb-2 flex justify-end">
-          <PortugalLocator />
-        </div>
         <div className="relative">
+          <PortugalLocator />
           <PortugalMap variant="hero" activeId={activeId} onSelect={onSelect} />
           <div className="pointer-events-none absolute inset-0 z-20 overflow-visible">
             <Tape variant="airmail" rotation={16} className="top-5 right-[10%] w-32 md:w-40" />

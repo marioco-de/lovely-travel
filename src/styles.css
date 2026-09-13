@@ -1044,6 +1044,11 @@ body {
 }
 
 .country-locator {
+  pointer-events: none;
+  position: absolute;
+  top: 1.1rem;
+  right: 0.35rem;
+  z-index: 24;
   width: 5.8rem;
   transform: rotate(3deg);
   filter: drop-shadow(0 2px 4px rgb(61 42 28 / 0.16));
