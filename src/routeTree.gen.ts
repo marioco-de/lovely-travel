@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PortugalMitMichaelRouteImport } from './routes/portugal-mit-michael'
 import { Route as EHashRouteImport } from './routes/e.$hash'
 import { Route as THashRouteImport } from './routes/t.$hash'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -29,6 +30,11 @@ const AdminRoute = AdminRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortugalMitMichaelRoute = PortugalMitMichaelRouteImport.update({
+  id: '/portugal-mit-michael',
+  path: '/portugal-mit-michael',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EHashRoute = EHashRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/portugal-mit-michael': typeof PortugalMitMichaelRoute
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/portugal-mit-michael': typeof PortugalMitMichaelRoute
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -68,20 +76,36 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
+  '/portugal-mit-michael': typeof PortugalMitMichaelRoute
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/login' | '/e/$hash' | '/t/$hash' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/portugal-mit-michael'
+    | '/e/$hash'
+    | '/t/$hash'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/login' | '/e/$hash' | '/t/$hash' | '/api/auth/$'
+  to:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/portugal-mit-michael'
+    | '/e/$hash'
+    | '/t/$hash'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/login'
+    | '/portugal-mit-michael'
     | '/e/$hash'
     | '/t/$hash'
     | '/api/auth/$'
@@ -91,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
+  PortugalMitMichaelRoute: typeof PortugalMitMichaelRoute
   EHashRoute: typeof EHashRoute
   THashRoute: typeof THashRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -117,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portugal-mit-michael': {
+      id: '/portugal-mit-michael'
+      path: '/portugal-mit-michael'
+      fullPath: '/portugal-mit-michael'
+      preLoaderRoute: typeof PortugalMitMichaelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/e/$hash': {
@@ -147,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
+  PortugalMitMichaelRoute: PortugalMitMichaelRoute,
   EHashRoute: EHashRoute,
   THashRoute: THashRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

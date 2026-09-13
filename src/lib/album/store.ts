@@ -437,7 +437,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       const trip = editHash ? await getEditTrip({ data: { hash: editHash } }) : null;
       const publicTrip = trip ?? (publicHash ? await getPublicTrip({ data: { hash: publicHash } }) : null);
       if (!publicTrip) {
-        set({ ready: true, canEdit: false });
+        await get().hydrate();
+        set({ ready: true, canEdit: false, publicHash, editHash: undefined });
         return;
       }
       set({

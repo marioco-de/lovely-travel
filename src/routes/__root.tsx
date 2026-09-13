@@ -3,7 +3,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Tropical Travel — Portugal";
+const APP_NAME = "Lovely";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -13,8 +13,7 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content:
-          "A cream-page scrapbook of a late-summer route from the Azores to the Algarve.",
+        content: "Cream-page travel albums. Keep the trip on paper.",
       },
       { name: "theme-color", content: "#F3E6C9" },
     ],
