@@ -76,7 +76,11 @@ export default function PortugalLeaflet({
 
   const watercolorUrl = import.meta.env.VITE_STADIA_API_KEY
     ? `https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg?api_key=${import.meta.env.VITE_STADIA_API_KEY}`
-    : "https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg";
+    : "https://watercolormaps.collection.cooperhewitt.org/tile/watercolor/{z}/{x}/{y}.jpg";
+
+  const watercolorAttribution = import.meta.env.VITE_STADIA_API_KEY
+    ? '&copy; <a href="https://stadiamaps.com/attribution/" target="_blank" rel="noreferrer">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank" rel="noreferrer">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
+    : 'Map tiles by <a href="https://stamen.com/" target="_blank" rel="noreferrer">Stamen Design</a>, <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a> · Data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
 
   const icons = useMemo(
     () => ({
@@ -113,7 +117,8 @@ export default function PortugalLeaflet({
           url={watercolorUrl}
           maxZoom={16}
           maxNativeZoom={16}
-          attribution='&copy; <a href="https://stadiamaps.com/attribution/" target="_blank" rel="noreferrer">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank" rel="noreferrer">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
+          errorTileUrl="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
+          attribution={watercolorAttribution}
         />
         <Recenter points={points} variant={variant} />
         {line.length > 1 ? (
