@@ -44,6 +44,8 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
   const setPhoto = useAlbum((s) => s.setPhoto);
   const setPhotoNote = useAlbum((s) => s.setPhotoNote);
   const clearPhotoNote = useAlbum((s) => s.clearPhotoNote);
+  const clearPhoto = useAlbum((s) => s.clearPhoto);
+  const removePhotoSlot = useAlbum((s) => s.removePhotoSlot);
   const [captionOpen, setCaptionOpen] = useState(false);
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const openLightbox = useLightbox((s) => s.open);
@@ -74,7 +76,24 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
   return (
     <figure className={cn("photo-block relative", className)}>
       <div className={cn("photo-print relative", rotateClass[photo.rotate])}>
-        <div className="photo-shadow relative overflow-visible bg-mat p-2 md:p-2.5">
+        {canEdit && src ? (
+          <PhotoEditTools
+            hasSrc
+            title={place}
+            caption={caption}
+            open={captionOpen}
+            onOpenChange={setCaptionOpen}
+            onFile={(file) => void setPhoto(photo.id, file)}
+            onTitle={writeTitle}
+            onCaption={writeCaption}
+            onClear={clearNote}
+            onRemove={() => {
+              void clearPhoto(photo.id);
+              if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
+            }}
+          />
+        ) : null}
+        <div className="photo-shadow photo-mat relative overflow-visible bg-mat p-2 md:p-2.5">
           <div
             className={cn(
               "relative overflow-hidden bg-page-deep",
@@ -89,9 +108,26 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
               >
                 <DevelopingImage key={src} src={src} alt={alt} priority={priority} />
               </button>
+            ) : canEdit ? (
+              <label className="photo-add grid h-full cursor-pointer place-items-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void setPhoto(photo.id, file);
+                    event.target.value = "";
+                  }}
+                />
+                <span className="photo-add-plus" aria-hidden="true">
+                  +
+                </span>
+                <span className="sr-only">{t("ui.addPhoto")}</span>
+              </label>
             ) : (
               <div className="photo-add grid h-full place-items-center">
-                <span className="photo-add-plus">{canEdit ? "+" : t("ui.addPhoto")}</span>
+                <span className="photo-add-plus">{t("ui.addPhoto")}</span>
               </div>
             )}
             {src && stamp ? (
@@ -104,19 +140,6 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
               />
             ) : null}
           </div>
-          {canEdit ? (
-            <PhotoEditTools
-              hasSrc={Boolean(src)}
-              title={place}
-              caption={caption}
-              open={captionOpen}
-              onOpenChange={setCaptionOpen}
-              onFile={(file) => void setPhoto(photo.id, file)}
-              onTitle={writeTitle}
-              onCaption={writeCaption}
-              onClear={clearNote}
-            />
-          ) : null}
           {corners === "scallop" ? <PhotoBanderole /> : <PhotoCorners variant={corners} set={cornerSet} />}
         </div>
       </div>

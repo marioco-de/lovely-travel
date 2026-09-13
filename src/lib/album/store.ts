@@ -42,6 +42,7 @@ type AlbumState = {
   hydrate: () => Promise<void>;
   setPhoto: (id: string, file: File) => Promise<void>;
   setPhotos: (files: { id: string; file: File }[]) => Promise<void>;
+  clearPhoto: (id: string) => Promise<void>;
   setText: (locale: Locale, key: MessageKey, value: string) => void;
   togglePin: (id: string) => void;
   setDayPlace: (dayId: string, locale: Locale, value: string) => void;
@@ -132,6 +133,17 @@ function idbSet(store: string, key: string, value: unknown) {
     (db) =>
       new Promise<void>((resolve, reject) => {
         const req = db.transaction(store, "readwrite").objectStore(store).put(value, key);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      }),
+  );
+}
+
+function idbDelete(store: string, key: string) {
+  return openDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const req = db.transaction(store, "readwrite").objectStore(store).delete(key);
         req.onsuccess = () => resolve();
         req.onerror = () => reject(req.error);
       }),
@@ -313,6 +325,20 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   },
   setPhoto: async (id, file) => {
     await get().setPhotos([{ id, file }]);
+  },
+  clearPhoto: async (id) => {
+    const prev = get().photos[id];
+    if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+    const next = { ...get().photos };
+    delete next[id];
+    set({ photos: next, saveStatus: "saving" });
+    try {
+      await idbDelete(PHOTO_STORE, id);
+      scheduleRemote(get);
+      set({ saveStatus: "saved" });
+    } catch {
+      set({ saveStatus: "error" });
+    }
   },
   setPhotos: async (files) => {
     set({ saveStatus: "saving" });

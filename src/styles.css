@@ -774,61 +774,57 @@ body {
   overflow: visible;
 }
 
-.photo-edit-tools {
+.photo-mat {
+  position: relative;
+  z-index: 2;
+}
+
+.photo-tabs {
   position: absolute;
-  inset: 0.4rem;
-  z-index: 8;
+  top: -1.15rem;
+  right: 0.65rem;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.2rem;
   pointer-events: none;
 }
 
-.photo-tool {
+.photo-tab {
   pointer-events: auto;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
   display: grid;
-  place-items: center;
+  width: 1.9rem;
+  height: 2.55rem;
+  place-content: start center;
+  padding-top: 0.38rem;
+  border: 1px solid rgb(61 42 28 / 0.18);
+  border-bottom: 0;
+  box-shadow: 0 -2px 6px rgb(61 42 28 / 0.12);
 }
 
-.photo-tool--plus,
-.photo-tool--pencil {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.photo-tab--pencil {
+  background: #6b3f28;
+  color: #f3e6c9;
+  transform: rotate(-5deg);
+  border-radius: 7px 7px 2px 2px;
 }
 
-.photo-tool--plus {
-  min-width: 3.25rem;
-  min-height: 3.25rem;
-  border: 1px dashed rgb(61 42 28 / 0.35);
-  background: rgb(251 246 236 / 0.86);
-  color: var(--color-ink);
-  box-shadow: 0 4px 14px rgb(61 42 28 / 0.16);
-}
-
-.photo-tool--pencil {
-  min-width: 3rem;
-  min-height: 3rem;
-  border: 0;
-  border-radius: 999px;
-  background: #fff;
+.photo-tab--caption {
+  background: #e6d2ae;
   color: #3d2a1c;
-  box-shadow: 0 8px 22px rgb(61 42 28 / 0.22), 0 1px 3px rgb(61 42 28 / 0.12);
+  transform: rotate(3deg);
+  border-radius: 6px 6px 2px 2px;
 }
 
-.photo-tool--caption {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  border: 1px solid rgb(61 42 28 / 0.28);
-  background: var(--color-mat);
-  color: var(--color-ink);
-  box-shadow: 0 2px 8px rgb(61 42 28 / 0.16);
+.photo-tab--caption.is-on {
+  background: #c9a36a;
 }
 
-.photo-tool--caption.is-on {
-  background: var(--color-ink);
-  color: var(--color-mat);
+.photo-tab--trash {
+  background: #f7efe0;
+  color: #6b4e3d;
+  transform: rotate(-2deg);
+  border-radius: 7px 7px 2px 2px;
 }
 
 .photo-caption-editor {
@@ -1240,9 +1236,10 @@ body {
 }
 .photo-add-plus {
   font-family: var(--font-display);
-  font-size: 3rem;
+  font-size: 3.1rem;
+  font-weight: 650;
   line-height: 1;
-  color: var(--color-ink-soft);
+  color: var(--color-ink);
 }
 .menu-link {
   display: block;

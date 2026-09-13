@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { MessageCircle, Pencil, Plus, Trash2 } from "lucide-react";
+import { MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/locale";
 import { LiveText } from "./LiveText";
@@ -12,6 +12,7 @@ type PhotoEditToolsProps = {
   onTitle: (value: string) => void;
   onCaption: (value: string) => void;
   onClear: () => void;
+  onRemove: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -24,32 +25,37 @@ export function PhotoEditTools({
   onTitle,
   onCaption,
   onClear,
+  onRemove,
   open,
   onOpenChange,
 }: PhotoEditToolsProps) {
   const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
   const hasNote = Boolean(title.trim() || caption.trim());
+  if (!hasSrc) return null;
 
   return (
     <>
-      <div className="photo-edit-tools" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+      <div className="photo-tabs" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
         <button
           type="button"
-          className={cn("photo-tool", hasSrc ? "photo-tool--pencil" : "photo-tool--plus")}
-          aria-label={hasSrc ? t("ui.replacePhoto") : t("ui.addPhoto")}
+          className="photo-tab photo-tab--pencil"
+          aria-label={t("ui.replacePhoto")}
           onClick={() => fileRef.current?.click()}
         >
-          {hasSrc ? <Pencil size={22} strokeWidth={2} /> : <Plus size={28} strokeWidth={2.4} />}
+          <Pencil size={14} strokeWidth={2.3} />
         </button>
         <button
           type="button"
-          className={cn("photo-tool photo-tool--caption", open && "is-on")}
+          className={cn("photo-tab photo-tab--caption", open && "is-on")}
           aria-label={t("ui.addCaption")}
           aria-expanded={open}
           onClick={() => onOpenChange(!open)}
         >
-          <MessageCircle size={16} strokeWidth={2.2} />
+          <MessageCircle size={14} strokeWidth={2.3} />
+        </button>
+        <button type="button" className="photo-tab photo-tab--trash" aria-label={t("ui.removeSlot")} onClick={onRemove}>
+          <Trash2 size={14} strokeWidth={2.3} />
         </button>
         <input
           ref={fileRef}
@@ -83,7 +89,6 @@ export function PhotoEditTools({
           />
           {hasNote ? (
             <button type="button" className="photo-caption-clear" onClick={onClear}>
-              <Trash2 size={14} strokeWidth={2.2} aria-hidden="true" />
               {t("ui.removeCaption")}
             </button>
           ) : null}

@@ -38,6 +38,8 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
   const setPhoto = useAlbum((s) => s.setPhoto);
   const setPhotoNote = useAlbum((s) => s.setPhotoNote);
   const clearPhotoNote = useAlbum((s) => s.clearPhotoNote);
+  const clearPhoto = useAlbum((s) => s.clearPhoto);
+  const removePhotoSlot = useAlbum((s) => s.removePhotoSlot);
   const [captionOpen, setCaptionOpen] = useState(false);
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const openLightbox = useLightbox((s) => s.open);
@@ -64,7 +66,24 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
   return (
     <figure className={cn("photo-block relative", className)}>
       <div className={cn("photo-print relative", rotateClass[photo.rotate])}>
-        <div className="polaroid-shadow relative w-full overflow-visible rounded-xs bg-mat">
+        {canEdit && src ? (
+          <PhotoEditTools
+            hasSrc
+            title={place}
+            caption={caption}
+            open={captionOpen}
+            onOpenChange={setCaptionOpen}
+            onFile={(file) => void setPhoto(photo.id, file)}
+            onTitle={writeTitle}
+            onCaption={writeCaption}
+            onClear={clearNote}
+            onRemove={() => {
+              void clearPhoto(photo.id);
+              if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);
+            }}
+          />
+        ) : null}
+        <div className="polaroid-shadow photo-mat relative w-full overflow-visible rounded-xs bg-mat">
           <Tape seed={photo.id} className="-top-3.5 left-1/2 w-[8.5rem] -translate-x-1/2" rotation={3} />
           <div className="relative p-2.5 pb-1.5">
             <div className="relative aspect-square overflow-hidden bg-page-deep">
@@ -76,26 +95,30 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
                 >
                   <DevelopingImage key={src} src={src} alt={alt} />
                 </button>
+              ) : canEdit ? (
+                <label className="photo-add grid h-full cursor-pointer place-items-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void setPhoto(photo.id, file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <span className="photo-add-plus" aria-hidden="true">
+                    +
+                  </span>
+                  <span className="sr-only">{t("ui.addPhoto")}</span>
+                </label>
               ) : (
                 <div className="photo-add grid h-full place-items-center">
-                  <span className="photo-add-plus">{canEdit ? "+" : t("ui.addPhoto")}</span>
+                  <span className="photo-add-plus">{t("ui.addPhoto")}</span>
                 </div>
               )}
             </div>
           </div>
-          {canEdit ? (
-            <PhotoEditTools
-              hasSrc={Boolean(src)}
-              title={place}
-              caption={caption}
-              open={captionOpen}
-              onOpenChange={setCaptionOpen}
-              onFile={(file) => void setPhoto(photo.id, file)}
-              onTitle={writeTitle}
-              onCaption={writeCaption}
-              onClear={clearNote}
-            />
-          ) : null}
           {!captionOpen && (place.trim() || caption.trim()) ? (
             <PhotoCaption variant="band" place={place} caption={caption} />
           ) : !captionOpen ? (
