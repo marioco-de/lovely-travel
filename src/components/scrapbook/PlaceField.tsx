@@ -14,7 +14,8 @@ export function PlaceField({ value, onChange, onPick }: PlaceFieldProps) {
   const [hits, setHits] = useState<PlaceHit[]>([]);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<number>(undefined);
+  const searchTimer = useRef<number>(undefined);
+  const saveTimer = useRef<number>(undefined);
 
   useEffect(() => {
     setText(value);
@@ -29,12 +30,12 @@ export function PlaceField({ value, onChange, onPick }: PlaceFieldProps) {
   }, []);
 
   function lookup(next: string) {
-    window.clearTimeout(timer.current);
+    window.clearTimeout(searchTimer.current);
     if (next.trim().length < 2) {
       setHits([]);
       return;
     }
-    timer.current = window.setTimeout(() => {
+    searchTimer.current = window.setTimeout(() => {
       void searchPlaces({ data: { q: next } })
         .then((rows) => {
           setHits(rows);
@@ -42,6 +43,12 @@ export function PlaceField({ value, onChange, onPick }: PlaceFieldProps) {
         })
         .catch(() => setHits([]));
     }, 320);
+  }
+
+  function commit(next: string) {
+    window.clearTimeout(saveTimer.current);
+    const cleaned = next.replace(/\u00a0/g, " ").trim();
+    saveTimer.current = window.setTimeout(() => onChange(cleaned), 200);
   }
 
   return (
@@ -55,15 +62,15 @@ export function PlaceField({ value, onChange, onPick }: PlaceFieldProps) {
           const next = event.target.value;
           setText(next);
           lookup(next);
+          commit(next);
         }}
         onFocus={() => {
           if (hits.length) setOpen(true);
         }}
         onBlur={() => {
-          window.setTimeout(() => {
-            const cleaned = text.replace(/\u00a0/g, " ").trim();
-            if (cleaned !== value) onChange(cleaned);
-          }, 120);
+          window.clearTimeout(saveTimer.current);
+          const cleaned = text.replace(/\u00a0/g, " ").trim();
+          if (cleaned !== value) onChange(cleaned);
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter") {

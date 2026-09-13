@@ -9,7 +9,6 @@ import { CollageBlock } from "./CollageBlock";
 import { DayMark } from "./DayMark";
 import { DayStarter } from "./DayStarter";
 import { Frame } from "./Frame";
-import { LiveText } from "./LiveText";
 import { NoteCard } from "./NoteCard";
 import { PaperLayer } from "./PaperLayer";
 import { PlaceCard } from "./PlaceCard";
@@ -95,12 +94,12 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
             <DayMark index={index} active={active} rotation={index % 2 === 0 ? -10 : 8} />
             <div className="day-heading-copy min-w-0">
               {canEdit ? (
-                <LiveText
-                  tag="h3"
+                <input
                   value={title}
-                  onChange={(value) => setDayLabel(day.id, locale, value)}
+                  onChange={(event) => setDayLabel(day.id, locale, event.target.value)}
                   placeholder={t("ui.dayTitle")}
-                  className="place-type text-left font-typewriter text-day leading-[1.15] text-lagoon-deep"
+                  className="day-title-input place-type text-left font-typewriter text-day leading-[1.15] text-lagoon-deep"
+                  aria-label={t("ui.dayTitle")}
                 />
               ) : title ? (
                 <h3 className="place-type m-0 text-left font-typewriter text-day leading-[1.15] text-lagoon-deep">
@@ -109,7 +108,15 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
               ) : null}
               {canEdit ? (
                 <div className="mt-1 space-y-1">
-                  {(day.places?.length ? day.places : [day.place]).map((item, placeIndex) => (
+                  {(day.places?.length ? day.places : [day.place])
+                    .map((item, placeIndex) => ({ item, placeIndex }))
+                    .filter(({ item }) => {
+                      const text = pairText(item, locale).trim();
+                      if (/^(ort|place|lorem ipsum)$/i.test(text)) return false;
+                      if (title && text.toLowerCase() === title.toLowerCase()) return false;
+                      return true;
+                    })
+                    .map(({ item, placeIndex }) => (
                     <div key={`${day.id}-place-${placeIndex}`} className="flex items-center gap-2">
                       <PlaceField
                         value={pairText(item, locale)}

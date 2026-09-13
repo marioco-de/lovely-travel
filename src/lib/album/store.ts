@@ -453,7 +453,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       mapDays(get().layout, dayId, (day) => {
         const places = [...(day.places?.length ? day.places : [day.place])];
         const current = places[index] ?? { en: "", de: "" };
-        places[index] = { ...current, [locale]: value };
+        places[index] = { ...current, en: value, de: value };
         return { ...day, places, place: index === 0 ? places[0] ?? day.place : day.place };
       }),
     );
@@ -732,7 +732,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const remoteLayout = isLayout(remote?.payload.layout) ? mergeLayout(remote.payload.layout) : undefined;
     const localTripLayout = isLayout(localTrip?.payload.layout) ? mergeLayout(localTrip.payload.layout) : undefined;
     const remoteEditHash = remote && "editHash" in remote ? remote.editHash : undefined;
-    const layout = pickLayout(idbLayout, localTripLayout, remoteLayout) ?? seedLayout();
+    const layout = idbLayout ?? localTripLayout ?? remoteLayout ?? seedLayout();
     const photos = mergePhotoMaps(remote?.payload.photos, localTrip?.payload.photos, idbPhotos);
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
