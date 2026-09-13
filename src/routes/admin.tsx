@@ -32,7 +32,7 @@ function AdminPage() {
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">Tropical Travel</p>
+            <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">Lovely</p>
             <h1 className="mt-1 font-typewriter text-day text-lagoon-deep">Digital trips</h1>
             <p className="mt-2 font-script text-caption text-ink-soft">
               Public pages use a short hash. Editing needs the longer secret hash — no login for guests.

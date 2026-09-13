@@ -41,7 +41,7 @@ function Login() {
   return (
     <main className="album-sheet grid min-h-svh place-items-center px-4 py-12">
       <div className="caption-strip w-full max-w-sm space-y-4 p-6">
-        <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">Tropical Travel</p>
+        <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">Lovely</p>
         <h1 className="font-typewriter text-day text-lagoon-deep">Admin</h1>
         {isPending ? <div className="h-10 animate-pulse bg-stamp/10" /> : null}
         {user ? (

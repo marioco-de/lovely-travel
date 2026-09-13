@@ -504,7 +504,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       const photos = await encodePhotos(state.photos);
       const trip = await createTrip({
         data: {
-          title: state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Tropical Travel",
+          title: state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely",
           sourceLocale: state.sourceLocale,
           password,
           payload: {
@@ -587,7 +587,7 @@ function blobToDataUrl(blob: Blob) {
 async function pushRemote(state: AlbumState) {
   if (!state.editHash) return;
   const photos = await encodePhotos(state.photos);
-  const title = state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Tropical Travel";
+  const title = state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely";
   await saveTrip({
     data: {
       editHash: state.editHash,
