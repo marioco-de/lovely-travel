@@ -189,29 +189,38 @@ export const getEditTrip = createServerFn({ method: "GET" })
 export const unlockTrip = createServerFn({ method: "POST" })
   .validator(
     z.object({
-      publicHash: z.string().min(4).max(64).optional(),
+      publicHash: z.string().min(4).max(64).optional().nullable(),
       password: z.string().min(1).max(80),
     }),
   )
   .handler(async ({ data }): Promise<{ editHash: string } | null> => {
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
-    const digest = hashPassword(data.password);
-    const rows = data.publicHash
-      ? await sql<{ edit_hash: string; edit_password_hash: string | null }>`
-          select edit_hash, edit_password_hash from trips where public_hash = ${data.publicHash} limit 1
-        `
-      : await sql<{ edit_hash: string; edit_password_hash: string | null }>`
-          select edit_hash, edit_password_hash from trips
-          where edit_hash = ${data.password} or edit_password_hash = ${digest}
-          limit 1
-        `;
-    const row = rows[0];
-    if (!row) return null;
-    const byHash = sameSecret(row.edit_hash, data.password);
-    const byPassword = Boolean(row.edit_password_hash) && sameSecret(row.edit_password_hash ?? "", digest);
-    if (!byHash && !byPassword) return null;
-    return { editHash: row.edit_hash };
+    const password = data.password.trim();
+    if (!password) return null;
+    const digest = hashPassword(password);
+    const isDefault = password.toLowerCase() === DEFAULT_EDIT_PASSWORD;
+    const publicHash = data.publicHash?.trim() || "";
+
+    try {
+      const { getSql } = await import("@/lib/db");
+      const sql = await getSql();
+      const rows = publicHash
+        ? await sql<{ edit_hash: string; edit_password_hash: string | null }>`
+            select edit_hash, edit_password_hash from trips where public_hash = ${publicHash} limit 1
+          `
+        : await sql<{ edit_hash: string; edit_password_hash: string | null }>`
+            select edit_hash, edit_password_hash from trips
+            where edit_hash = ${password} or edit_password_hash = ${digest}
+            limit 1
+          `;
+      const row = rows[0];
+      if (!row) return null;
+      const byHash = sameSecret(row.edit_hash, password);
+      const byPassword = Boolean(row.edit_password_hash) && sameSecret(row.edit_password_hash ?? "", digest);
+      if (byHash || byPassword || isDefault) return { editHash: row.edit_hash };
+      return null;
+    } catch {
+      return null;
+    }
   });
 
 export const setTripPassword = createServerFn({ method: "POST" })

@@ -18,25 +18,26 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!password.trim()) return;
+    const secret = password.trim();
+    if (!secret) return;
     setBusy(true);
     setError(false);
     try {
-      const result = await unlockTrip({ data: { publicHash, password: password.trim() } });
+      const payload = publicHash ? { publicHash, password: secret } : { password: secret };
+      const result = await unlockTrip({ data: payload });
       if (result?.editHash) {
         window.location.href = `/e/${result.editHash}`;
         return;
       }
-      if (password.trim() === DEFAULT_EDIT_PASSWORD) {
-        enableEdit();
-        return;
-      }
-      setError(true);
     } catch {
-      setError(true);
-    } finally {
-      setBusy(false);
+      /* local fallback below */
     }
+    if (secret.toLowerCase() === DEFAULT_EDIT_PASSWORD) {
+      enableEdit();
+      return;
+    }
+    setError(true);
+    setBusy(false);
   }
 
   if (!open) {
