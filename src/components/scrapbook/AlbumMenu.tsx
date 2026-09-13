@@ -105,7 +105,7 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
             setUnlock(false);
           }}
           className={cn(
-            "stamp-mark is-settled grid min-h-11 min-w-11 place-items-center border-2 border-double border-current px-3 py-2 font-display text-lg font-semibold leading-none tracking-widest",
+            "album-menu-trigger stamp-mark is-settled grid min-h-11 min-w-11 place-items-center border-2 border-double border-current px-3 py-2 font-display text-lg font-semibold leading-none tracking-widest",
             open && "is-active",
           )}
           style={{ ["--stamp-rot" as string]: "-3deg" }}
