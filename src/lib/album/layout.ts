@@ -56,6 +56,10 @@ export type PrintPhoto = {
 
 const emptyPair = (): I18nPair => ({ en: "", de: "" });
 
+export function isDayNumberLabel(text: string) {
+  return /^(tag|day|día|dia|jour)\s*0*\d+$/i.test(text.trim());
+}
+
 export function newId(prefix: string) {
   const rand =
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -149,6 +153,8 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
       const fromSeed = seed.days.find((item) => item.id === day.id);
       const places = day.places?.length ? day.places : uniquePlaces(day.place, fromSeed?.places ?? []);
       if (!fromSeed) return { ...day, places };
+      const numberLabel =
+        isDayNumberLabel(day.label.en) || isDayNumberLabel(day.label.de);
       return {
         ...day,
         paper: fromSeed.paper,
@@ -156,6 +162,7 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
         geo: day.geo ?? fromSeed.geo,
         places,
         place: places[0] ?? day.place,
+        label: numberLabel ? fromSeed.label : day.label,
       };
     }),
   };
@@ -177,15 +184,14 @@ export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
 }
 
 export function emptyDay(index: number, first?: BlockKind): LayoutDay {
-  const n = String(index + 1).padStart(2, "0");
   const place: I18nPair = { en: "New stop", de: "Neue Station" };
-  const label: I18nPair = { en: `Day ${n}`, de: `Tag ${n}` };
   return {
     id: newId("day"),
     builtIn: false,
     place,
     places: [place],
-    label,
+    label: emptyPair(),
+    pin: { x: 48, y: 52, label: index % 2 === 0 ? "left" : "right" },
     pin: { x: 48, y: 52, label: index % 2 === 0 ? "left" : "right" },
     paper: (["azulejos", "vines", "waves", "sardinhas"] as const)[index % 4] ?? "azulejos",
     blocks: first ? [emptyBlock(first, place)] : [],

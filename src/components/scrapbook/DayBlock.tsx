@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { catalogSrc, cornersFor, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
+import { catalogSrc, cornersFor, isDayNumberLabel, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
 import { PLACES } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
@@ -36,7 +36,8 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const placeEditId = useAlbum((s) => s.placeEditId);
   const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
   const reverse = index % 2 === 1;
-  const title = pairText(day.label, locale);
+  const titleRaw = pairText(day.label, locale);
+  const title = isDayNumberLabel(titleRaw) ? "" : titleRaw;
   const stops = (day.places?.length ? day.places : [day.place]).map((item) => pairText(item, locale)).filter(Boolean);
   const placeName = stops[0] || pairText(day.place, locale);
   const place = PLACES[day.id];
@@ -92,13 +93,13 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   value={title}
                   onChange={(value) => setDayLabel(day.id, locale, value)}
                   placeholder={t("ui.dayTitle")}
-                  className="font-display text-day leading-snug font-semibold text-ink md:text-left"
+                  className="text-left font-display text-day leading-snug font-semibold text-ink"
                 />
-              ) : (
-                <h3 className="font-display text-center text-day leading-snug font-semibold text-ink md:text-left">
+              ) : title ? (
+                <h3 className="text-left font-display text-day leading-snug font-semibold text-ink">
                   {title}
                 </h3>
-              )}
+              ) : null}
               {canEdit || editingPlaces ? (
                 <div className="mt-2 space-y-1">
                   {(day.places?.length ? day.places : [day.place]).map((item, placeIndex) => (
