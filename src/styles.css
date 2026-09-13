@@ -721,10 +721,10 @@ body {
   position: absolute;
   top: 0;
   right: 0;
-  width: min(50vw, 30rem);
-  height: min(50vw, 30rem);
+  width: min(62vw, 38rem);
+  height: min(62vw, 38rem);
   aspect-ratio: 1;
-  max-width: 54%;
+  max-width: 66%;
   margin: 0;
   z-index: 0;
   pointer-events: none;
@@ -950,9 +950,9 @@ body {
 }
 .portugal-map--aside,
 .portugal-map--flush {
-  width: min(50vw, 30rem);
-  height: min(50vw, 30rem);
-  max-width: 54%;
+  width: min(62vw, 38rem);
+  height: min(62vw, 38rem);
+  max-width: 66%;
   overflow: hidden;
 }
 .leaflet-container {
