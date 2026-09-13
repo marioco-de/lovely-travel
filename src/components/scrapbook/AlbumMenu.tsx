@@ -6,6 +6,7 @@ import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { EditUnlock } from "./EditUnlock";
 import { LanguageToggle } from "./LanguageToggle";
+import { useBulkImport } from "./BulkImport";
 
 type AlbumMenuProps = {
   variant?: "album" | "home";
@@ -20,6 +21,7 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   const editHash = useAlbum((s) => s.editHash);
   const lockEdit = useAlbum((s) => s.lockEdit);
   const enableEdit = useAlbum((s) => s.enableEdit);
+  const { pick: pickBulk } = useBulkImport();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlock, setUnlock] = useState(false);
@@ -132,14 +134,27 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
           {variant === "album" ? (
             <div>
               {canEdit ? (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="menu-link flex min-h-11 w-full items-center"
-                  onClick={onSaveClick}
-                >
-                  — {t("ui.save")}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="menu-link flex min-h-11 w-full items-center"
+                    onClick={() => {
+                      setOpen(false);
+                      pickBulk();
+                    }}
+                  >
+                    — {t("ui.bulkUpload")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="menu-link flex min-h-11 w-full items-center"
+                    onClick={onSaveClick}
+                  >
+                    — {t("ui.save")}
+                  </button>
+                </>
               ) : (
                 <button
                   type="button"

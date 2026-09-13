@@ -39,6 +39,33 @@ export const searchPlaces = createServerFn({ method: "GET" })
     }));
   });
 
+export const reversePlace = createServerFn({ method: "GET" })
+  .validator(z.object({ lat: z.number(), lng: z.number() }))
+  .handler(async ({ data }): Promise<PlaceHit | null> => {
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("lat", String(data.lat));
+    url.searchParams.set("lon", String(data.lng));
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("zoom", "14");
+    url.searchParams.set("addressdetails", "1");
+    const res = await fetch(url.toString(), {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "LovelyTravel/1.0 (https://lovely-travel.vercel.app)",
+      },
+    });
+    if (!res.ok) return null;
+    const row = (await res.json()) as { display_name?: string; lat?: string; lon?: string };
+    const address = row.display_name?.trim();
+    if (!address) return null;
+    return {
+      lat: Number(row.lat ?? data.lat),
+      lng: Number(row.lon ?? data.lng),
+      address,
+      name: shortName(address, address),
+    };
+  });
+
 export async function geocodePortugal(query: string): Promise<GeoHit | null> {
   try {
     const hits = await searchPlaces({ data: { q: query } });

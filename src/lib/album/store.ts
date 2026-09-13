@@ -23,6 +23,8 @@ import {
   type LayoutDay,
   type PhotoNote,
 } from "./layout";
+import type { BulkDayDraft } from "./bulk";
+import { PLACES } from "./places";
 import { getLocalTripByEdit, getLocalTripByPublic, makeLocalTrip, saveLocalTrip } from "./trips-local";
 
 export const CLEARED_PHOTO = "cleared";
@@ -60,6 +62,7 @@ type AlbumState = {
   addBlock: (dayId: string, kind: BlockKind) => void;
   insertBlock: (dayId: string, afterId: string, kind: BlockKind) => void;
   addCollageFromFiles: (dayId: string, files: File[]) => Promise<void>;
+  importBulk: (drafts: import("./bulk").BulkDayDraft[], onProgress?: (done: number, total: number) => void) => Promise<void>;
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
   patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body" | "writingPaper">>) => void;
@@ -254,6 +257,55 @@ async function prepareImage(file: File): Promise<Blob> {
   } catch {
     return file;
   }
+}
+
+function placeNorm(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function geoClose(a?: { lat: number; lng: number }, b?: { lat: number; lng: number }) {
+  if (!a || !b) return false;
+  return Math.hypot(a.lat - b.lat, a.lng - b.lng) < 0.22;
+}
+
+function matchImportDay(layout: AlbumLayout, place: string, geo?: { lat: number; lng: number }) {
+  const unknown = /^(unbekannter ort|unknown place)$/i.test(place.trim());
+  for (const day of layout.days) {
+    if (day.id === COVER_ID) continue;
+    const catalog = PLACES[day.id];
+    if (geoClose(geo, day.geo) || (catalog && geoClose(geo, catalog))) return day.id;
+    if (unknown) continue;
+    const names = [
+      day.place.en,
+      day.place.de,
+      ...(day.places ?? []).flatMap((item) => [item.en, item.de]),
+      catalog?.city,
+      catalog?.name,
+    ];
+    const needle = placeNorm(place);
+    if (names.some((name) => name && (placeNorm(name) === needle || needle.includes(placeNorm(name)) || placeNorm(name).includes(needle.split(",")[0] ?? needle)))) {
+      return day.id;
+    }
+  }
+  return null;
+}
+
+function photoChunks<T>(items: T[]) {
+  const chunks: T[][] = [];
+  let rest = items;
+  while (rest.length) {
+    if (rest.length <= 2) {
+      chunks.push(...rest.map((item) => [item]));
+      break;
+    }
+    if (rest.length <= COLLAGE_MAX) {
+      chunks.push(rest);
+      break;
+    }
+    chunks.push(rest.slice(0, COLLAGE_MAX));
+    rest = rest.slice(COLLAGE_MAX);
+  }
+  return chunks;
 }
 
 function mapDays(layout: AlbumLayout, dayId: string, fn: (day: LayoutDay) => LayoutDay): AlbumLayout {
@@ -525,6 +577,58 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       })),
     );
     await get().setPhotos(used.map((file, i) => ({ id: block.photoIds[i] ?? block.id, file })));
+  },
+  importBulk: async (drafts, onProgress) => {
+    const incoming = drafts.filter((draft) => draft.photos.length > 0);
+    if (incoming.length === 0) return;
+    const uploads = incoming.flatMap((draft) => draft.photos);
+    let layout = get().layout;
+    for (const draft of incoming) {
+      const place: I18nPair = { en: draft.place, de: draft.place };
+      let dayId = matchImportDay(layout, draft.place, draft.geo);
+      if (!dayId) {
+        const day = emptyDay(layout.days.filter((item) => item.id !== COVER_ID).length);
+        day.place = place;
+        day.places = [place];
+        day.label = place;
+        day.geo = draft.geo;
+        layout = { ...layout, days: [...layout.days, day] };
+        dayId = day.id;
+      } else {
+        layout = mapDays(layout, dayId, (day) => {
+          const places = day.places?.length ? day.places : [day.place];
+          const hasPlace = places.some((item) => placeNorm(item.en) === placeNorm(place.en) || placeNorm(item.de) === placeNorm(place.de));
+          return {
+            ...day,
+            geo: day.geo ?? draft.geo,
+            places: hasPlace ? places : [...places, place],
+          };
+        });
+      }
+      const chunks = photoChunks(draft.photos);
+      layout = mapDays(layout, dayId, (day) => {
+        const blocks = [...day.blocks];
+        for (const chunk of chunks) {
+          const kind: BlockKind = chunk.length >= COLLAGE_MIN ? "collage" : "photo";
+          const block = emptyBlock(kind, place);
+          block.photoIds = chunk.map((photo) => photo.id);
+          block.place = place;
+          block.caption = { en: "", de: "" };
+          block.photoNotes = Object.fromEntries(
+            chunk.map((photo) => [photo.id, emptyPhotoNote()]),
+          );
+          blocks.push(block);
+        }
+        return { ...day, blocks };
+      });
+    }
+    persistLayout(set, get, layout);
+    const batch = 3;
+    for (let i = 0; i < uploads.length; i += batch) {
+      const slice = uploads.slice(i, i + batch);
+      await get().setPhotos(slice.map((photo) => ({ id: photo.id, file: photo.file })));
+      onProgress?.(Math.min(i + batch, uploads.length), uploads.length);
+    }
   },
   removeBlock: (dayId, blockId) => {
     persistLayout(

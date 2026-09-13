@@ -4,6 +4,7 @@ import { PLACES, placeCaption } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { BlockStack } from "./BlockStack";
+import { BulkImportButton } from "./BulkImport";
 import { DayMark } from "./DayMark";
 import { PaperLayer } from "./PaperLayer";
 import { PlaceField } from "./PlaceField";
@@ -110,6 +111,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   <button type="button" className="album-btn album-btn--ghost" onClick={() => addDayPlace(day.id)}>
                     + {t("ui.addPlaceName")}
                   </button>
+                  <BulkImportButton className="album-btn--ghost" />
                 </div>
               ) : placeLine ? (
                 <p className="day-place-line text-left font-typewriter text-kicker tracking-wide">

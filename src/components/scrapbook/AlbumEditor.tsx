@@ -8,6 +8,7 @@ import { messages, type Locale, type MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DayStarter } from "./DayStarter";
+import { BulkImportButton } from "./BulkImport";
 import { Stamp } from "./Stamp";
 
 type AlbumEditorProps = {
@@ -145,6 +146,7 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
               {t("ui.addDay")}
             </button>
           )}
+          <BulkImportButton className="self-start" />
         </EditorSection>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { AlbumEditor } from "./AlbumEditor";
 import { AlbumMenu } from "./AlbumMenu";
+import { BulkImportButton, BulkImportRoot } from "./BulkImport";
 import { DayBlock } from "./DayBlock";
 import { HeroCollage } from "./HeroCollage";
 import { MapInsert } from "./MapInsert";
@@ -69,6 +70,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   }
 
   return (
+    <BulkImportRoot>
     <div className="album-sheet min-h-svh w-full overflow-visible">
       <LocaleHydrator />
       <a href="#route-map" className="skip-link font-display text-sm">
@@ -91,11 +93,17 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
               onSelect={openDay}
             />
           ))}
+          {canEdit ? (
+            <div className="mx-auto flex w-full max-w-7xl justify-center px-4 py-8">
+              <BulkImportButton />
+            </div>
+          ) : null}
         </div>
       </section>
 
       <PhotoLightbox />
       {canEdit ? <AlbumEditor open={editorOpen} onClose={() => setEditorOpen(false)} /> : null}
     </div>
+    </BulkImportRoot>
   );
 }
