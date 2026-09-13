@@ -579,7 +579,7 @@ body {
 }
 
 .portugal-leaflet .leaflet-tile-pane {
-  filter: sepia(0.24) saturate(0.78) contrast(0.96);
+  filter: none;
 }
 
 .portugal-leaflet .leaflet-control-attribution {

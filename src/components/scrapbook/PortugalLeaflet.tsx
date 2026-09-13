@@ -74,6 +74,10 @@ export default function PortugalLeaflet({
   const line = variant === "hero" ? points.map((p) => [p.lat, p.lng] as [number, number]) : [];
   const start = points[0] ?? { lat: 39.5, lng: -8.1 };
 
+  const watercolorUrl = import.meta.env.VITE_STADIA_API_KEY
+    ? `https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg?api_key=${import.meta.env.VITE_STADIA_API_KEY}`
+    : "https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg";
+
   const icons = useMemo(
     () => ({
       idle: pinIcon(false),
@@ -94,19 +98,22 @@ export default function PortugalLeaflet({
       <MapContainer
         center={[start.lat, start.lng]}
         zoom={variant === "aside" ? 11 : 7}
+        maxZoom={16}
         scrollWheelZoom={false}
         dragging={false}
         doubleClickZoom={false}
         zoomControl={false}
-        attributionControl={false}
+        attributionControl={variant === "hero"}
         touchZoom={false}
         boxZoom={false}
         keyboard={false}
         className="portugal-leaflet-canvas h-full w-full"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url={watercolorUrl}
+          maxZoom={16}
+          maxNativeZoom={16}
+          attribution='&copy; <a href="https://stadiamaps.com/attribution/" target="_blank" rel="noreferrer">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank" rel="noreferrer">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>'
         />
         <Recenter points={points} variant={variant} />
         {line.length > 1 ? (
