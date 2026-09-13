@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { COVER_ID } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -18,7 +19,7 @@ type AlbumPageProps = {
 export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProps) {
   const t = useT();
   const reduced = usePrefersReducedMotion();
-  const days = useAlbum((s) => s.layout.days);
+  const days = useAlbum((s) => s.layout.days).filter((day) => day.id !== COVER_ID);
   const canEdit = useAlbum((s) => s.canEdit);
   const bindTrip = useAlbum((s) => s.bindTrip);
   const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);

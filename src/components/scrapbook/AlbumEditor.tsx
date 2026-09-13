@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { heroPhotos } from "@/lib/album/data";
-import { catalogSrc, COLLAGE_MAX, COLLAGE_MIN, type BlockKind, type I18nPair, type LayoutBlock, type LayoutDay } from "@/lib/album/layout";
+import { catalogSrc, COLLAGE_MAX, COLLAGE_MIN, COVER_ID, type BlockKind, type I18nPair, type LayoutBlock, type LayoutDay } from "@/lib/album/layout";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import { setTripPassword } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -28,7 +28,7 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
   const titleId = useId();
   const reset = useAlbum((s) => s.reset);
   const addDay = useAlbum((s) => s.addDay);
-  const days = useAlbum((s) => s.layout.days);
+  const days = useAlbum((s) => s.layout.days).filter((day) => day.id !== COVER_ID);
   const hiddenPins = useAlbum((s) => s.hiddenPins);
   const togglePin = useAlbum((s) => s.togglePin);
   const saveStatus = useAlbum((s) => s.saveStatus);

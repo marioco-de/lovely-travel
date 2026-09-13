@@ -3,7 +3,7 @@ import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "reac
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { cn } from "@/lib/utils";
-import { dayGeo } from "@/lib/album/layout";
+import { dayGeo, COVER_ID } from "@/lib/album/layout";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale } from "@/lib/i18n/locale";
 
@@ -97,6 +97,7 @@ export default function PortugalLeaflet({
 
   const stops = days
     .filter((stop) => {
+      if (stop.id === COVER_ID) return false;
       if (hiddenPins[stop.id]) return false;
       if (variant === "aside" && focusId) return stop.id === focusId;
       return true;

@@ -10,6 +10,7 @@ import {
   catalogSrc,
   COLLAGE_MAX,
   COLLAGE_MIN,
+  COVER_ID,
   emptyBlock,
   emptyDay,
   emptyPhotoNote,
@@ -494,6 +495,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     });
   },
   removeDay: (dayId) => {
+    if (dayId === COVER_ID) return;
     persistLayout(set, get, {
       ...get().layout,
       days: get().layout.days.filter((day) => day.id !== dayId),

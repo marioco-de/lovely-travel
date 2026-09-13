@@ -54,6 +54,12 @@ export type AlbumLayout = {
   days: LayoutDay[];
 };
 
+export const COVER_ID = "cover";
+
+export function isCoverDay(id: string) {
+  return id === COVER_ID;
+}
+
 export type PrintPhoto = {
   id: string;
   src: string;
@@ -182,51 +188,73 @@ function uniquePlaces(primary: I18nPair, extras: I18nPair[]): I18nPair[] {
   return list;
 }
 
+function seedCoverDay(): LayoutDay {
+  const place = pairFrom("hero.place");
+  return {
+    id: COVER_ID,
+    builtIn: true,
+    place,
+    places: [place],
+    label: pairFrom("album.title"),
+    pin: { x: 48, y: 18, label: "left" },
+    paper: "azulejos",
+    blocks: [
+      photoToBlock(heroPhotos.lagoon, place),
+      photoToBlock(heroPhotos.courtyard, pairFrom("polaroid.courtyard.place")),
+      photoToBlock(heroPhotos.fruit, pairFrom("frame.fruit.place")),
+    ],
+  };
+}
+
 export function seedLayout(): AlbumLayout {
   return {
     version: 1,
-    days: days.map((day) => {
-      const place = pairFrom(day.placeKey);
-      const known = PLACES[day.id];
-      const extras = day.photos
-        .filter((photo) => photo.placeKey)
-        .map((photo) => pairFrom(photo.placeKey));
-      return {
-        id: day.id,
-        builtIn: true,
-        place,
-        places: uniquePlaces(place, extras),
-        label: pairFrom(day.labelKey),
-        pin: { ...day.pin },
-        geo: known ? { lat: known.lat, lng: known.lng, address: known.address } : undefined,
-        paper: day.paper,
-        blocks: day.photos.map((photo) => photoToBlock(photo, place)),
-      };
-    }),
+    days: [
+      seedCoverDay(),
+      ...days.map((day) => {
+        const place = pairFrom(day.placeKey);
+        const known = PLACES[day.id];
+        const extras = day.photos
+          .filter((photo) => photo.placeKey)
+          .map((photo) => pairFrom(photo.placeKey));
+        return {
+          id: day.id,
+          builtIn: true,
+          place,
+          places: uniquePlaces(place, extras),
+          label: pairFrom(day.labelKey),
+          pin: { ...day.pin },
+          geo: known ? { lat: known.lat, lng: known.lng, address: known.address } : undefined,
+          paper: day.paper,
+          blocks: day.photos.map((photo) => photoToBlock(photo, place)),
+        };
+      }),
+    ],
   };
 }
 
 export function mergeLayout(saved: AlbumLayout): AlbumLayout {
   const seed = seedLayout();
+  const mergedDays = saved.days.map((day) => {
+    const fromSeed = seed.days.find((item) => item.id === day.id);
+    const places = day.places?.length ? day.places : uniquePlaces(day.place, fromSeed?.places ?? []);
+    if (!fromSeed) return { ...day, places, blocks: day.blocks.map(withPhotoNotes) };
+    const numberLabel = isDayNumberLabel(day.label.en) || isDayNumberLabel(day.label.de);
+    return {
+      ...day,
+      paper: fromSeed.paper,
+      pin: fromSeed.pin,
+      geo: day.geo ?? fromSeed.geo,
+      places,
+      place: places[0] ?? day.place,
+      label: numberLabel && day.id !== COVER_ID ? fromSeed.label : day.label,
+      blocks: day.blocks.map(withPhotoNotes),
+    };
+  });
+  const hasCover = mergedDays.some((day) => day.id === COVER_ID);
   return {
     ...saved,
-    days: saved.days.map((day) => {
-      const fromSeed = seed.days.find((item) => item.id === day.id);
-      const places = day.places?.length ? day.places : uniquePlaces(day.place, fromSeed?.places ?? []);
-      if (!fromSeed) return { ...day, places, blocks: day.blocks.map(withPhotoNotes) };
-      const numberLabel =
-        isDayNumberLabel(day.label.en) || isDayNumberLabel(day.label.de);
-      return {
-        ...day,
-        paper: fromSeed.paper,
-        pin: fromSeed.pin,
-        geo: day.geo ?? fromSeed.geo,
-        places,
-        place: places[0] ?? day.place,
-        label: numberLabel ? fromSeed.label : day.label,
-        blocks: day.blocks.map(withPhotoNotes),
-      };
-    }),
+    days: hasCover ? mergedDays : [seedCoverDay(), ...mergedDays],
   };
 }
 

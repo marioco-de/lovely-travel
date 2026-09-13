@@ -1,11 +1,9 @@
-import { heroPhotos } from "@/lib/album/data";
+import { COVER_ID } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
-import { Frame } from "./Frame";
+import { BlockStack } from "./BlockStack";
+import { DayStarter } from "./DayStarter";
 import { LiveText } from "./LiveText";
-import { PhotoCaption } from "./PhotoCaption";
-import { Polaroid } from "./Polaroid";
-import { SlideIn } from "./SlideIn";
 import { Stamp } from "./Stamp";
 
 export function HeroCollage() {
@@ -13,6 +11,7 @@ export function HeroCollage() {
   const locale = useLocale((s) => s.locale);
   const canEdit = useAlbum((s) => s.canEdit);
   const setText = useAlbum((s) => s.setText);
+  const cover = useAlbum((s) => s.layout.days.find((day) => day.id === COVER_ID));
 
   return (
     <section className="relative mx-auto w-full max-w-7xl overflow-visible px-4 pt-4 pb-8 md:px-10 md:pt-6 md:pb-16 lg:px-16">
@@ -59,56 +58,7 @@ export function HeroCollage() {
         />
       </header>
 
-      <div className="relative flex flex-col">
-        <div className="relative">
-          <div className="relative w-[92%] max-w-3xl md:w-[72%]">
-            <div className="photo-block">
-              <SlideIn from="left">
-                <Frame
-                  photo={heroPhotos.lagoon}
-                  priority
-                  showCaption={false}
-                  stamp={{ labelKey: "stamp.airmail", corner: "tr", variant: "postal", rotation: -12 }}
-                  onPlaceChange={(value) => setText(locale, "hero.place", value)}
-                  onCaptionChange={(value) => setText(locale, "hero.caption", value)}
-                />
-              </SlideIn>
-              <PhotoCaption
-                as="div"
-                place={t("hero.place")}
-                caption={t("hero.caption")}
-                className="max-w-[13rem] sm:max-w-xs"
-                onPlaceChange={(value) => setText(locale, "hero.place", value)}
-                onCaptionChange={(value) => setText(locale, "hero.caption", value)}
-              />
-            </div>
-          </div>
-          <SlideIn
-            from="right"
-            delayMs={90}
-            className="z-10 mt-5 ml-auto w-[72%] max-w-xs md:absolute md:top-16 md:right-0 md:mt-0 md:w-[37%] md:max-w-sm"
-          >
-            <Polaroid
-              photo={heroPhotos.courtyard}
-              onPlaceChange={(value) => setText(locale, "polaroid.courtyard.place", value)}
-              onCaptionChange={(value) => setText(locale, "polaroid.courtyard.caption", value)}
-            />
-          </SlideIn>
-        </div>
-
-        <SlideIn
-          from="left"
-          delayMs={140}
-          className="relative z-10 mt-10 w-[72%] max-w-sm self-start md:mt-12 md:ml-6 md:w-[38%] md:max-w-sm"
-        >
-          <Frame
-            photo={heroPhotos.fruit}
-            stamp={{ labelKey: "stamp.date", corner: "bl", variant: "rect", rotation: 8 }}
-            onPlaceChange={(value) => setText(locale, "frame.fruit.place", value)}
-            onCaptionChange={(value) => setText(locale, "frame.fruit.caption", value)}
-          />
-        </SlideIn>
-      </div>
+      {cover ? <BlockStack day={cover} /> : canEdit ? <DayStarter dayId={COVER_ID} /> : null}
     </section>
   );
 }
