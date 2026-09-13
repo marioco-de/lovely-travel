@@ -153,7 +153,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
             </div>
           </div>
 
-          <div className={cn("day-blocks relative z-10 flex flex-col", canEdit ? "gap-16 pt-4" : "gap-10")}>
+          <div className="day-blocks">
             {day.blocks.map((block, blockIndex) => {
               const blockPlace = pairText(block.place, locale) || placeName;
               const blockCaption = pairText(block.caption, locale);
@@ -230,7 +230,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
 
               if (!inner && !canEdit) return null;
               return (
-                <div key={block.id} className="day-block-slot relative">
+                <div key={block.id} className="day-block-slot">
                   {inner}
                   {canEdit ? <BlockBar dayId={day.id} blockId={block.id} /> : null}
                 </div>

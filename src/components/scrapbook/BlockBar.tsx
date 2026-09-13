@@ -36,7 +36,7 @@ export function BlockBar({ dayId, blockId }: BlockBarProps) {
   }, [open]);
 
   return (
-    <div ref={wrapRef} className="block-bar relative z-10 mt-8 flex flex-col items-center gap-3">
+    <div ref={wrapRef} className="block-bar mt-6 flex flex-col items-center gap-3">
       <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="text-ink-soft">—</span>
         <button type="button" className="block-bar-btn" aria-label={t("ui.moveUp")} onClick={() => moveBlock(dayId, blockId, -1)}>
