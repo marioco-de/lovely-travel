@@ -63,6 +63,9 @@
   --text-day: clamp(1.45rem, 1.15rem + 0.9vw, 1.95rem);
   --size-corner: 2.55rem;
   --size-corner-lg: 3.1rem;
+  --size-corner-sm: 1.42rem;
+  --size-corner-sm-lg: 1.65rem;
+  --corner-sheet: 5.5;
   --paper-layer-opacity: 0.16;
 }
 
@@ -286,7 +289,7 @@ body {
   position: absolute;
   width: var(--size-corner);
   height: var(--size-corner);
-  overflow: visible;
+  overflow: hidden;
   background: none;
 }
 
@@ -305,30 +308,77 @@ body {
 .photo-corner--tr {
   top: calc(-0.22rem - 5px);
   right: calc(-0.22rem - 5px);
-  transform: scaleX(-1);
 }
 
 .photo-corner--bl {
   bottom: calc(-0.22rem - 5px);
   left: calc(-0.22rem - 5px);
-  transform: scaleY(-1);
 }
 
 .photo-corner--br {
   bottom: calc(-0.22rem - 5px);
   right: calc(-0.22rem - 5px);
-  transform: scale(-1);
 }
 
 .photo-corner img {
+  position: absolute;
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: top left;
+  width: calc(var(--size-corner) * var(--corner-sheet));
+  height: calc(var(--size-corner) * var(--corner-sheet));
+  max-width: none;
+  object-fit: fill;
   outline: none;
   background: transparent;
   box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  .photo-corner img {
+    width: calc(var(--size-corner-lg) * var(--corner-sheet));
+    height: calc(var(--size-corner-lg) * var(--corner-sheet));
+  }
+}
+
+.photo-corner--tl img {
+  top: 0;
+  left: 0;
+}
+
+.photo-corner--tr img {
+  top: 0;
+  right: 0;
+}
+
+.photo-corner--bl img {
+  bottom: 0;
+  left: 0;
+}
+
+.photo-corner--br img {
+  bottom: 0;
+  right: 0;
+}
+
+.collage-tile .photo-corner {
+  width: var(--size-corner-sm);
+  height: var(--size-corner-sm);
+}
+
+.collage-tile .photo-corner img {
+  width: calc(var(--size-corner-sm) * var(--corner-sheet));
+  height: calc(var(--size-corner-sm) * var(--corner-sheet));
+}
+
+@media (min-width: 768px) {
+  .collage-tile .photo-corner {
+    width: var(--size-corner-sm-lg);
+    height: var(--size-corner-sm-lg);
+  }
+
+  .collage-tile .photo-corner img {
+    width: calc(var(--size-corner-sm-lg) * var(--corner-sheet));
+    height: calc(var(--size-corner-sm-lg) * var(--corner-sheet));
+  }
 }
 
 .photo-corners .photo-corner {
