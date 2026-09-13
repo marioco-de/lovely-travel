@@ -37,6 +37,7 @@ export function DevelopingImage({ src, alt, className, priority = false }: Devel
         onLoad={() => setLoaded(true)}
         className="polaroid-emulsion h-full w-full object-cover"
       />
+      <span className="develop-cast" aria-hidden="true" />
       <span className="develop-veil" aria-hidden="true" />
     </div>
   );
