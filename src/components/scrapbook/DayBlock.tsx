@@ -13,6 +13,7 @@ import { LiveText } from "./LiveText";
 import { NoteCard } from "./NoteCard";
 import { PaperLayer } from "./PaperLayer";
 import { PlaceCard } from "./PlaceCard";
+import { PlaceField } from "./PlaceField";
 import { Polaroid } from "./Polaroid";
 import { PortugalMap } from "./PortugalMap";
 import { SlideIn } from "./SlideIn";
@@ -32,10 +33,9 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const patchBlock = useAlbum((s) => s.patchBlock);
   const setDayLabel = useAlbum((s) => s.setDayLabel);
   const setDayPlaceAt = useAlbum((s) => s.setDayPlaceAt);
+  const setDayGeo = useAlbum((s) => s.setDayGeo);
   const addDayPlace = useAlbum((s) => s.addDayPlace);
   const removeDayPlace = useAlbum((s) => s.removeDayPlace);
-  const placeEditId = useAlbum((s) => s.placeEditId);
-  const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
   const reverse = index % 2 === 1;
   const titleRaw = pairText(day.label, locale);
   const title = isDayNumberLabel(titleRaw) ? "" : titleRaw;
@@ -46,11 +46,9 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const extras = stops.filter((stop) => {
     const value = stop.toLowerCase();
     if (title && value === title.toLowerCase()) return false;
-    if (pinLine && pinLine.toLowerCase().includes(value)) return false;
     return true;
   });
-  const placeLine = pinLine || extras.join(" · ");
-  const editingPlaces = canEdit && placeEditId === day.id;
+  const placeLine = extras.join(" · ") || pinLine;
 
   function toPrint(photoId: string, i: number, title: string, caption: string, frame?: PrintPhoto["corners"], format?: PrintPhoto["format"]): PrintPhoto {
     const mount = cornersFor(photoId, i + index);
@@ -109,16 +107,17 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   {title}
                 </h3>
               ) : null}
-              {canEdit || editingPlaces ? (
-                <div className="space-y-1">
+              {canEdit ? (
+                <div className="mt-1 space-y-1">
                   {(day.places?.length ? day.places : [day.place]).map((item, placeIndex) => (
                     <div key={`${day.id}-place-${placeIndex}`} className="flex items-center gap-2">
-                      <LiveText
-                        tag="p"
+                      <PlaceField
                         value={pairText(item, locale)}
                         onChange={(value) => setDayPlaceAt(day.id, placeIndex, locale, value)}
-                        placeholder={t("ui.place")}
-                        className="text-left font-typewriter text-kicker tracking-wide text-ink"
+                        onPick={(hit) => {
+                          setDayPlaceAt(day.id, placeIndex, locale, hit.name);
+                          if (placeIndex === 0) setDayGeo(day.id, hit);
+                        }}
                       />
                       {placeIndex > 0 ? (
                         <button
@@ -140,15 +139,6 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                 <p className="day-place-line text-left font-typewriter text-kicker tracking-wide">
                   {placeLine}
                 </p>
-              ) : null}
-              {canEdit ? (
-                <button
-                  type="button"
-                  className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
-                  onClick={() => setPlaceEditId(placeEditId === day.id ? null : day.id)}
-                >
-                  {t("ui.place")}
-                </button>
               ) : null}
             </div>
           </div>

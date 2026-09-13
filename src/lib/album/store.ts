@@ -51,6 +51,7 @@ type AlbumState = {
   addDayPlace: (dayId: string) => void;
   removeDayPlace: (dayId: string, index: number) => void;
   setDayPlaceAt: (dayId: string, index: number, locale: Locale, value: string) => void;
+  setDayGeo: (dayId: string, geo: { lat: number; lng: number; address: string }) => void;
   setDayPin: (dayId: string, pin: LayoutDay["pin"]) => void;
   addDay: (kind?: BlockKind) => void;
   removeDay: (dayId: string) => void;
@@ -471,6 +472,13 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         );
       });
     }, 640);
+  },
+  setDayGeo: (dayId, geo) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => ({ ...day, geo })),
+    );
   },
   setDayPin: (dayId, pin) => {
     persistLayout(
