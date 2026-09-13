@@ -1005,3 +1005,9 @@ body {
 .menu-link:hover {
   text-decoration: underline;
 }
+
+.country-locator {
+  width: 8.2rem;
+  transform: rotate(3deg);
+  filter: drop-shadow(0 2px 4px rgb(61 42 28 / 0.16));
+}

@@ -49,8 +49,24 @@ function Recenter({
         map.panBy(current.subtract(target), { animate: false });
         return;
       }
+      if (points.length === 1 && points[0]) {
+        map.setView([points[0].lat, points[0].lng], 10, { animate: true });
+        return;
+      }
       const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number]));
-      map.fitBounds(bounds, { padding: [36, 36], maxZoom: 8, animate: true });
+      const latSpan = bounds.getNorth() - bounds.getSouth();
+      const lngSpan = bounds.getEast() - bounds.getWest();
+      if (latSpan < 0.4) {
+        const mid = bounds.getCenter();
+        bounds.extend([mid.lat + 0.22, mid.lng]);
+        bounds.extend([mid.lat - 0.22, mid.lng]);
+      }
+      if (lngSpan < 0.5) {
+        const mid = bounds.getCenter();
+        bounds.extend([mid.lat, mid.lng + 0.28]);
+        bounds.extend([mid.lat, mid.lng - 0.28]);
+      }
+      map.fitBounds(bounds, { padding: [52, 64], maxZoom: 11, animate: true });
     };
 
     placePin();
