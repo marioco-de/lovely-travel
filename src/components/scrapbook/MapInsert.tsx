@@ -25,26 +25,24 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
         </div>
       </SlideIn>
 
-      <SlideIn from="right" delayMs={80} className="relative mx-auto w-full max-w-3xl">
-        <div className="relative">
-          <PortugalLocator />
+      <div className="map-stage relative mx-auto w-full max-w-3xl overflow-visible">
+        <PortugalLocator />
+        <div className="map-hero-art relative">
           <PortugalMap variant="hero" activeId={activeId} onSelect={onSelect} />
-          <div className="pointer-events-none absolute inset-0 z-20 overflow-visible">
-            <Tape variant="airmail" rotation={16} className="top-5 right-[10%] w-32 md:w-40" />
-            <Tape variant="gingham" rotation={-11} className="bottom-8 left-[22%] w-36 md:w-44" />
-          </div>
-          <p className="sr-only">
-            Map tiles by Stamen Design, CC BY 3.0. Data © OpenStreetMap.
-          </p>
         </div>
+        <div className="map-hero-tapes pointer-events-none absolute inset-0 z-30 overflow-visible">
+          <Tape variant="airmail" rotation={16} className="-top-2 right-[8%] w-36 md:w-44" />
+          <Tape variant="gingham" rotation={-11} className="-bottom-1 left-[18%] w-40 md:w-48" />
+        </div>
+        <p className="sr-only">Map tiles by Stamen Design, CC BY 3.0. Data © OpenStreetMap.</p>
         <Stamp
           labelKey="stamp.route"
           variant="postal"
           rotation={8}
           delayMs={120}
-          className="pointer-events-none absolute -right-1 bottom-16 z-20 hidden sm:block"
+          className="pointer-events-none absolute -right-1 bottom-10 z-30 hidden sm:block"
         />
-      </SlideIn>
+      </div>
     </section>
   );
 }

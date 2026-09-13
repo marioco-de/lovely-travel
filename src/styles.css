@@ -100,14 +100,15 @@
   }
 
   img {
-    outline: 1px solid rgb(61 42 28 / 0.12);
-    outline-offset: -1px;
+    outline: none;
   }
 
-  .photo-corner img,
-  .photo-corners img,
-  .leaflet-tile {
-    outline: none;
+  .photo-print img,
+  .polaroid-shadow img,
+  .develop-stage img,
+  .lightbox-print img {
+    outline: 1px solid rgb(61 42 28 / 0.12);
+    outline-offset: -1px;
   }
 
   ::selection {
@@ -748,6 +749,21 @@ body {
   mask-composite: intersect;
 }
 
+.map-stage {
+  overflow: visible;
+}
+
+.map-hero-art {
+  position: relative;
+  z-index: 0;
+  overflow: visible;
+}
+
+.map-hero-tapes {
+  z-index: 30;
+  overflow: visible;
+}
+
 .portugal-map--aside,
 .portugal-map--flush {
   position: absolute;
@@ -1054,6 +1070,12 @@ body {
   filter: drop-shadow(0 2px 4px rgb(61 42 28 / 0.16));
 }
 
+.country-locator img {
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+
 .country-locator-name {
   margin-top: 0.35rem;
   color: var(--color-ink);
@@ -1065,3 +1087,185 @@ body {
   line-height: 1;
   text-align: center;
 }
+
+.collage-mosaic {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: 1.25rem 0.85rem;
+}
+
+.collage-tile {
+  min-width: 0;
+}
+
+.collage-mosaic--n3 .collage-tile--0,
+.collage-mosaic--n4 .collage-tile--0,
+.collage-mosaic--n5 .collage-tile--0 {
+  grid-column: 1 / 9;
+}
+
+.collage-mosaic--n3 .collage-tile--1,
+.collage-mosaic--n4 .collage-tile--1,
+.collage-mosaic--n5 .collage-tile--1 {
+  grid-column: 8 / 13;
+  margin-top: 12%;
+}
+
+.collage-mosaic--n3 .collage-tile--2,
+.collage-mosaic--n4 .collage-tile--2 {
+  grid-column: 2 / 8;
+  margin-top: -6%;
+}
+
+.collage-mosaic--n4 .collage-tile--3,
+.collage-mosaic--n5 .collage-tile--3 {
+  grid-column: 7 / 13;
+}
+
+.collage-mosaic--n5 .collage-tile--2 {
+  grid-column: 1 / 6;
+}
+
+.collage-mosaic--n5 .collage-tile--4 {
+  grid-column: 5 / 11;
+  margin-top: -4%;
+}
+
+.collage-mosaic--n6 .collage-tile--0,
+.collage-mosaic--n7 .collage-tile--0,
+.collage-mosaic--n8 .collage-tile--0 {
+  grid-column: 1 / 7;
+}
+
+.collage-mosaic--n6 .collage-tile--1,
+.collage-mosaic--n7 .collage-tile--1,
+.collage-mosaic--n8 .collage-tile--1 {
+  grid-column: 7 / 13;
+  margin-top: 8%;
+}
+
+.collage-mosaic--n6 .collage-tile--2,
+.collage-mosaic--n7 .collage-tile--2,
+.collage-mosaic--n8 .collage-tile--2 {
+  grid-column: 2 / 7;
+}
+
+.collage-mosaic--n6 .collage-tile--3,
+.collage-mosaic--n7 .collage-tile--3,
+.collage-mosaic--n8 .collage-tile--3 {
+  grid-column: 7 / 12;
+}
+
+.collage-mosaic--n6 .collage-tile--4,
+.collage-mosaic--n7 .collage-tile--4,
+.collage-mosaic--n8 .collage-tile--4 {
+  grid-column: 1 / 6;
+}
+
+.collage-mosaic--n6 .collage-tile--5,
+.collage-mosaic--n7 .collage-tile--5,
+.collage-mosaic--n8 .collage-tile--5 {
+  grid-column: 6 / 13;
+}
+
+.collage-mosaic--n7 .collage-tile--6,
+.collage-mosaic--n8 .collage-tile--6 {
+  grid-column: 3 / 9;
+}
+
+.collage-mosaic--n8 .collage-tile--7 {
+  grid-column: 8 / 13;
+  margin-top: -8%;
+}
+
+@media (max-width: 767px) {
+  .collage-mosaic {
+    grid-template-columns: 1fr;
+  }
+
+  .collage-mosaic [class*="collage-tile--"] {
+    grid-column: 1 / -1;
+    margin-top: 0;
+    width: min(100%, 22rem);
+  }
+
+  .collage-mosaic .collage-tile--1,
+  .collage-mosaic .collage-tile--3,
+  .collage-mosaic .collage-tile--5 {
+    justify-self: end;
+    width: min(78%, 18rem);
+  }
+}
+
+.lightbox-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(61 42 28 / 0.38);
+  backdrop-filter: blur(6px);
+}
+
+.lightbox-mat {
+  position: relative;
+  width: min(36rem, 100%);
+  padding: 0.9rem 0.9rem 1.15rem;
+  background: var(--color-mat);
+  box-shadow: var(--shadow-photo);
+}
+
+.lightbox-mat--in {
+  animation: lightbox-settle 420ms var(--ease-smooth-out) both;
+}
+
+.lightbox-print {
+  overflow: hidden;
+  background: var(--color-page-deep);
+}
+
+.lightbox-print img {
+  display: block;
+  width: 100%;
+  max-height: min(72vh, 34rem);
+  object-fit: contain;
+}
+
+.lightbox-caption {
+  padding: 0.85rem 0.4rem 0.2rem;
+  text-align: center;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  z-index: 2;
+  display: grid;
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  place-items: center;
+  color: var(--color-ink);
+  background: var(--color-page);
+  box-shadow: 0 2px 8px rgb(61 42 28 / 0.16);
+}
+
+@keyframes lightbox-settle {
+  from {
+    opacity: 0;
+    transform: translateY(12px) rotate(-1.2deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(-0.4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-mat--in {
+    animation: none;
+  }
+}
+

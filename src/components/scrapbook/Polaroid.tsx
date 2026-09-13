@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useLightbox } from "@/lib/album/lightbox";
 import { useT } from "@/lib/i18n/locale";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, RotateDir } from "@/lib/album/data";
@@ -31,6 +32,7 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange }: P
   const canEdit = useAlbum((s) => s.canEdit);
   const setPhoto = useAlbum((s) => s.setPhoto);
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
+  const openLightbox = useLightbox((s) => s.open);
   const alt = isCatalog(photo) ? t(photo.altKey) : photo.alt;
   const place = isCatalog(photo) ? t(photo.placeKey) : photo.place;
   const caption = isCatalog(photo) ? t(photo.captionKey) : photo.caption;
@@ -43,7 +45,13 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange }: P
           <div className="relative p-2.5 pb-1.5">
             <div className="relative aspect-square overflow-hidden bg-page-deep">
               {src ? (
-                <DevelopingImage key={src} src={src} alt={alt} />
+                <button
+                  type="button"
+                  className="block h-full w-full cursor-zoom-in"
+                  onClick={() => openLightbox({ src, alt, place, caption })}
+                >
+                  <DevelopingImage key={src} src={src} alt={alt} />
+                </button>
               ) : (
                 <label className="photo-add grid h-full cursor-pointer place-items-center">
                   <input

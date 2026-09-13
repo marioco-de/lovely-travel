@@ -4,7 +4,9 @@ import { PLACES } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale } from "@/lib/i18n/locale";
 import { BlockBar } from "./BlockBar";
+import { CollageBlock } from "./CollageBlock";
 import { DayMark } from "./DayMark";
+import { DayStarter } from "./DayStarter";
 import { Frame } from "./Frame";
 import { LiveText } from "./LiveText";
 import { NoteCard } from "./NoteCard";
@@ -27,7 +29,6 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const canEdit = useAlbum((s) => s.canEdit);
   const patchBlock = useAlbum((s) => s.patchBlock);
   const setDayPlace = useAlbum((s) => s.setDayPlace);
-  const addBlock = useAlbum((s) => s.addBlock);
   const reverse = index % 2 === 1;
   const placeName = pairText(day.place, locale);
   const place = PLACES[day.id];
@@ -139,40 +140,20 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   );
                 }
               } else if (block.kind === "collage") {
-                const first = visibleIds[0] ?? block.photoIds[0];
-                const second = visibleIds[1] ?? block.photoIds[1];
-                if (!first && !canEdit) inner = null;
+                const tiles = (visibleIds.length ? visibleIds : canEdit ? block.photoIds : []).map((id, i) =>
+                  toPrint(id, blockIndex + i, blockPlace, blockCaption),
+                );
+                if (tiles.length === 0) inner = null;
                 else {
                   inner = (
-                    <div
-                      className={cn(
-                        "grid grid-cols-1 items-start gap-8 md:grid-cols-5",
-                        reverse && "md:[&_.day-frame]:col-start-1",
-                      )}
-                    >
-                      {first ? (
-                        <SlideIn from="left" className="day-frame min-w-0 md:col-span-3">
-                          <Frame
-                            photo={toPrint(first, blockIndex, blockPlace, blockCaption)}
-                            onPlaceChange={(value) => patchPair(block, "place", value)}
-                            onCaptionChange={(value) => patchPair(block, "caption", value)}
-                          />
-                        </SlideIn>
-                      ) : null}
-                      {second ? (
-                        <SlideIn from="left" delayMs={80} className="min-w-0 w-3/4 max-w-xs justify-self-end md:col-span-2 md:w-auto md:max-w-none">
-                          <Polaroid
-                            photo={{
-                              ...toPrint(second, blockIndex + 1, blockPlace, blockCaption),
-                              kind: "polaroid",
-                              rotate: "left",
-                            }}
-                            onPlaceChange={(value) => patchPair(block, "place", value)}
-                            onCaptionChange={(value) => patchPair(block, "caption", value)}
-                          />
-                        </SlideIn>
-                      ) : null}
-                    </div>
+                    <CollageBlock
+                      photos={tiles}
+                      place={blockPlace}
+                      caption={blockCaption}
+                      reverse={reverse}
+                      onPlaceChange={(value) => patchPair(block, "place", value)}
+                      onCaptionChange={(value) => patchPair(block, "caption", value)}
+                    />
                   );
                 }
               } else if (photoId) {
@@ -195,15 +176,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                 </div>
               );
             })}
-            {canEdit && day.blocks.length === 0 ? (
-              <button
-                type="button"
-                className="block-bar-btn mx-auto"
-                onClick={() => addBlock(day.id, "photo")}
-              >
-                +
-              </button>
-            ) : null}
+            {canEdit && day.blocks.length === 0 ? <DayStarter dayId={day.id} /> : null}
           </div>
         </div>
       </div>

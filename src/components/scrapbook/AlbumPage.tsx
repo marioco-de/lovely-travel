@@ -2,14 +2,12 @@ import { useEffect, useState } from "react";
 import { useAlbum } from "@/lib/album/store";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { AlbumEditor } from "./AlbumEditor";
+import { AlbumMenu } from "./AlbumMenu";
 import { DayBlock } from "./DayBlock";
-import { EditMenu } from "./EditMenu";
-import { EditUnlock } from "./EditUnlock";
 import { HeroCollage } from "./HeroCollage";
-import { LanguageToggle } from "./LanguageToggle";
 import { MapInsert } from "./MapInsert";
-import { NewAlbum } from "./NewAlbum";
-import { ShareStamp } from "./ShareStamp";
+import { PhotoLightbox } from "./PhotoLightbox";
 
 type AlbumPageProps = {
   mode?: "demo" | "view" | "edit";
@@ -24,6 +22,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   const canEdit = useAlbum((s) => s.canEdit);
   const bindTrip = useAlbum((s) => s.bindTrip);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   useEffect(() => {
     void bindTrip({ mode, publicHash, editHash });
@@ -74,10 +73,8 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
       </a>
 
       <div className="pointer-events-none sticky top-0 z-30 flex justify-end px-3 pt-3 md:px-6">
-        <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
-          <LanguageToggle />
-          <ShareStamp />
-          {canEdit ? <EditMenu /> : publicHash ? <EditUnlock publicHash={publicHash} /> : null}
+        <div className="pointer-events-auto">
+          <AlbumMenu onEdit={() => setEditorOpen(true)} />
         </div>
       </div>
 
@@ -98,10 +95,8 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
         </div>
       </section>
 
-      <footer className="mx-auto flex w-full max-w-7xl flex-col items-start gap-4 px-4 py-12 md:flex-row md:items-center md:justify-between md:px-10 lg:px-16">
-        {mode === "demo" ? <NewAlbum /> : <span />}
-        {!canEdit && publicHash ? <EditUnlock publicHash={publicHash} /> : null}
-      </footer>
+      <PhotoLightbox />
+      {canEdit ? <AlbumEditor open={editorOpen} onClose={() => setEditorOpen(false)} /> : null}
     </div>
   );
 }

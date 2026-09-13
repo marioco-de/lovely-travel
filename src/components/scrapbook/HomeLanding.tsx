@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { heroPhotos } from "@/lib/album/data";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
+import { AlbumMenu } from "./AlbumMenu";
 import { Frame } from "./Frame";
-import { LanguageToggle } from "./LanguageToggle";
 import { NewAlbum } from "./NewAlbum";
+import { PhotoLightbox } from "./PhotoLightbox";
 import { Polaroid } from "./Polaroid";
 import { SlideIn } from "./SlideIn";
 import { Stamp } from "./Stamp";
@@ -21,7 +22,7 @@ export function HomeLanding() {
       <LocaleHydrator />
       <div className="pointer-events-none sticky top-0 z-30 flex justify-end px-3 pt-3 md:px-6">
         <div className="pointer-events-auto">
-          <LanguageToggle />
+          <AlbumMenu variant="home" />
         </div>
       </div>
 
@@ -55,6 +56,7 @@ export function HomeLanding() {
           </SlideIn>
         </div>
       </section>
+      <PhotoLightbox />
     </div>
   );
 }

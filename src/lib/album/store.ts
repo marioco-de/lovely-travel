@@ -8,6 +8,8 @@ import { createTrip, getEditTrip, getPublicTrip, saveTrip } from "./trips";
 import { ensureTranslations } from "./translate";
 import {
   catalogSrc,
+  COLLAGE_MAX,
+  COLLAGE_MIN,
   emptyBlock,
   emptyDay,
   mergeLayout,
@@ -18,6 +20,7 @@ import {
   type LayoutBlock,
   type LayoutDay,
 } from "./layout";
+import { getLocalTripByEdit, getLocalTripByPublic, makeLocalTrip, saveLocalTrip } from "./trips-local";
 
 const DB_NAME = "tropical-album";
 const DB_VERSION = 2;
@@ -51,6 +54,7 @@ type AlbumState = {
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
   patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body">>) => void;
   addPhotoSlot: (dayId: string, blockId: string) => void;
+  removePhotoSlot: (dayId: string, blockId: string, photoId: string) => void;
   reset: () => Promise<void>;
   canEdit: boolean;
   enableEdit: () => void;
@@ -355,9 +359,15 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     if (files.length === 0) return;
     const day = get().layout.days.find((item) => item.id === dayId);
     if (!day) return;
-    const block = emptyBlock(files.length === 1 ? "photo" : "collage", day.place);
-    const used = files.slice(0, 4);
-    block.photoIds = used.map((_, i) => block.photoIds[i] ?? `pic-${i}-${Date.now()}`);
+    const used = files.slice(0, COLLAGE_MAX);
+    const asCollage = used.length >= COLLAGE_MIN;
+    const block = emptyBlock(used.length === 1 ? "photo" : asCollage ? "collage" : "photo", day.place);
+    if (asCollage) {
+      while (block.photoIds.length < used.length) block.photoIds.push(`pic-${Date.now()}-${block.photoIds.length}`);
+      block.photoIds = block.photoIds.slice(0, used.length);
+    } else {
+      block.photoIds = used.map((_, i) => block.photoIds[i] ?? `pic-${i}-${Date.now()}`);
+    }
     persistLayout(
       set,
       get,
@@ -413,8 +423,22 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       mapDays(get().layout, dayId, (day) => ({
         ...day,
         blocks: day.blocks.map((block) =>
-          block.id === blockId && block.photoIds.length < 4
+          block.id === blockId && block.photoIds.length < COLLAGE_MAX
             ? { ...block, photoIds: [...block.photoIds, `pic-${Date.now()}`] }
+            : block,
+        ),
+      })),
+    );
+  },
+  removePhotoSlot: (dayId, blockId, photoId) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => ({
+        ...day,
+        blocks: day.blocks.map((block) =>
+          block.id === blockId && block.photoIds.length > COLLAGE_MIN
+            ? { ...block, photoIds: block.photoIds.filter((id) => id !== photoId) }
             : block,
         ),
       })),
@@ -450,6 +474,27 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG;
       const featuredUnlocked = isFeatured && (Boolean(editHash) || readFeaturedUnlock());
       if (!publicTrip) {
+        const local = editHash
+          ? await getLocalTripByEdit(editHash)
+          : publicHash
+            ? await getLocalTripByPublic(publicHash)
+            : null;
+        if (local) {
+          set({
+            ready: true,
+            canEdit: Boolean(editHash && local.editHash),
+            tripId: local.id,
+            publicHash: local.publicHash,
+            editHash: editHash ? local.editHash : undefined,
+            sourceLocale: local.sourceLocale,
+            layout: isLayout(local.payload.layout) ? mergeLayout(local.payload.layout) : seedLayout(),
+            texts: local.payload.texts ?? emptyTexts(),
+            hiddenPins: local.payload.hiddenPins ?? {},
+            photos: local.payload.photos ?? {},
+            saveStatus: "saved",
+          });
+          return;
+        }
         await get().hydrate();
         set({
           ready: true,
@@ -484,6 +529,27 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         });
         return;
       }
+      const local = editHash
+        ? await getLocalTripByEdit(editHash)
+        : publicHash
+          ? await getLocalTripByPublic(publicHash)
+          : null;
+      if (local) {
+        set({
+          ready: true,
+          canEdit: Boolean(editHash && local.editHash),
+          tripId: local.id,
+          publicHash: local.publicHash,
+          editHash: editHash ? local.editHash : undefined,
+          sourceLocale: local.sourceLocale,
+          layout: isLayout(local.payload.layout) ? mergeLayout(local.payload.layout) : seedLayout(),
+          texts: local.payload.texts ?? emptyTexts(),
+          hiddenPins: local.payload.hiddenPins ?? {},
+          photos: local.payload.photos ?? {},
+          saveStatus: "saved",
+        });
+        return;
+      }
       set({ ready: true, canEdit: false });
     }
   },
@@ -509,20 +575,22 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     }
   },
   createRemote: async (password: string) => {
+    const state = get();
+    const layout: AlbumLayout = { version: 1, days: [emptyDay(0)] };
+    const payload = {
+      layout,
+      texts: emptyTexts(),
+      hiddenPins: {},
+      photos: {},
+    };
+    const title = "Lovely";
     try {
-      const state = get();
-      const photos = await encodePhotos(state.photos);
       const trip = await createTrip({
         data: {
-          title: state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely",
+          title,
           sourceLocale: state.sourceLocale,
           password,
-          payload: {
-            layout: state.layout,
-            texts: state.texts,
-            hiddenPins: state.hiddenPins,
-            photos,
-          },
+          payload,
         },
       });
       set({
@@ -530,15 +598,40 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         tripId: trip.id,
         publicHash: trip.publicHash,
         editHash: trip.editHash,
+        layout,
+        texts: emptyTexts(),
+        hiddenPins: {},
         saveStatus: "saved",
       });
-      if (typeof window !== "undefined" && trip.editPassword) {
-        sessionStorage.setItem(`album-pw-${trip.publicHash}`, trip.editPassword);
+      if (typeof window !== "undefined") {
+        await saveLocalTrip({ ...trip, payload });
+        if (trip.editPassword) sessionStorage.setItem(`album-pw-${trip.publicHash}`, trip.editPassword);
       }
       return { publicHash: trip.publicHash, editHash: trip.editHash ?? "", editPassword: trip.editPassword };
     } catch {
-      set({ saveStatus: "error" });
-      return null;
+      if (typeof window === "undefined") {
+        set({ saveStatus: "error" });
+        return null;
+      }
+      const local = makeLocalTrip({
+        title,
+        sourceLocale: state.sourceLocale,
+        password,
+        payload,
+      });
+      await saveLocalTrip(local);
+      set({
+        canEdit: true,
+        tripId: local.id,
+        publicHash: local.publicHash,
+        editHash: local.editHash,
+        layout,
+        texts: emptyTexts(),
+        hiddenPins: {},
+        saveStatus: "saved",
+      });
+      sessionStorage.setItem(`album-pw-${local.publicHash}`, password);
+      return { publicHash: local.publicHash, editHash: local.editHash ?? "", editPassword: password };
     }
   },
 }));
@@ -598,19 +691,35 @@ async function pushRemote(state: AlbumState) {
   if (!state.editHash) return;
   const photos = await encodePhotos(state.photos);
   const title = state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely";
-  await saveTrip({
-    data: {
-      editHash: state.editHash,
-      title,
-      sourceLocale: state.sourceLocale,
-      payload: {
-        layout: state.layout,
-        texts: state.texts,
-        hiddenPins: state.hiddenPins,
-        photos,
+  const payload = {
+    layout: state.layout,
+    texts: state.texts,
+    hiddenPins: state.hiddenPins,
+    photos,
+  };
+  try {
+    await saveTrip({
+      data: {
+        editHash: state.editHash,
+        title,
+        sourceLocale: state.sourceLocale,
+        payload,
       },
-    },
-  });
+    });
+  } catch {
+    if (state.publicHash) {
+      await saveLocalTrip({
+        id: state.tripId ?? state.editHash,
+        publicHash: state.publicHash,
+        editHash: state.editHash,
+        title,
+        sourceLocale: state.sourceLocale,
+        payload,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
 }
 
 export function usePhotoSrc(photo: AlbumPhoto | string, fallback?: string) {

@@ -136,8 +136,11 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
   };
 }
 
+export const COLLAGE_MIN = 3;
+export const COLLAGE_MAX = 8;
+
 export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
-  const photoCount = kind === "collage" ? 2 : kind === "photo" || kind === "polaroid" ? 1 : 0;
+  const photoCount = kind === "collage" ? COLLAGE_MIN : kind === "photo" || kind === "polaroid" ? 1 : 0;
   return {
     id: newId("block"),
     kind,

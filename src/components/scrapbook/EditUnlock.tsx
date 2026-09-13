@@ -6,12 +6,13 @@ import { useT } from "@/lib/i18n/locale";
 
 type EditUnlockProps = {
   publicHash: string;
+  autoOpen?: boolean;
 };
 
-export function EditUnlock({ publicHash }: EditUnlockProps) {
+export function EditUnlock({ publicHash, autoOpen = false }: EditUnlockProps) {
   const t = useT();
   const unlockFeatured = useAlbum((s) => s.unlockFeatured);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);

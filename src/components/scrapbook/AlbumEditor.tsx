@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { heroPhotos } from "@/lib/album/data";
-import { catalogSrc, type BlockKind, type I18nPair, type LayoutBlock, type LayoutDay } from "@/lib/album/layout";
+import { catalogSrc, COLLAGE_MAX, COLLAGE_MIN, type BlockKind, type I18nPair, type LayoutBlock, type LayoutDay } from "@/lib/album/layout";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import { setTripPassword } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -251,6 +251,7 @@ function BlockEditor({
   const removeBlock = useAlbum((s) => s.removeBlock);
   const moveBlock = useAlbum((s) => s.moveBlock);
   const addPhotoSlot = useAlbum((s) => s.addPhotoSlot);
+  const removePhotoSlot = useAlbum((s) => s.removePhotoSlot);
   const kindKey = `ui.block.${block.kind}` as MessageKey;
 
   return (
@@ -286,9 +287,21 @@ function BlockEditor({
       {block.kind === "collage" || block.kind === "photo" || block.kind === "polaroid" ? (
         <div className="flex flex-wrap gap-3">
           {block.photoIds.map((id) => (
-            <SlotPicker key={id} photoId={id} />
+            <div key={id} className="relative">
+              <SlotPicker photoId={id} />
+              {block.kind === "collage" && block.photoIds.length > COLLAGE_MIN ? (
+                <button
+                  type="button"
+                  className="absolute -top-1 -right-1 min-h-7 min-w-7 font-typewriter text-kicker text-coral"
+                  onClick={() => removePhotoSlot(dayId, block.id, id)}
+                  aria-label={t("ui.removeSlot")}
+                >
+                  ×
+                </button>
+              ) : null}
+            </div>
           ))}
-          {block.kind === "collage" && block.photoIds.length < 4 ? (
+          {block.kind === "collage" && block.photoIds.length < COLLAGE_MAX ? (
             <button
               type="button"
               onClick={() => addPhotoSlot(dayId, block.id)}
