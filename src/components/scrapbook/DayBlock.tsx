@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
-import { catalogSrc, cornersFor, rotateFor, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
+import { catalogSrc, cornersFor, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
 import { PLACES } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale } from "@/lib/i18n/locale";
+import { BlockBar } from "./BlockBar";
 import { DayMark } from "./DayMark";
 import { Frame } from "./Frame";
+import { LiveText } from "./LiveText";
 import { NoteCard } from "./NoteCard";
 import { PaperLayer } from "./PaperLayer";
 import { PlaceCard } from "./PlaceCard";
@@ -22,6 +24,10 @@ type DayBlockProps = {
 export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const locale = useLocale((s) => s.locale);
   const photos = useAlbum((s) => s.photos);
+  const canEdit = useAlbum((s) => s.canEdit);
+  const patchBlock = useAlbum((s) => s.patchBlock);
+  const setDayPlace = useAlbum((s) => s.setDayPlace);
+  const addBlock = useAlbum((s) => s.addBlock);
   const reverse = index % 2 === 1;
   const placeName = pairText(day.place, locale);
   const place = PLACES[day.id];
@@ -40,6 +46,10 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       corners: mount.corners,
       cornerSet: mount.cornerSet,
     };
+  }
+
+  function patchPair(block: LayoutBlock, field: "place" | "caption" | "body", value: string) {
+    patchBlock(day.id, block.id, { [field]: { ...block[field], [locale]: value } });
   }
 
   return (
@@ -65,9 +75,19 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
           <div className="relative z-20 mb-6 flex items-start gap-4 pl-8 md:mb-8 md:pl-16">
             <DayMark index={index} active={active} rotation={index % 2 === 0 ? -10 : 8} />
             <div className="min-w-0">
-              <h3 className="place-type text-center font-typewriter text-day leading-snug text-lagoon-deep md:text-left">
-                — {placeName} —
-              </h3>
+              {canEdit ? (
+                <LiveText
+                  tag="h3"
+                  value={placeName}
+                  onChange={(value) => setDayPlace(day.id, locale, value)}
+                  placeholder="Lorem ipsum"
+                  className="place-type text-center font-typewriter text-day leading-snug text-lagoon-deep md:text-left"
+                />
+              ) : (
+                <h3 className="place-type text-center font-typewriter text-day leading-snug text-lagoon-deep md:text-left">
+                  — {placeName} —
+                </h3>
+              )}
               {address ? (
                 <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink-soft">{address}</p>
               ) : null}
@@ -80,69 +100,110 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
               const blockCaption = pairText(block.caption, locale);
               const body = pairText(block.body, locale);
               const visibleIds = block.photoIds.filter((id) => photos[id] || catalogSrc(id));
+              const photoId = visibleIds[0] ?? block.photoIds[0];
 
+              let inner = null;
               if (block.kind === "note") {
-                return <NoteCard key={block.id} place={blockPlace} body={body} />;
-              }
-              if (block.kind === "place") {
-                return <PlaceCard key={block.id} place={blockPlace} caption={blockCaption || body} />;
-              }
-              if (block.kind === "polaroid") {
-                const id = visibleIds[0] ?? block.photoIds[0];
-                if (!id) return null;
-                return (
-                  <SlideIn
-                    key={block.id}
-                    from="left"
-                    className="w-3/4 max-w-xs self-end md:w-[42%] md:max-w-sm"
-                  >
-                    <Polaroid
-                      photo={{
-                        ...toPrint(id, blockIndex, blockPlace, blockCaption),
-                        kind: "polaroid",
-                        rotate: "right",
-                      }}
+                inner = (
+                  <NoteCard
+                    place={blockPlace}
+                    body={body}
+                    onPlaceChange={(value) => patchPair(block, "place", value)}
+                    onBodyChange={(value) => patchPair(block, "body", value)}
+                  />
+                );
+              } else if (block.kind === "place") {
+                inner = (
+                  <PlaceCard
+                    place={blockPlace}
+                    caption={blockCaption || body}
+                    onPlaceChange={(value) => patchPair(block, "place", value)}
+                    onCaptionChange={(value) => patchPair(block, "caption", value)}
+                  />
+                );
+              } else if (block.kind === "polaroid") {
+                if (!photoId && !canEdit) inner = null;
+                else if (photoId) {
+                  inner = (
+                    <SlideIn from="left" className="w-3/4 max-w-xs self-end md:w-[42%] md:max-w-sm">
+                      <Polaroid
+                        photo={{
+                          ...toPrint(photoId, blockIndex, blockPlace, blockCaption),
+                          kind: "polaroid",
+                          rotate: "right",
+                        }}
+                        onPlaceChange={(value) => patchPair(block, "place", value)}
+                        onCaptionChange={(value) => patchPair(block, "caption", value)}
+                      />
+                    </SlideIn>
+                  );
+                }
+              } else if (block.kind === "collage") {
+                const first = visibleIds[0] ?? block.photoIds[0];
+                const second = visibleIds[1] ?? block.photoIds[1];
+                if (!first && !canEdit) inner = null;
+                else {
+                  inner = (
+                    <div
+                      className={cn(
+                        "grid grid-cols-1 items-start gap-8 md:grid-cols-5",
+                        reverse && "md:[&_.day-frame]:col-start-1",
+                      )}
+                    >
+                      {first ? (
+                        <SlideIn from="left" className="day-frame min-w-0 md:col-span-3">
+                          <Frame
+                            photo={toPrint(first, blockIndex, blockPlace, blockCaption)}
+                            onPlaceChange={(value) => patchPair(block, "place", value)}
+                            onCaptionChange={(value) => patchPair(block, "caption", value)}
+                          />
+                        </SlideIn>
+                      ) : null}
+                      {second ? (
+                        <SlideIn from="left" delayMs={80} className="min-w-0 w-3/4 max-w-xs justify-self-end md:col-span-2 md:w-auto md:max-w-none">
+                          <Polaroid
+                            photo={{
+                              ...toPrint(second, blockIndex + 1, blockPlace, blockCaption),
+                              kind: "polaroid",
+                              rotate: "left",
+                            }}
+                            onPlaceChange={(value) => patchPair(block, "place", value)}
+                            onCaptionChange={(value) => patchPair(block, "caption", value)}
+                          />
+                        </SlideIn>
+                      ) : null}
+                    </div>
+                  );
+                }
+              } else if (photoId) {
+                inner = (
+                  <SlideIn from="left" className="day-frame max-w-3xl">
+                    <Frame
+                      photo={toPrint(photoId, blockIndex, blockPlace, blockCaption)}
+                      onPlaceChange={(value) => patchPair(block, "place", value)}
+                      onCaptionChange={(value) => patchPair(block, "caption", value)}
                     />
                   </SlideIn>
                 );
               }
-              if (block.kind === "collage") {
-                if (visibleIds.length === 0) return null;
-                const [first, ...rest] = visibleIds;
-                if (!first) return null;
-                return (
-                  <div
-                    key={block.id}
-                    className={cn(
-                      "grid grid-cols-1 items-start gap-8 md:grid-cols-5",
-                      reverse && "md:[&_.day-frame]:col-start-1",
-                    )}
-                  >
-                    <SlideIn from="left" className="day-frame min-w-0 md:col-span-3">
-                      <Frame photo={toPrint(first, blockIndex, blockPlace, blockCaption)} />
-                    </SlideIn>
-                    {rest[0] ? (
-                      <SlideIn from="left" delayMs={80} className="min-w-0 w-3/4 max-w-xs justify-self-end md:col-span-2 md:w-auto md:max-w-none">
-                        <Polaroid
-                          photo={{
-                            ...toPrint(rest[0], blockIndex + 1, blockPlace, blockCaption),
-                            kind: "polaroid",
-                            rotate: "left",
-                          }}
-                        />
-                      </SlideIn>
-                    ) : null}
-                  </div>
-                );
-              }
-              const id = visibleIds[0] ?? block.photoIds[0];
-              if (!id || (!photos[id] && !catalogSrc(id))) return null;
+
+              if (!inner && !canEdit) return null;
               return (
-                <SlideIn key={block.id} from="left" className="day-frame max-w-3xl">
-                  <Frame photo={toPrint(id, blockIndex, blockPlace, blockCaption)} />
-                </SlideIn>
+                <div key={block.id} className="relative">
+                  {inner}
+                  {canEdit ? <BlockBar dayId={day.id} blockId={block.id} /> : null}
+                </div>
               );
             })}
+            {canEdit && day.blocks.length === 0 ? (
+              <button
+                type="button"
+                className="block-bar-btn mx-auto"
+                onClick={() => addBlock(day.id, "photo")}
+              >
+                +
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

@@ -44,6 +44,7 @@ type AlbumState = {
   addDay: () => void;
   removeDay: (dayId: string) => void;
   addBlock: (dayId: string, kind: BlockKind) => void;
+  insertBlock: (dayId: string, afterId: string, kind: BlockKind) => void;
   addCollageFromFiles: (dayId: string, files: File[]) => Promise<void>;
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
@@ -51,6 +52,7 @@ type AlbumState = {
   addPhotoSlot: (dayId: string, blockId: string) => void;
   reset: () => Promise<void>;
   canEdit: boolean;
+  enableEdit: () => void;
   tripId?: string;
   publicHash?: string;
   editHash?: string;
@@ -199,6 +201,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   hiddenPins: {},
   layout: seedLayout(),
   canEdit: false,
+  enableEdit: () => set({ canEdit: true }),
   sourceLocale: "en",
   hydrate: async () => {
     if (typeof indexedDB === "undefined") {
@@ -324,6 +327,18 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         ...day,
         blocks: [...day.blocks, emptyBlock(kind, day.place)],
       })),
+    );
+  },
+  insertBlock: (dayId, afterId, kind) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => {
+        const index = day.blocks.findIndex((block) => block.id === afterId);
+        const blocks = [...day.blocks];
+        blocks.splice(index < 0 ? blocks.length : index + 1, 0, emptyBlock(kind, day.place));
+        return { ...day, blocks };
+      }),
     );
   },
   addCollageFromFiles: async (dayId, files) => {

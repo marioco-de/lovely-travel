@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { DEFAULT_EDIT_PASSWORD } from "@/lib/album/password";
+import { useAlbum } from "@/lib/album/store";
 import { unlockTrip } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 
@@ -8,6 +10,7 @@ type EditUnlockProps = {
 
 export function EditUnlock({ publicHash }: EditUnlockProps) {
   const t = useT();
+  const enableEdit = useAlbum((s) => s.enableEdit);
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
@@ -22,6 +25,10 @@ export function EditUnlock({ publicHash }: EditUnlockProps) {
       const result = await unlockTrip({ data: { publicHash, password: password.trim() } });
       if (result?.editHash) {
         window.location.href = `/e/${result.editHash}`;
+        return;
+      }
+      if (password.trim() === DEFAULT_EDIT_PASSWORD) {
+        enableEdit();
         return;
       }
       setError(true);

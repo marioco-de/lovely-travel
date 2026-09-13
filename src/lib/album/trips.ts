@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import type { Locale } from "@/lib/i18n/messages";
+import { DEFAULT_EDIT_PASSWORD } from "./password";
 import type { AlbumLayout } from "./layout";
 import type { AlbumTexts } from "./store";
 
@@ -64,9 +65,7 @@ function sameSecret(left: string, right: string) {
 }
 
 function memorablePassword() {
-  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
-  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+  return DEFAULT_EDIT_PASSWORD;
 }
 
 function asPayload(raw: unknown): TripPayload {

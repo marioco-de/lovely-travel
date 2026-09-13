@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAlbum } from "@/lib/album/store";
+import { LiveText } from "./LiveText";
 
 type PhotoCaptionProps = {
   place: string;
@@ -7,6 +9,8 @@ type PhotoCaptionProps = {
   className?: string;
   variant?: "strip" | "band";
   as?: "figcaption" | "div";
+  onPlaceChange?: (value: string) => void;
+  onCaptionChange?: (value: string) => void;
 };
 
 export function PhotoCaption({
@@ -15,8 +19,12 @@ export function PhotoCaption({
   className,
   variant = "strip",
   as,
+  onPlaceChange,
+  onCaptionChange,
 }: PhotoCaptionProps) {
+  const canEdit = useAlbum((s) => s.canEdit);
   const Tag = as ?? (variant === "band" ? "div" : "figcaption");
+  if (!place && !caption && !canEdit) return null;
   return (
     <Tag
       className={cn(
@@ -27,12 +35,29 @@ export function PhotoCaption({
         className,
       )}
     >
-      {place ? (
-        <p className="place-type font-typewriter text-place leading-snug text-lagoon-deep">
-          — {place} —
-        </p>
+      {place || canEdit ? (
+        onPlaceChange && canEdit ? (
+          <LiveText
+            value={place}
+            onChange={onPlaceChange}
+            placeholder="Lorem ipsum"
+            className="place-type font-typewriter text-place leading-snug text-lagoon-deep"
+          />
+        ) : place ? (
+          <p className="place-type font-typewriter text-place leading-snug text-lagoon-deep">— {place} —</p>
+        ) : null
       ) : null}
-      {caption ? <ScriptLine>{caption}</ScriptLine> : null}
+      {caption || canEdit ? (
+        onCaptionChange && canEdit ? (
+          <LiveText
+            value={caption}
+            onChange={onCaptionChange}
+            className="mt-1 font-script text-caption leading-snug text-ink-soft"
+          />
+        ) : caption ? (
+          <ScriptLine>{caption}</ScriptLine>
+        ) : null
+      ) : null}
     </Tag>
   );
 }

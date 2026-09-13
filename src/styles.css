@@ -969,3 +969,41 @@ body {
 .day-wash {
   overflow-x: visible;
 }
+
+.live-text {
+  min-height: 1.1em;
+  cursor: text;
+}
+.live-text--ph {
+  opacity: 0.42;
+}
+.block-bar-btn {
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 1px dashed color-mix(in oklab, var(--color-stamp) 45%, transparent);
+  background: var(--color-mat);
+  color: var(--color-ink);
+  font-family: var(--font-typewriter);
+  font-size: 0.95rem;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgb(61 42 28 / 0.12);
+}
+.photo-add-plus {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--color-ink-soft);
+}
+.menu-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-typewriter);
+  font-size: var(--text-kicker);
+  letter-spacing: 0.04em;
+  color: var(--color-lagoon-deep);
+  text-underline-offset: 4px;
+}
+.menu-link:hover {
+  text-decoration: underline;
+}

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/locale";
-import { usePhotoSrc } from "@/lib/album/store";
+import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, RotateDir } from "@/lib/album/data";
 import type { PrintPhoto } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
@@ -18,14 +18,18 @@ const rotateClass: Record<RotateDir, string> = {
 type PolaroidProps = {
   photo: AlbumPhoto | PrintPhoto;
   className?: string;
+  onPlaceChange?: (value: string) => void;
+  onCaptionChange?: (value: string) => void;
 };
 
 function isCatalog(photo: AlbumPhoto | PrintPhoto): photo is AlbumPhoto {
   return "altKey" in photo && typeof photo.altKey === "string";
 }
 
-export function Polaroid({ photo, className }: PolaroidProps) {
+export function Polaroid({ photo, className, onPlaceChange, onCaptionChange }: PolaroidProps) {
   const t = useT();
+  const canEdit = useAlbum((s) => s.canEdit);
+  const setPhoto = useAlbum((s) => s.setPhoto);
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const alt = isCatalog(photo) ? t(photo.altKey) : photo.alt;
   const place = isCatalog(photo) ? t(photo.placeKey) : photo.place;
@@ -41,13 +45,30 @@ export function Polaroid({ photo, className }: PolaroidProps) {
               {src ? (
                 <DevelopingImage key={src} src={src} alt={alt} />
               ) : (
-                <div className="grid h-full place-items-center px-2 text-center font-typewriter text-kicker tracking-widest text-ink-soft uppercase">
-                  {t("ui.addPhoto")}
-                </div>
+                <label className="photo-add grid h-full cursor-pointer place-items-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={!canEdit}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void setPhoto(photo.id, file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <span className="photo-add-plus">{canEdit ? "+" : t("ui.addPhoto")}</span>
+                </label>
               )}
             </div>
           </div>
-          <PhotoCaption variant="band" place={place} caption={caption} />
+          <PhotoCaption
+            variant="band"
+            place={place}
+            caption={caption}
+            onPlaceChange={onPlaceChange}
+            onCaptionChange={onCaptionChange}
+          />
         </div>
       </div>
     </figure>

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/locale";
-import { usePhotoSrc } from "@/lib/album/store";
+import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
 import type { PrintPhoto } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
@@ -24,14 +24,18 @@ type FrameProps = {
   showCaption?: boolean;
   priority?: boolean;
   stamp?: { labelKey: MessageKey; corner: "tl" | "tr" | "bl" | "br"; variant?: "round" | "rect" | "postal"; rotation?: number };
+  onPlaceChange?: (value: string) => void;
+  onCaptionChange?: (value: string) => void;
 };
 
 function isCatalog(photo: AlbumPhoto | PrintPhoto): photo is AlbumPhoto {
   return "altKey" in photo && typeof photo.altKey === "string";
 }
 
-export function Frame({ photo, className, showCaption = true, priority = false, stamp }: FrameProps) {
+export function Frame({ photo, className, showCaption = true, priority = false, stamp, onPlaceChange, onCaptionChange }: FrameProps) {
   const t = useT();
+  const canEdit = useAlbum((s) => s.canEdit);
+  const setPhoto = useAlbum((s) => s.setPhoto);
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
   const isDetail = photo.kind === "detail";
   const corners = "corners" in photo ? (photo.corners ?? (isDetail ? "scallop" : "black")) : "black";
@@ -54,9 +58,20 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
             {src ? (
               <DevelopingImage key={src} src={src} alt={alt} priority={priority} />
             ) : (
-              <div className="grid h-full place-items-center font-typewriter text-kicker tracking-widest text-ink-soft uppercase">
-                {t("ui.addPhoto")}
-              </div>
+              <label className="photo-add grid h-full cursor-pointer place-items-center">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={!canEdit}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void setPhoto(photo.id, file);
+                    event.target.value = "";
+                  }}
+                />
+                <span className="photo-add-plus">{canEdit ? "+" : t("ui.addPhoto")}</span>
+              </label>
             )}
             {src && stamp ? (
               <PhotoEdgeStamp
@@ -71,7 +86,14 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
           {corners === "scallop" ? <PhotoBanderole /> : <PhotoCorners variant={corners} set={cornerSet} />}
         </div>
       </div>
-      {showCaption && <PhotoCaption place={place} caption={caption} />}
+      {showCaption && (
+        <PhotoCaption
+          place={place}
+          caption={caption}
+          onPlaceChange={onPlaceChange}
+          onCaptionChange={onCaptionChange}
+        />
+      )}
     </figure>
   );
 }

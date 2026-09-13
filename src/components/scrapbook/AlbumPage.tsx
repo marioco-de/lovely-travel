@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useAlbum } from "@/lib/album/store";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { AlbumEditor } from "./AlbumEditor";
 import { DayBlock } from "./DayBlock";
+import { EditMenu } from "./EditMenu";
 import { EditUnlock } from "./EditUnlock";
 import { HeroCollage } from "./HeroCollage";
 import { LanguageToggle } from "./LanguageToggle";
@@ -24,7 +24,6 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   const bindTrip = useAlbum((s) => s.bindTrip);
   const createRemote = useAlbum((s) => s.createRemote);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
-  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     void bindTrip({ mode, publicHash, editHash });
@@ -83,10 +82,11 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
         <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
           <LanguageToggle />
           <ShareStamp />
+          {canEdit ? <EditMenu /> : null}
         </div>
       </div>
 
-      <HeroCollage onEditTitle={() => setEditing(true)} />
+      <HeroCollage />
       <MapInsert activeId={activeId} onSelect={openDay} />
 
       <section className="w-full overflow-visible">
@@ -112,21 +112,11 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
           >
             {t("ui.newAlbum")}
           </button>
-        ) : canEdit ? (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
-          >
-            {t("ui.edit")}
-          </button>
         ) : (
           <span />
         )}
         {!canEdit ? <EditUnlock publicHash={publicHash} /> : null}
       </footer>
-
-      {canEdit || mode === "edit" ? <AlbumEditor open={editing} onClose={() => setEditing(false)} /> : null}
     </div>
   );
 }
