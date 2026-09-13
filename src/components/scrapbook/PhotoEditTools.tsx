@@ -55,6 +55,31 @@ export function PhotoEditTools({
 
   return (
     <>
+      {open ? (
+        <div
+          className="caption-strip photo-caption-editor"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <LiveText
+            value={title}
+            onChange={onTitle}
+            placeholder={t("ui.photoTitle")}
+            className="place-type text-center font-typewriter text-place leading-snug text-lagoon-deep"
+          />
+          <LiveText
+            value={caption}
+            onChange={onCaption}
+            placeholder={t("ui.caption")}
+            className="mt-1 text-center font-script text-caption leading-snug text-ink-soft"
+          />
+          {hasNote ? (
+            <button type="button" className="photo-caption-clear" onClick={onClear}>
+              {t("ui.removeCaption")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       <div
         className={cn("photo-tabs", menuOpen && "is-open")}
         onClick={(event) => event.stopPropagation()}
@@ -123,31 +148,6 @@ export function PhotoEditTools({
           }}
         />
       </div>
-      {open ? (
-        <div
-          className="caption-strip photo-caption-editor"
-          onClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <LiveText
-            value={title}
-            onChange={onTitle}
-            placeholder={t("ui.photoTitle")}
-            className="place-type text-center font-typewriter text-place leading-snug text-lagoon-deep"
-          />
-          <LiveText
-            value={caption}
-            onChange={onCaption}
-            placeholder={t("ui.caption")}
-            className="mt-1 text-center font-script text-caption leading-snug text-ink-soft"
-          />
-          {hasNote ? (
-            <button type="button" className="photo-caption-clear" onClick={onClear}>
-              {t("ui.removeCaption")}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
     </>
   );
 }

@@ -856,8 +856,8 @@ body {
   align-items: flex-start;
   justify-content: center;
   gap: 0.22rem;
-  margin-top: -1rem;
-  padding-top: 1rem;
+  margin-top: -0.95rem;
+  padding-top: 0.95rem;
   pointer-events: none;
 }
 
@@ -866,13 +866,14 @@ body {
 }
 
 .photo-under:has(.caption-strip) .photo-tabs {
-  margin-bottom: -2.75rem;
+  margin-bottom: 0;
 }
 
 .photo-under .caption-strip {
   position: relative;
   z-index: 2;
-  padding-top: 1.2rem;
+  margin-top: 0.7rem;
+  padding-top: 1.45rem;
 }
 
 .photo-tab {
@@ -959,8 +960,8 @@ body {
 .photo-caption-editor {
   position: relative;
   z-index: 2;
-  margin: 0.35rem 0.55rem 0;
-  padding: 1.1rem 0.85rem 0.85rem;
+  margin: 0.7rem 0.55rem 0;
+  padding: 1.45rem 0.95rem 0.95rem;
 }
 
 .photo-caption-clear {

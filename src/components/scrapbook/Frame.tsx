@@ -132,6 +132,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
         </div>
       </div>
       <div className="photo-under">
+        {showCaption && !captionOpen ? <PhotoCaption place={place} caption={caption} /> : null}
         {canEdit && src ? (
           <PhotoEditTools
             hasSrc
@@ -152,7 +153,6 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
             }}
           />
         ) : null}
-        {showCaption && !captionOpen ? <PhotoCaption place={place} caption={caption} className="!mt-0" /> : null}
       </div>
     </figure>
   );
