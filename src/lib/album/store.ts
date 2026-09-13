@@ -180,6 +180,62 @@ function isLayout(value: unknown): value is AlbumLayout {
   return rec.version === 1 && Array.isArray(rec.days);
 }
 
+function storageKey(publicHash?: string, editHash?: string) {
+  return publicHash || editHash || FEATURED_SLUG;
+}
+
+function blockCount(layout?: AlbumLayout) {
+  if (!layout) return -1;
+  return layout.days.reduce((sum, day) => sum + day.blocks.length + day.blocks.reduce((n, block) => n + block.photoIds.length, 0), 0);
+}
+
+function pickLayout(...candidates: Array<AlbumLayout | undefined>) {
+  let best: AlbumLayout | undefined;
+  let bestCount = -1;
+  for (const item of candidates) {
+    if (!item || !isLayout(item)) continue;
+    const merged = mergeLayout(item);
+    const count = blockCount(merged);
+    if (count > bestCount) {
+      best = merged;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+async function readSavedLayout(hash?: string) {
+  if (typeof indexedDB === "undefined") return undefined;
+  const keys = [...new Set([hash, FEATURED_SLUG, "album"].filter(Boolean))] as string[];
+  const found: AlbumLayout[] = [];
+  for (const key of keys) {
+    const saved = await idbGet<AlbumLayout>(LAYOUT_STORE, key);
+    if (isLayout(saved)) found.push(saved);
+  }
+  return pickLayout(...found);
+}
+
+async function loadPhotoUrls() {
+  const photos: Record<string, string> = {};
+  if (typeof indexedDB === "undefined") return photos;
+  const blobs = await readAllPhotos();
+  for (const [id, blob] of Object.entries(blobs)) {
+    photos[id] = URL.createObjectURL(blob);
+  }
+  return photos;
+}
+
+function mergePhotoMaps(...maps: Array<Record<string, string> | undefined>) {
+  const out: Record<string, string> = {};
+  for (const map of maps) {
+    if (!map) continue;
+    for (const [id, src] of Object.entries(map)) {
+      if (src) out[id] = src;
+    }
+  }
+  return out;
+}
+
 async function prepareImage(file: File): Promise<Blob> {
   if (!file.type.startsWith("image/") || file.size < 380_000) return file;
   try {
@@ -236,22 +292,19 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       return;
     }
     try {
-      const [en, de, blobs, savedLayout] = await Promise.all([
+      const hash = get().publicHash || get().editHash || FEATURED_SLUG;
+      const [en, de, photos, savedLayout] = await Promise.all([
         idbGet<Partial<Record<MessageKey, string>>>(TEXT_STORE, "en"),
         idbGet<Partial<Record<MessageKey, string>>>(TEXT_STORE, "de"),
-        readAllPhotos(),
-        idbGet<AlbumLayout>(LAYOUT_STORE, "album"),
+        loadPhotoUrls(),
+        readSavedLayout(hash),
       ]);
-      const photos: Record<string, string> = {};
-      for (const [id, blob] of Object.entries(blobs)) {
-        photos[id] = URL.createObjectURL(blob);
-      }
       set({
         ready: true,
         photos,
         texts: { en: en ?? {}, de: de ?? {} },
         hiddenPins: readHiddenPins(),
-        layout: isLayout(savedLayout) ? mergeLayout(savedLayout) : seedLayout(),
+        layout: savedLayout ?? seedLayout(),
         saveStatus: "saved",
       });
     } catch {
@@ -270,11 +323,16 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         const url = URL.createObjectURL(blob);
         const prev = next[id];
         next[id] = url;
-        if (prev) URL.revokeObjectURL(prev);
+        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
         await idbSet(PHOTO_STORE, id, blob);
       }
-      set({ photos: next, saveStatus: "saved" });
+      set({ photos: next, saveStatus: "saving" });
+      const state = get();
+      const key = storageKey(state.publicHash, state.editHash);
+      await idbSet(LAYOUT_STORE, key, state.layout);
+      if (key !== "album") await idbSet(LAYOUT_STORE, "album", state.layout);
       scheduleRemote(get);
+      set({ saveStatus: "saved" });
     } catch {
       set({ photos: next, saveStatus: "error" });
     }
@@ -576,108 +634,71 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     }
   },
   bindTrip: async ({ mode, publicHash, editHash }) => {
-    if (mode === "demo") {
+    const isFeatured = editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG || mode === "demo";
+    const featuredUnlocked = isFeatured && (mode === "edit" || Boolean(editHash) || readFeaturedUnlock());
+    const hash = publicHash || editHash || (isFeatured ? FEATURED_SLUG : undefined);
+
+    if (mode === "demo" && !isFeatured) {
       set({ canEdit: false, publicHash: undefined, editHash: undefined, tripId: undefined });
       await get().hydrate();
       return;
     }
-    try {
-      const trip = editHash ? await getEditTrip({ data: { hash: editHash } }) : null;
-      const publicTrip = trip ?? (publicHash ? await getPublicTrip({ data: { hash: publicHash } }) : null);
-      const isFeatured =
-        editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG;
-      const featuredUnlocked = isFeatured && (Boolean(editHash) || readFeaturedUnlock());
-      if (!publicTrip) {
-        const local = editHash
-          ? await getLocalTripByEdit(editHash)
-          : publicHash
-            ? await getLocalTripByPublic(publicHash)
-            : null;
-        if (local) {
-          set({
-            ready: true,
-            canEdit: Boolean(editHash && local.editHash),
-            tripId: local.id,
-            publicHash: local.publicHash,
-            editHash: editHash ? local.editHash : undefined,
-            sourceLocale: local.sourceLocale,
-            layout: isLayout(local.payload.layout) ? mergeLayout(local.payload.layout) : seedLayout(),
-            texts: local.payload.texts ?? emptyTexts(),
-            hiddenPins: local.payload.hiddenPins ?? {},
-            photos: local.payload.photos ?? {},
-            saveStatus: "saved",
-          });
-          return;
-        }
-        if (isFeatured) {
-          const saved = typeof indexedDB === "undefined" ? undefined : await idbGet<AlbumLayout>(LAYOUT_STORE, FEATURED_SLUG);
-          set({
-            ready: true,
-            canEdit: featuredUnlocked,
-            publicHash: FEATURED_SLUG,
-            editHash: featuredUnlocked ? FEATURED_EDIT_HASH : undefined,
-            layout: isLayout(saved) ? mergeLayout(saved) : seedLayout(),
-            saveStatus: "saved",
-          });
-          return;
-        }
-        await get().hydrate();
-        set({
-          ready: true,
-          canEdit: featuredUnlocked,
-          publicHash: publicHash ?? (isFeatured ? FEATURED_SLUG : undefined),
-          editHash: featuredUnlocked ? FEATURED_EDIT_HASH : undefined,
-        });
-        return;
-      }
-      set({
-        ready: true,
-        canEdit: Boolean(editHash && trip?.editHash) || featuredUnlocked,
-        tripId: publicTrip.id,
-        publicHash: publicTrip.publicHash || FEATURED_SLUG,
-        editHash: trip?.editHash ?? (featuredUnlocked ? FEATURED_EDIT_HASH : undefined),
-        sourceLocale: publicTrip.sourceLocale,
-        layout: isLayout(publicTrip.payload.layout) ? mergeLayout(publicTrip.payload.layout) : seedLayout(),
-        texts: publicTrip.payload.texts ?? emptyTexts(),
-        hiddenPins: publicTrip.payload.hiddenPins ?? {},
-        photos: publicTrip.payload.photos ?? {},
-        saveStatus: "saved",
-      });
-    } catch {
-      const isFeatured = editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG;
-      if (isFeatured) {
-        await get().hydrate();
-        set({
-          ready: true,
-          canEdit: Boolean(editHash),
-          publicHash: FEATURED_SLUG,
-          editHash: editHash ?? FEATURED_EDIT_HASH,
-        });
-        return;
-      }
-      const local = editHash
-        ? await getLocalTripByEdit(editHash)
+
+    const [idbPhotos, idbLayout, localTrip, en, de] = await Promise.all([
+      typeof indexedDB === "undefined" ? Promise.resolve({}) : loadPhotoUrls(),
+      typeof indexedDB === "undefined" ? Promise.resolve(undefined) : readSavedLayout(hash),
+      editHash
+        ? getLocalTripByEdit(editHash)
         : publicHash
-          ? await getLocalTripByPublic(publicHash)
+          ? getLocalTripByPublic(publicHash)
+          : isFeatured
+            ? getLocalTripByPublic(FEATURED_SLUG)
+            : Promise.resolve(null),
+      typeof indexedDB === "undefined"
+        ? Promise.resolve(undefined)
+        : idbGet<Partial<Record<MessageKey, string>>>(TEXT_STORE, "en"),
+      typeof indexedDB === "undefined"
+        ? Promise.resolve(undefined)
+        : idbGet<Partial<Record<MessageKey, string>>>(TEXT_STORE, "de"),
+    ]);
+
+    let remote: Awaited<ReturnType<typeof getEditTrip>> | Awaited<ReturnType<typeof getPublicTrip>> | null = null;
+    try {
+      remote = editHash
+        ? await getEditTrip({ data: { hash: editHash } })
+        : publicHash
+          ? await getPublicTrip({ data: { hash: publicHash } })
           : null;
-      if (local) {
-        set({
-          ready: true,
-          canEdit: Boolean(editHash && local.editHash),
-          tripId: local.id,
-          publicHash: local.publicHash,
-          editHash: editHash ? local.editHash : undefined,
-          sourceLocale: local.sourceLocale,
-          layout: isLayout(local.payload.layout) ? mergeLayout(local.payload.layout) : seedLayout(),
-          texts: local.payload.texts ?? emptyTexts(),
-          hiddenPins: local.payload.hiddenPins ?? {},
-          photos: local.payload.photos ?? {},
-          saveStatus: "saved",
-        });
-        return;
-      }
-      set({ ready: true, canEdit: false });
+    } catch {
+      remote = null;
     }
+
+    const remoteLayout = isLayout(remote?.payload.layout) ? mergeLayout(remote.payload.layout) : undefined;
+    const localTripLayout = isLayout(localTrip?.payload.layout) ? mergeLayout(localTrip.payload.layout) : undefined;
+    const remoteEditHash = remote && "editHash" in remote ? remote.editHash : undefined;
+    const layout = pickLayout(idbLayout, localTripLayout, remoteLayout) ?? seedLayout();
+    const photos = mergePhotoMaps(remote?.payload.photos, localTrip?.payload.photos, idbPhotos);
+    const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
+    const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
+
+    if (typeof indexedDB !== "undefined") {
+      const key = storageKey(publicHash || (isFeatured ? FEATURED_SLUG : undefined), editHash);
+      void idbSet(LAYOUT_STORE, key, layout);
+    }
+
+    set({
+      ready: true,
+      canEdit: Boolean(editHash && (remoteEditHash || localTrip?.editHash)) || featuredUnlocked,
+      tripId: remote?.id ?? localTrip?.id,
+      publicHash: remote?.publicHash || localTrip?.publicHash || (isFeatured ? FEATURED_SLUG : publicHash),
+      editHash: remoteEditHash ?? localTrip?.editHash ?? (featuredUnlocked ? FEATURED_EDIT_HASH : undefined),
+      sourceLocale: remote?.sourceLocale ?? localTrip?.sourceLocale ?? "en",
+      layout,
+      texts,
+      hiddenPins,
+      photos,
+      saveStatus: "saved",
+    });
   },
   ensureLocale: async (locale) => {
     const { sourceLocale, layout, texts, tripId } = get();
@@ -782,23 +803,26 @@ function persistLayout(
   window.clearTimeout(layoutTimer);
   layoutTimer = window.setTimeout(() => {
     const state = get();
-    const key = state.publicHash || state.editHash || "album";
-    void idbSet(LAYOUT_STORE, key, state.layout)
+    const key = storageKey(state.publicHash, state.editHash);
+    void Promise.all([idbSet(LAYOUT_STORE, key, state.layout), idbSet(LAYOUT_STORE, "album", state.layout)])
       .then(async () => {
         if (state.publicHash && state.editHash) {
+          const existing =
+            (await getLocalTripByEdit(state.editHash)) ?? (await getLocalTripByPublic(state.publicHash));
           await saveLocalTrip({
-            id: state.tripId ?? state.editHash,
+            id: state.tripId ?? existing?.id ?? state.editHash,
             publicHash: state.publicHash,
             editHash: state.editHash,
+            editPassword: existing?.editPassword,
             title: state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely",
             sourceLocale: state.sourceLocale,
             payload: {
               layout: state.layout,
               texts: state.texts,
               hiddenPins: state.hiddenPins,
-              photos: {},
+              photos: existing?.payload.photos ?? {},
             },
-            createdAt: new Date().toISOString(),
+            createdAt: existing?.createdAt ?? new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           });
         }
@@ -842,34 +866,40 @@ function blobToDataUrl(blob: Blob) {
   });
 }
 
+async function fitRemotePayload(
+  layout: AlbumLayout,
+  texts: AlbumTexts,
+  hiddenPins: Record<string, boolean>,
+  photos: Record<string, string>,
+) {
+  const base = { layout, texts, hiddenPins, photos: {} as Record<string, string> };
+  const entries = Object.entries(photos).sort((a, b) => a[1].length - b[1].length);
+  for (const [id, data] of entries) {
+    const next = { ...base.photos, [id]: data };
+    if (JSON.stringify({ ...base, photos: next }).length > 3_200_000) break;
+    base.photos = next;
+  }
+  return base;
+}
+
 async function pushRemote(state: AlbumState) {
   if (!state.editHash) return;
   const photos = await encodePhotos(state.photos);
   const title = state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely";
-  const payload = {
-    layout: state.layout,
-    texts: state.texts,
-    hiddenPins: state.hiddenPins,
-    photos,
-  };
-  const slim = {
-    layout: state.layout,
-    texts: state.texts,
-    hiddenPins: state.hiddenPins,
-    photos: {} as Record<string, string>,
-  };
-  const encoded = JSON.stringify(payload);
-  const remotePayload = encoded.length > 3_200_000 ? slim : payload;
+  const remotePayload = await fitRemotePayload(state.layout, state.texts, state.hiddenPins, photos);
   if (state.publicHash) {
     try {
+      const existing =
+        (await getLocalTripByEdit(state.editHash)) ?? (await getLocalTripByPublic(state.publicHash));
       await saveLocalTrip({
-        id: state.tripId ?? state.editHash,
+        id: state.tripId ?? existing?.id ?? state.editHash,
         publicHash: state.publicHash,
         editHash: state.editHash,
+        editPassword: existing?.editPassword,
         title,
         sourceLocale: state.sourceLocale,
         payload: remotePayload,
-        createdAt: new Date().toISOString(),
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
     } catch {

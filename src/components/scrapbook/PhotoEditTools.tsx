@@ -36,20 +36,20 @@ export function PhotoEditTools({
       <div className="photo-edit-tools" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
         <button
           type="button"
-          className="photo-tool"
+          className={cn("photo-tool", hasSrc ? "photo-tool--pencil" : "photo-tool--plus")}
           aria-label={hasSrc ? t("ui.replacePhoto") : t("ui.addPhoto")}
           onClick={() => fileRef.current?.click()}
         >
-          {hasSrc ? <Pencil size={18} strokeWidth={2.2} /> : <Plus size={20} strokeWidth={2.4} />}
+          {hasSrc ? <Pencil size={22} strokeWidth={2} /> : <Plus size={28} strokeWidth={2.4} />}
         </button>
         <button
           type="button"
-          className={cn("photo-tool", open && "is-on")}
+          className={cn("photo-tool photo-tool--caption", open && "is-on")}
           aria-label={t("ui.addCaption")}
           aria-expanded={open}
           onClick={() => onOpenChange(!open)}
         >
-          <MessageCircle size={18} strokeWidth={2.2} />
+          <MessageCircle size={16} strokeWidth={2.2} />
         </button>
         <input
           ref={fileRef}
