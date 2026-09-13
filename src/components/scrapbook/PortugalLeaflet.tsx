@@ -40,7 +40,7 @@ function Recenter({
     const placePin = () => {
       if (variant === "aside" && points[0]) {
         const ll = L.latLng(points[0].lat, points[0].lng);
-        map.setView(ll, 12, { animate: false });
+        map.setView(ll, 11, { animate: false });
         map.invalidateSize();
         const size = map.getSize();
         if (size.x < 8 || size.y < 8) return;
@@ -120,7 +120,7 @@ export default function PortugalLeaflet({
     >
       <MapContainer
         center={[start.lat, start.lng]}
-        zoom={variant === "aside" ? 12 : 7}
+        zoom={variant === "aside" ? 11 : 7}
         maxZoom={16}
         scrollWheelZoom={false}
         dragging={false}
