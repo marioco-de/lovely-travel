@@ -252,9 +252,61 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
     };
   });
   const hasCover = mergedDays.some((day) => day.id === COVER_ID);
+  const withCover = hasCover ? mergedDays : [seedCoverDay(), ...mergedDays];
+  const have = new Set(withCover.map((day) => day.id));
+  const ordered: LayoutDay[] = [];
+  for (const seedDay of seed.days) {
+    ordered.push(withCover.find((day) => day.id === seedDay.id) ?? seedDay);
+    have.delete(seedDay.id);
+  }
+  for (const day of withCover) {
+    if (have.has(day.id)) ordered.push(day);
+  }
   return {
     ...saved,
-    days: hasCover ? mergedDays : [seedCoverDay(), ...mergedDays],
+    days: ordered,
+  };
+}
+
+function dayRichness(day: LayoutDay) {
+  return day.blocks.reduce((sum, block) => sum + 1 + block.photoIds.length, 0);
+}
+
+export function unifyLayouts(...candidates: Array<AlbumLayout | undefined>): AlbumLayout {
+  const seed = seedLayout();
+  const valid = candidates.filter((item): item is AlbumLayout => Boolean(item && Array.isArray(item.days)));
+  const byId = new Map<string, LayoutDay>();
+  const fromSaved = new Set<string>();
+
+  for (const day of seed.days) byId.set(day.id, day);
+
+  for (const layout of valid) {
+    for (const day of mergeLayout(layout).days) {
+      const next = { ...day, blocks: day.blocks.map(withPhotoNotes) };
+      if (!fromSaved.has(day.id)) {
+        byId.set(day.id, next);
+        fromSaved.add(day.id);
+        continue;
+      }
+      const current = byId.get(day.id);
+      if (current && dayRichness(next) >= dayRichness(current)) byId.set(day.id, next);
+    }
+  }
+
+  const extras: LayoutDay[] = [];
+  const seen = new Set<string>();
+  for (const layout of valid) {
+    for (const day of layout.days) {
+      if (seed.days.some((item) => item.id === day.id) || seen.has(day.id)) continue;
+      seen.add(day.id);
+      const found = byId.get(day.id);
+      if (found) extras.push(found);
+    }
+  }
+
+  return {
+    version: 1,
+    days: [...seed.days.map((day) => byId.get(day.id) ?? day), ...extras],
   };
 }
 

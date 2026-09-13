@@ -14,8 +14,8 @@ import {
   emptyBlock,
   emptyDay,
   emptyPhotoNote,
-  mergeLayout,
   seedLayout,
+  unifyLayouts,
   type AlbumLayout,
   type BlockKind,
   type I18nPair,
@@ -190,6 +190,7 @@ async function readAllPhotos() {
 let saveTimer: number | undefined;
 let layoutTimer: number | undefined;
 let geoTimer: number | undefined;
+let bindSeq = 0;
 
 function isLayout(value: unknown): value is AlbumLayout {
   if (!value || typeof value !== "object") return false;
@@ -201,35 +202,15 @@ function storageKey(publicHash?: string, editHash?: string) {
   return publicHash || editHash || FEATURED_SLUG;
 }
 
-function blockCount(layout?: AlbumLayout) {
-  if (!layout) return -1;
-  return layout.days.reduce((sum, day) => sum + day.blocks.length + day.blocks.reduce((n, block) => n + block.photoIds.length, 0), 0);
-}
-
-function pickLayout(...candidates: Array<AlbumLayout | undefined>) {
-  let best: AlbumLayout | undefined;
-  let bestCount = -1;
-  for (const item of candidates) {
-    if (!item || !isLayout(item)) continue;
-    const merged = mergeLayout(item);
-    const count = blockCount(merged);
-    if (count > bestCount) {
-      best = merged;
-      bestCount = count;
-    }
-  }
-  return best;
-}
-
-async function readSavedLayout(hash?: string) {
-  if (typeof indexedDB === "undefined") return undefined;
+async function readSavedLayouts(hash?: string) {
+  if (typeof indexedDB === "undefined") return [] as AlbumLayout[];
   const keys = [...new Set([hash, FEATURED_SLUG, "album"].filter(Boolean))] as string[];
   const found: AlbumLayout[] = [];
   for (const key of keys) {
     const saved = await idbGet<AlbumLayout>(LAYOUT_STORE, key);
     if (isLayout(saved)) found.push(saved);
   }
-  return pickLayout(...found);
+  return found;
 }
 
 async function loadPhotoUrls() {
@@ -310,18 +291,18 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     }
     try {
       const hash = get().publicHash || get().editHash || FEATURED_SLUG;
-      const [en, de, photos, savedLayout] = await Promise.all([
+      const [en, de, photos, savedLayouts] = await Promise.all([
         idbGet<Partial<Record<MessageKey, string>>>(TEXT_STORE, "en"),
         idbGet<Partial<Record<MessageKey, string>>>(TEXT_STORE, "de"),
         loadPhotoUrls(),
-        readSavedLayout(hash),
+        readSavedLayouts(hash),
       ]);
       set({
         ready: true,
         photos,
         texts: { en: en ?? {}, de: de ?? {} },
         hiddenPins: readHiddenPins(),
-        layout: savedLayout ?? seedLayout(),
+        layout: unifyLayouts(...savedLayouts),
         saveStatus: "saved",
       });
     } catch {
@@ -360,7 +341,6 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       const state = get();
       const key = storageKey(state.publicHash, state.editHash);
       await idbSet(LAYOUT_STORE, key, state.layout);
-      if (key !== "album") await idbSet(LAYOUT_STORE, "album", state.layout);
       scheduleRemote(get);
       set({ saveStatus: "saved" });
     } catch {
@@ -696,6 +676,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     }
   },
   bindTrip: async ({ mode, publicHash, editHash }) => {
+    const seq = ++bindSeq;
     const isFeatured = editHash === FEATURED_EDIT_HASH || publicHash === FEATURED_SLUG || mode === "demo";
     const featuredUnlocked = isFeatured && (mode === "edit" || Boolean(editHash) || readFeaturedUnlock());
     const hash = publicHash || editHash || (isFeatured ? FEATURED_SLUG : undefined);
@@ -706,9 +687,9 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       return;
     }
 
-    const [idbPhotos, idbLayout, localTrip, en, de] = await Promise.all([
+    const [idbPhotos, idbLayouts, localTrip, en, de] = await Promise.all([
       typeof indexedDB === "undefined" ? Promise.resolve({}) : loadPhotoUrls(),
-      typeof indexedDB === "undefined" ? Promise.resolve(undefined) : readSavedLayout(hash),
+      typeof indexedDB === "undefined" ? Promise.resolve([] as AlbumLayout[]) : readSavedLayouts(hash),
       editHash
         ? getLocalTripByEdit(editHash)
         : publicHash
@@ -735,18 +716,15 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       remote = null;
     }
 
-    const remoteLayout = isLayout(remote?.payload.layout) ? mergeLayout(remote.payload.layout) : undefined;
-    const localTripLayout = isLayout(localTrip?.payload.layout) ? mergeLayout(localTrip.payload.layout) : undefined;
+    if (seq !== bindSeq) return;
+
+    const remoteLayout = remote?.payload.layout;
+    const localTripLayout = localTrip?.payload.layout;
     const remoteEditHash = remote && "editHash" in remote ? remote.editHash : undefined;
-    const layout = idbLayout ?? localTripLayout ?? remoteLayout ?? seedLayout();
-    const photos = mergePhotoMaps(remote?.payload.photos, localTrip?.payload.photos, idbPhotos);
+    const layout = unifyLayouts(remoteLayout, localTripLayout, ...idbLayouts);
+    const photos = mergePhotoMaps(remote?.payload.photos, localTrip?.payload.photos, idbPhotos, get().photos);
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
-
-    if (typeof indexedDB !== "undefined") {
-      const key = storageKey(publicHash || (isFeatured ? FEATURED_SLUG : undefined), editHash);
-      void idbSet(LAYOUT_STORE, key, layout);
-    }
 
     set({
       ready: true,
@@ -776,7 +754,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       if (typeof window !== "undefined") {
         void idbSet(TEXT_STORE, "en", next.texts.en ?? {});
         void idbSet(TEXT_STORE, "de", next.texts.de ?? {});
-        void idbSet(LAYOUT_STORE, "album", next.layout);
+        void idbSet(LAYOUT_STORE, storageKey(get().publicHash, get().editHash), next.layout);
       }
       scheduleRemote(get);
     } catch {
@@ -866,7 +844,7 @@ function persistLayout(
   layoutTimer = window.setTimeout(() => {
     const state = get();
     const key = storageKey(state.publicHash, state.editHash);
-    void Promise.all([idbSet(LAYOUT_STORE, key, state.layout), idbSet(LAYOUT_STORE, "album", state.layout)])
+    void idbSet(LAYOUT_STORE, key, state.layout)
       .then(async () => {
         if (state.publicHash && state.editHash) {
           const existing =
