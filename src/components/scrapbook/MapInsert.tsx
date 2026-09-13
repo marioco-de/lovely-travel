@@ -27,8 +27,10 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
       <SlideIn from="right" delayMs={80} className="relative mx-auto w-full max-w-3xl">
         <div className="relative">
           <PortugalMap variant="hero" activeId={activeId} onSelect={onSelect} />
-          <Tape variant="airmail" rotation={16} className="top-5 right-[10%] w-32 md:w-40" />
-          <Tape variant="gingham" rotation={-11} className="bottom-8 left-[22%] w-36 md:w-44" />
+          <div className="pointer-events-none absolute inset-0 z-20 overflow-visible">
+            <Tape variant="airmail" rotation={16} className="top-5 right-[10%] w-32 md:w-40" />
+            <Tape variant="gingham" rotation={-11} className="bottom-8 left-[22%] w-36 md:w-44" />
+          </div>
           <p className="sr-only">
             Map tiles by Stamen Design, CC BY 3.0. Data © OpenStreetMap.
           </p>

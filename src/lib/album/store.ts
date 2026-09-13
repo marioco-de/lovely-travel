@@ -57,7 +57,7 @@ type AlbumState = {
   sourceLocale: Locale;
   bindTrip: (opts: { mode: "demo" | "view" | "edit"; publicHash?: string; editHash?: string }) => Promise<void>;
   ensureLocale: (locale: Locale) => Promise<void>;
-  createRemote: () => Promise<{ publicHash: string; editHash: string } | null>;
+  createRemote: () => Promise<{ publicHash: string; editHash: string; editPassword?: string } | null>;
 };
 
 const emptyTexts = (): AlbumTexts => Object.fromEntries(LOCALES.map((locale) => [locale, {}])) as AlbumTexts;
@@ -486,7 +486,10 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         editHash: trip.editHash,
         saveStatus: "saved",
       });
-      return { publicHash: trip.publicHash, editHash: trip.editHash ?? "" };
+      if (typeof window !== "undefined" && trip.editPassword) {
+        sessionStorage.setItem(`album-pw-${trip.publicHash}`, trip.editPassword);
+      }
+      return { publicHash: trip.publicHash, editHash: trip.editHash ?? "", editPassword: trip.editPassword };
     } catch {
       set({ saveStatus: "error" });
       return null;

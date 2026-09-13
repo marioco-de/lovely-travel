@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import type { Locale } from "@/lib/i18n/messages";
@@ -17,6 +18,7 @@ export type TripRecord = {
   id: string;
   publicHash: string;
   editHash?: string;
+  editPassword?: string;
   title: string;
   sourceLocale: Locale;
   payload: TripPayload;
@@ -50,6 +52,23 @@ function token(bytes: number) {
   return Buffer.from(crypto.getRandomValues(new Uint8Array(bytes))).toString("base64url");
 }
 
+function hashPassword(password: string) {
+  return createHash("sha256").update(password).digest("hex");
+}
+
+function sameSecret(left: string, right: string) {
+  const a = Buffer.from(left);
+  const b = Buffer.from(right);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+function memorablePassword() {
+  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+}
+
 function asPayload(raw: unknown): TripPayload {
   const parsed = payloadSchema.parse(raw ?? {});
   return {
@@ -75,6 +94,8 @@ export const createTrip = createServerFn({ method: "POST" })
     const id = newId();
     const publicHash = token(8);
     const editHash = token(18);
+    const editPassword = memorablePassword();
+    const passwordHash = hashPassword(editPassword);
     const rows = await sql<{
       id: string;
       public_hash: string;
@@ -85,8 +106,8 @@ export const createTrip = createServerFn({ method: "POST" })
       created_at: string;
       updated_at: string;
     }>`
-      insert into trips (id, public_hash, edit_hash, title, source_locale, payload)
-      values (${id}, ${publicHash}, ${editHash}, ${data.title}, ${data.sourceLocale}, ${JSON.stringify(data.payload)}::jsonb)
+      insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
+      values (${id}, ${publicHash}, ${editHash}, ${passwordHash}, ${data.title}, ${data.sourceLocale}, ${JSON.stringify(data.payload)}::jsonb)
       returning id, public_hash, edit_hash, title, source_locale, payload, created_at::text, updated_at::text
     `;
     const row = rows[0];
@@ -95,6 +116,7 @@ export const createTrip = createServerFn({ method: "POST" })
       id: row.id,
       publicHash: row.public_hash,
       editHash: row.edit_hash,
+      editPassword,
       title: row.title,
       sourceLocale: row.source_locale as Locale,
       payload: asPayload(row.payload),
@@ -163,6 +185,53 @@ export const getEditTrip = createServerFn({ method: "GET" })
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
+  });
+
+export const unlockTrip = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      publicHash: z.string().min(4).max(64).optional(),
+      password: z.string().min(1).max(80),
+    }),
+  )
+  .handler(async ({ data }): Promise<{ editHash: string } | null> => {
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const digest = hashPassword(data.password);
+    const rows = data.publicHash
+      ? await sql<{ edit_hash: string; edit_password_hash: string | null }>`
+          select edit_hash, edit_password_hash from trips where public_hash = ${data.publicHash} limit 1
+        `
+      : await sql<{ edit_hash: string; edit_password_hash: string | null }>`
+          select edit_hash, edit_password_hash from trips
+          where edit_hash = ${data.password} or edit_password_hash = ${digest}
+          limit 1
+        `;
+    const row = rows[0];
+    if (!row) return null;
+    const byHash = sameSecret(row.edit_hash, data.password);
+    const byPassword = Boolean(row.edit_password_hash) && sameSecret(row.edit_password_hash ?? "", digest);
+    if (!byHash && !byPassword) return null;
+    return { editHash: row.edit_hash };
+  });
+
+export const setTripPassword = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      editHash: z.string().min(8).max(64),
+      password: z.string().min(4).max(80),
+    }),
+  )
+  .handler(async ({ data }): Promise<{ ok: true } | { ok: false }> => {
+    const { getSql } = await import("@/lib/db");
+    const sql = await getSql();
+    const rows = await sql<{ id: string }>`
+      update trips
+      set edit_password_hash = ${hashPassword(data.password)}, updated_at = now()
+      where edit_hash = ${data.editHash}
+      returning id
+    `;
+    return rows[0] ? { ok: true } : { ok: false };
   });
 
 export const saveTrip = createServerFn({ method: "POST" })

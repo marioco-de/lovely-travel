@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { heroPhotos } from "@/lib/album/data";
 import { catalogSrc, type BlockKind, type I18nPair, type LayoutBlock, type LayoutDay } from "@/lib/album/layout";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
+import { setTripPassword } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 import { messages, type Locale, type MessageKey } from "@/lib/i18n/messages";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,8 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
   const hiddenPins = useAlbum((s) => s.hiddenPins);
   const togglePin = useAlbum((s) => s.togglePin);
   const saveStatus = useAlbum((s) => s.saveStatus);
+  const editHash = useAlbum((s) => s.editHash);
+  const publicHash = useAlbum((s) => s.publicHash);
 
   useEffect(() => {
     if (!open) return;
@@ -73,6 +76,7 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
             <p className="mt-1 font-display text-kicker tracking-widest text-lagoon-deep uppercase">
               {t(statusKey)}
             </p>
+            {editHash ? <PasswordSetter editHash={editHash} publicHash={publicHash} /> : null}
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <Stamp
@@ -324,6 +328,47 @@ function SlotPicker({ photoId }: { photoId: string }) {
           event.target.value = "";
         }}
       />
+    </div>
+  );
+}
+
+function PasswordSetter({ editHash, publicHash }: { editHash: string; publicHash?: string }) {
+  const t = useT();
+  const remembered = publicHash && typeof window !== "undefined" ? sessionStorage.getItem(`album-pw-${publicHash}`) : "";
+  const [password, setPassword] = useState(remembered ?? "");
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    if (password.trim().length < 4) return;
+    const result = await setTripPassword({ data: { editHash, password: password.trim() } });
+    if (result.ok) {
+      if (publicHash) sessionStorage.setItem(`album-pw-${publicHash}`, password.trim());
+      setSaved(true);
+    }
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <label className="font-display text-kicker tracking-widest text-ink-soft uppercase">
+        {t("ui.setPassword")}
+        <input
+          type="text"
+          value={password}
+          onChange={(event) => {
+            setPassword(event.target.value);
+            setSaved(false);
+          }}
+          className="album-field mt-1 block max-w-[14rem] py-1.5 text-sm normal-case tracking-normal"
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() => void save()}
+        className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
+      >
+        {t("ui.done")}
+      </button>
+      {saved ? <span className="font-script text-sm text-lagoon-deep">{t("ui.storageSaved")}</span> : null}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { AlbumEditor } from "./AlbumEditor";
 import { DayBlock } from "./DayBlock";
+import { EditUnlock } from "./EditUnlock";
 import { HeroCollage } from "./HeroCollage";
 import { LanguageToggle } from "./LanguageToggle";
 import { MapInsert } from "./MapInsert";
@@ -122,6 +123,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
         ) : (
           <span />
         )}
+        {!canEdit ? <EditUnlock publicHash={publicHash} /> : null}
       </footer>
 
       {canEdit || mode === "edit" ? <AlbumEditor open={editing} onClose={() => setEditing(false)} /> : null}
