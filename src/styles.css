@@ -257,25 +257,25 @@ body {
 }
 
 .photo-corner--tl {
-  top: -0.22rem;
-  left: -0.22rem;
+  top: calc(-0.22rem - 5px);
+  left: calc(-0.22rem - 5px);
 }
 
 .photo-corner--tr {
-  top: -0.22rem;
-  right: -0.22rem;
+  top: calc(-0.22rem - 5px);
+  right: calc(-0.22rem - 5px);
   transform: scaleX(-1);
 }
 
 .photo-corner--bl {
-  bottom: -0.22rem;
-  left: -0.22rem;
+  bottom: calc(-0.22rem - 5px);
+  left: calc(-0.22rem - 5px);
   transform: scaleY(-1);
 }
 
 .photo-corner--br {
-  bottom: -0.22rem;
-  right: -0.22rem;
+  bottom: calc(-0.22rem - 5px);
+  right: calc(-0.22rem - 5px);
   transform: scale(-1);
 }
 

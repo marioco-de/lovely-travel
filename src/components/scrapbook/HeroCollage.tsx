@@ -43,27 +43,29 @@ export function HeroCollage({ onEditTitle }: HeroCollageProps) {
       </header>
 
       <div className="relative flex flex-col">
-        <div className="relative w-[92%] max-w-3xl self-start md:w-[78%]">
-          <div className="photo-block">
-            <SlideIn from="left">
-              <Frame
-                photo={heroPhotos.lagoon}
-                priority
-                showCaption={false}
-                stamp={{ labelKey: "stamp.airmail", corner: "tr", variant: "postal", rotation: -12 }}
+        <div className="relative">
+          <div className="relative w-[92%] max-w-3xl md:w-[72%]">
+            <div className="photo-block">
+              <SlideIn from="left">
+                <Frame
+                  photo={heroPhotos.lagoon}
+                  priority
+                  showCaption={false}
+                  stamp={{ labelKey: "stamp.airmail", corner: "tr", variant: "postal", rotation: -12 }}
+                />
+              </SlideIn>
+              <PhotoCaption
+                as="div"
+                place={t("hero.place")}
+                caption={t("hero.caption")}
+                className="max-w-[13rem] sm:max-w-xs"
               />
-            </SlideIn>
-            <PhotoCaption
-              as="div"
-              place={t("hero.place")}
-              caption={t("hero.caption")}
-              className="max-w-[13rem] sm:max-w-xs"
-            />
+            </div>
           </div>
           <SlideIn
             from="right"
             delayMs={90}
-            className="z-10 mt-5 ml-auto w-[72%] max-w-xs md:absolute md:top-14 md:right-2 md:mt-0 md:w-[38%] md:max-w-sm"
+            className="z-10 mt-5 ml-auto w-[72%] max-w-xs md:absolute md:top-16 md:right-0 md:mt-0 md:w-[37%] md:max-w-sm"
           >
             <Polaroid photo={heroPhotos.courtyard} />
           </SlideIn>
