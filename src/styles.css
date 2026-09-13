@@ -722,6 +722,21 @@ body {
   text-shadow: 0.35px 0 0 rgb(61 42 28 / 0.18);
 }
 
+.day-heading-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.day-heading-copy h3,
+.day-heading-copy .live-text {
+  margin: 0;
+}
+
+.day-place-line {
+  color: var(--color-ink);
+}
+
 .photo-block {
   display: flex;
   flex-direction: column;

@@ -42,8 +42,13 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const placeName = stops[0] || pairText(day.place, locale);
   const catalog = PLACES[day.id];
   const pinLine = placeCaption(catalog, day.geo?.address);
-  const extras = stops.filter((stop) => !pinLine || !pinLine.toLowerCase().includes(stop.toLowerCase()));
-  const placeLine = [pinLine, ...extras].filter(Boolean).join(" · ");
+  const extras = stops.filter((stop) => {
+    const value = stop.toLowerCase();
+    if (title && value === title.toLowerCase()) return false;
+    if (pinLine && pinLine.toLowerCase().includes(value)) return false;
+    return true;
+  });
+  const placeLine = pinLine || extras.join(" · ");
   const editingPlaces = canEdit && placeEditId === day.id;
 
   function toPrint(photoId: string, i: number, placeLabel: string, caption: string): PrintPhoto {
@@ -88,22 +93,22 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
         <div className="min-w-0">
           <div className="relative z-20 mb-6 flex items-start gap-4 pl-8 md:mb-8 md:pl-16">
             <DayMark index={index} active={active} rotation={index % 2 === 0 ? -10 : 8} />
-            <div className="min-w-0">
+            <div className="day-heading-copy min-w-0">
               {canEdit ? (
                 <LiveText
                   tag="h3"
                   value={title}
                   onChange={(value) => setDayLabel(day.id, locale, value)}
                   placeholder={t("ui.dayTitle")}
-                  className="place-type text-left font-typewriter text-day leading-snug text-lagoon-deep"
+                  className="place-type text-left font-typewriter text-day leading-[1.15] text-lagoon-deep"
                 />
               ) : title ? (
-                <h3 className="place-type text-left font-typewriter text-day leading-snug text-lagoon-deep">
+                <h3 className="place-type m-0 text-left font-typewriter text-day leading-[1.15] text-lagoon-deep">
                   {title}
                 </h3>
               ) : null}
               {canEdit || editingPlaces ? (
-                <div className="mt-2 space-y-1">
+                <div className="space-y-1">
                   {(day.places?.length ? day.places : [day.place]).map((item, placeIndex) => (
                     <div key={`${day.id}-place-${placeIndex}`} className="flex items-center gap-2">
                       <LiveText
@@ -111,7 +116,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                         value={pairText(item, locale)}
                         onChange={(value) => setDayPlaceAt(day.id, placeIndex, locale, value)}
                         placeholder={t("ui.place")}
-                        className="place-type text-left font-typewriter text-kicker tracking-wide text-lagoon-deep"
+                        className="text-left font-typewriter text-kicker tracking-wide text-ink"
                       />
                       {placeIndex > 0 ? (
                         <button
@@ -125,19 +130,19 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                       ) : null}
                     </div>
                   ))}
-                  <button type="button" className="album-btn album-btn--ghost mt-1" onClick={() => addDayPlace(day.id)}>
+                  <button type="button" className="album-btn album-btn--ghost" onClick={() => addDayPlace(day.id)}>
                     + {t("ui.addPlaceName")}
                   </button>
                 </div>
               ) : placeLine ? (
-                <p className="place-type mt-1 text-left font-typewriter text-kicker tracking-wide text-lagoon-deep">
+                <p className="day-place-line m-0 text-left font-typewriter text-kicker tracking-wide text-ink">
                   {placeLine}
                 </p>
               ) : null}
               {canEdit ? (
                 <button
                   type="button"
-                  className="mt-2 font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
+                  className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline-offset-4 hover:underline"
                   onClick={() => setPlaceEditId(placeEditId === day.id ? null : day.id)}
                 >
                   {t("ui.place")}
