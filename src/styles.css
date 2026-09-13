@@ -50,10 +50,12 @@
   --motion-slow: 400ms;
   --motion-emphasis: 500ms;
   --motion-develop: 5s;
-  --motion-stamp: 420ms;
+  --motion-veil: 2.3s;
+  --motion-film: 2.7s;
   --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-stamp: cubic-bezier(0.34, 1.35, 0.64, 1);
+  --ease-develop-veil: cubic-bezier(0.75, 0, 1, 0.12);
 
   --text-kicker: clamp(0.75rem, 0.7rem + 0.2vw, 0.8125rem);
   --text-caption: clamp(1.05rem, 0.95rem + 0.4vw, 1.25rem);
@@ -479,7 +481,7 @@ body {
   position: relative;
   z-index: 0;
   display: block;
-  filter: grayscale(1) contrast(0.7) brightness(1.5) saturate(0);
+  filter: grayscale(0.08) contrast(1.32) brightness(1.12) saturate(2.55) hue-rotate(155deg);
 }
 
 .develop-veil {
@@ -488,28 +490,21 @@ body {
   z-index: 2;
   pointer-events: none;
   background: #8e8f89;
+  opacity: 1;
 }
 
 .develop-stage.is-developed .develop-veil {
-  animation: veil-lift var(--motion-develop) var(--ease-smooth-out) forwards;
+  animation: veil-lift var(--motion-veil) var(--ease-develop-veil) forwards;
 }
 
 .develop-stage.is-developed .polaroid-emulsion {
-  animation: develop-film var(--motion-develop) var(--ease-smooth-out) forwards;
+  animation: develop-film var(--motion-film) var(--motion-veil) var(--ease-smooth-out) both;
 }
 
 @keyframes veil-lift {
-  0%,
-  14% {
+  0% {
     opacity: 1;
   }
-  38% {
-    opacity: 0.52;
-  }
-  54% {
-    opacity: 0.12;
-  }
-  70%,
   100% {
     opacity: 0;
   }
@@ -517,16 +512,13 @@ body {
 
 @keyframes develop-film {
   0% {
-    filter: grayscale(1) contrast(0.7) brightness(1.55) saturate(0);
+    filter: grayscale(0.08) contrast(1.32) brightness(1.12) saturate(2.55) hue-rotate(155deg);
   }
-  34% {
-    filter: grayscale(0.12) contrast(1.28) brightness(1.1) saturate(2.4) hue-rotate(152deg);
-  }
-  52% {
-    filter: grayscale(0) contrast(1.12) brightness(1.04) saturate(1.65) hue-rotate(-16deg) sepia(0.28);
+  48% {
+    filter: grayscale(0) contrast(1.14) brightness(1.05) saturate(1.7) hue-rotate(-16deg) sepia(0.28);
   }
   100% {
-    filter: grayscale(0) contrast(1) brightness(1) saturate(1) hue-rotate(0deg);
+    filter: grayscale(0) contrast(1) brightness(1) saturate(1) hue-rotate(0deg) sepia(0);
   }
 }
 
