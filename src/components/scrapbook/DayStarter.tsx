@@ -9,6 +9,7 @@ export const DAY_CHOICES: { kind: BlockKind; key: MessageKey }[] = [
   { kind: "collage", key: "ui.addCollage" },
   { kind: "note", key: "ui.addNote" },
   { kind: "place", key: "ui.addPlace" },
+  { kind: "poi", key: "ui.addPoi" },
 ];
 
 type DayStarterProps = {

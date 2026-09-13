@@ -14,10 +14,42 @@ import { PLACES, type GeoHit } from "./places";
 
 export type I18nPair = { en: string; de: string } & Partial<Record<Locale, string>>;
 
-export type BlockKind = "collage" | "photo" | "polaroid" | "place" | "note";
+export type BlockKind = "collage" | "photo" | "polaroid" | "place" | "note" | "poi";
 
 export type PhotoFormat = "square" | "fourThree" | "original";
 export const PHOTO_FORMATS: PhotoFormat[] = ["square", "fourThree", "original"];
+
+export type PoiSize = 1 | 2 | 3;
+export const POI_SIZES: PoiSize[] = [1, 2, 3];
+export const POI_SKINS = ["ticket", "matchbox", "postcard", "coaster", "menu"] as const;
+export type PoiSkin = (typeof POI_SKINS)[number];
+
+export type PoiData = {
+  name: string;
+  category: string;
+  rating?: number;
+  photoUrl?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  placeId?: string;
+  size: PoiSize;
+  skin: PoiSkin;
+};
+
+export function nextPoiSize(current?: PoiSize): PoiSize {
+  const index = POI_SIZES.indexOf(current ?? 2);
+  return POI_SIZES[(index + 1) % POI_SIZES.length] ?? 1;
+}
+
+export function nextPoiSkin(current?: PoiSkin): PoiSkin {
+  const index = Math.max(0, POI_SKINS.indexOf(current ?? "ticket"));
+  return POI_SKINS[(index + 1) % POI_SKINS.length] ?? "ticket";
+}
+
+export function emptyPoi(): PoiData {
+  return { name: "", category: "", size: 2, skin: "ticket" };
+}
 
 export type PhotoNote = {
   title: I18nPair;
@@ -35,6 +67,7 @@ export type LayoutBlock = {
   body: I18nPair;
   photoNotes?: Record<string, PhotoNote>;
   writingPaper?: string;
+  poi?: PoiData;
 };
 
 export type LayoutDay = {
@@ -324,6 +357,7 @@ export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
     body: emptyPair(),
     photoNotes: {},
     writingPaper: kind === "note" ? "lined" : undefined,
+    poi: kind === "poi" ? emptyPoi() : undefined,
   };
 }
 

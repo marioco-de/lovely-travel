@@ -65,7 +65,7 @@ type AlbumState = {
   importBulk: (drafts: import("./bulk").BulkDayDraft[], onProgress?: (done: number, total: number) => void) => Promise<void>;
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
-  patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body" | "writingPaper">>) => void;
+  patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body" | "writingPaper" | "poi">>) => void;
   setPhotoMeta: (dayId: string, blockId: string, photoId: string, patch: Partial<Pick<PhotoNote, "frame" | "format">>) => void;
   setPhotoNote: (dayId: string, blockId: string, photoId: string, field: "title" | "caption", locale: Locale, value: string) => void;
   clearPhotoNote: (dayId: string, blockId: string, photoId: string) => void;

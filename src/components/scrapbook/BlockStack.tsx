@@ -8,6 +8,7 @@ import { DayStarter } from "./DayStarter";
 import { Frame } from "./Frame";
 import { NoteCard } from "./NoteCard";
 import { PlaceCard } from "./PlaceCard";
+import { PoiCard } from "./PoiCard";
 import { Polaroid } from "./Polaroid";
 import { SlideIn } from "./SlideIn";
 
@@ -69,6 +70,17 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
               paper={block.writingPaper}
               onBodyChange={(value) => patchPair(block, "body", value)}
               onCyclePaper={() => patchBlock(day.id, block.id, { writingPaper: nextWritingPaper(block.writingPaper) })}
+            />
+          );
+        } else if (block.kind === "poi") {
+          inner = (
+            <PoiCard
+              dayId={day.id}
+              blockId={block.id}
+              poi={block.poi ?? { name: blockPlace, category: "", size: 2, skin: "ticket" }}
+              caption={blockCaption}
+              onCaption={(value) => patchPair(block, "caption", value)}
+              onClearCaption={() => patchPair(block, "caption", "")}
             />
           );
         } else if (block.kind === "place") {

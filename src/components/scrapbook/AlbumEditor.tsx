@@ -22,6 +22,7 @@ const BLOCK_KINDS: { kind: BlockKind; label: MessageKey }[] = [
   { kind: "polaroid", label: "ui.addPolaroid" },
   { kind: "place", label: "ui.addPlace" },
   { kind: "note", label: "ui.addNote" },
+  { kind: "poi", label: "ui.addPoi" },
 ];
 
 export function AlbumEditor({ open, onClose }: AlbumEditorProps) {

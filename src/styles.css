@@ -1790,3 +1790,75 @@ body {
   }
 }
 
+.poi-card {
+  position: relative;
+  padding: 1rem 1.1rem 1.15rem;
+  color: var(--color-ink);
+  box-shadow: 0 8px 18px -10px rgb(61 42 28 / 0.35);
+}
+
+.poi-card--ticket {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 10px, rgb(61 42 28 / 0.08) 10px 11px),
+    #f7edd8;
+  border: 1px dashed rgb(61 42 28 / 0.28);
+}
+
+.poi-card--matchbox {
+  background: #c4a574;
+  color: #2c1c12;
+  box-shadow: inset 0 0 0 3px #8a6232, 0 8px 18px -10px rgb(61 42 28 / 0.35);
+}
+
+.poi-card--postcard {
+  background: #fbf6ec;
+  border: 1px solid rgb(61 42 28 / 0.2);
+  box-shadow: 0 1px 0 #fff inset, 0 8px 18px -10px rgb(61 42 28 / 0.35);
+}
+
+.poi-card--coaster {
+  background: #e8d7b3;
+  border-radius: 1.25rem;
+  border: 3px double rgb(61 42 28 / 0.25);
+}
+
+.poi-card--menu {
+  background:
+    repeating-linear-gradient(#f4ead4, #f4ead4 27px, rgb(61 42 28 / 0.08) 28px);
+  border-left: 6px solid #8a2f24;
+}
+
+.poi-name,
+.poi-name-input {
+  margin: 0;
+  text-align: center;
+}
+
+.poi-cat {
+  margin-top: 0.35rem;
+  text-align: center;
+}
+
+.poi-stars {
+  margin-top: 0.2rem;
+  text-align: center;
+  letter-spacing: 0.12em;
+  color: #8a2f24;
+  font-size: 0.85rem;
+}
+
+.poi-photo {
+  display: block;
+  width: 100%;
+  max-height: 10rem;
+  margin-top: 0.7rem;
+  object-fit: cover;
+  border: 1px solid rgb(61 42 28 / 0.15);
+}
+
+.poi-card--matchbox .poi-name,
+.poi-card--matchbox .poi-name-input,
+.poi-card--matchbox .poi-cat {
+  color: #2c1c12;
+}
+

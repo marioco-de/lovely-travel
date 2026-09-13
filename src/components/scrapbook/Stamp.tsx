@@ -7,7 +7,8 @@ import type { MessageKey } from "@/lib/i18n/messages";
 type StampVariant = "round" | "rect" | "postal";
 
 type StampProps = {
-  labelKey: MessageKey;
+  labelKey?: MessageKey;
+  label?: string;
   variant?: StampVariant;
   rotation?: number;
   className?: string;
@@ -45,6 +46,7 @@ function stampClass(
 export function Stamp(props: StampProps) {
   const {
     labelKey,
+    label: labelText,
     variant = "rect",
     rotation = -8,
     className,
@@ -55,7 +57,7 @@ export function Stamp(props: StampProps) {
   const t = useT();
   const { ref, inView } = useInView<HTMLElement>();
   const [settled, setSettled] = useState(false);
-  const label = t(labelKey);
+  const label = labelText || (labelKey ? t(labelKey) : "");
   const style = {
     "--stamp-rot": `${rotation}deg`,
     animationDelay: inView ? `${delayMs}ms` : undefined,

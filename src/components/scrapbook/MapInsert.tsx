@@ -1,4 +1,6 @@
-import { useT } from "@/lib/i18n/locale";
+import { COVER_ID } from "@/lib/album/layout";
+import { pairText, useAlbum } from "@/lib/album/store";
+import { useLocale, useT } from "@/lib/i18n/locale";
 import { PortugalLocator } from "./PortugalLocator";
 import { PortugalMap } from "./PortugalMap";
 import { SlideIn } from "./SlideIn";
@@ -12,16 +14,20 @@ type MapInsertProps = {
 
 export function MapInsert({ activeId, onSelect }: MapInsertProps) {
   const t = useT();
+  const locale = useLocale((s) => s.locale);
+  const days = useAlbum((s) => s.layout.days);
+  const route = days
+    .filter((day) => day.id !== COVER_ID)
+    .map((day) => pairText(day.place, locale).trim())
+    .filter(Boolean)
+    .filter((name, index, list) => list.findIndex((item) => item.toLowerCase() === name.toLowerCase()) === index)
+    .join(" — ");
 
   return (
     <section id="route-map" className="relative mx-auto w-full max-w-7xl scroll-mt-6 px-4 py-8 md:px-10 md:py-12 lg:px-16">
       <SlideIn from="left">
         <div className="relative mb-6 max-w-lg">
           <h2 className="font-display text-day leading-tight font-semibold text-ink">{t("map.title")}</h2>
-          <p className="mt-2 font-script text-caption text-ink-soft">{t("map.caption")}</p>
-          <p className="mt-3 font-display text-kicker tracking-widest text-lagoon-deep uppercase">
-            {t("ui.routeHint")}
-          </p>
         </div>
       </SlideIn>
 
@@ -35,13 +41,15 @@ export function MapInsert({ activeId, onSelect }: MapInsertProps) {
           <Tape variant="gingham" rotation={-11} className="-bottom-1 left-[18%] w-40 md:w-48" />
         </div>
         <p className="sr-only">Map tiles by Stamen Design, CC BY 3.0. Data © OpenStreetMap.</p>
-        <Stamp
-          labelKey="stamp.route"
-          variant="postal"
-          rotation={8}
-          delayMs={120}
-          className="pointer-events-none absolute -right-1 bottom-10 z-30 hidden sm:block"
-        />
+        {route ? (
+          <Stamp
+            label={route}
+            variant="postal"
+            rotation={8}
+            delayMs={120}
+            className="pointer-events-none absolute -right-1 bottom-10 z-30 hidden max-w-[11rem] sm:block"
+          />
+        ) : null}
       </div>
     </section>
   );

@@ -4,12 +4,13 @@ import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-const KINDS: { kind: BlockKind; key: "ui.addCollage" | "ui.addPhoto" | "ui.addPolaroid" | "ui.addPlace" | "ui.addNote" }[] = [
+const KINDS: { kind: BlockKind; key: "ui.addCollage" | "ui.addPhoto" | "ui.addPolaroid" | "ui.addPlace" | "ui.addNote" | "ui.addPoi" }[] = [
   { kind: "collage", key: "ui.addCollage" },
   { kind: "photo", key: "ui.addPhoto" },
   { kind: "polaroid", key: "ui.addPolaroid" },
   { kind: "place", key: "ui.addPlace" },
   { kind: "note", key: "ui.addNote" },
+  { kind: "poi", key: "ui.addPoi" },
 ];
 
 type BlockBarProps = {
