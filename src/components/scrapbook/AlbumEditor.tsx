@@ -90,7 +90,7 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
               onClick={() => void reset()}
               className="px-3 py-2"
             />
-            <Stamp as="button" variant="rect" labelKey="ui.done" rotation={4} pressed onClick={onClose} className="px-3 py-2" />
+            <Stamp as="button" variant="rect" labelKey="ui.save" rotation={4} pressed onClick={onClose} className="px-3 py-2" />
           </div>
         </header>
 

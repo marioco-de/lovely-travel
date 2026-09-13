@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FEATURED_SLUG } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
@@ -11,12 +10,16 @@ import { LanguageToggle } from "./LanguageToggle";
 type AlbumMenuProps = {
   variant?: "album" | "home";
   onEdit?: () => void;
+  onSave?: () => void;
 };
 
-export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
+export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps) {
   const t = useT();
   const publicHash = useAlbum((s) => s.publicHash);
   const canEdit = useAlbum((s) => s.canEdit);
+  const editHash = useAlbum((s) => s.editHash);
+  const lockEdit = useAlbum((s) => s.lockEdit);
+  const enableEdit = useAlbum((s) => s.enableEdit);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlock, setUnlock] = useState(false);
@@ -73,7 +76,19 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
       setOpen(false);
       return;
     }
+    if (editHash) {
+      enableEdit();
+      onEdit?.();
+      setOpen(false);
+      return;
+    }
     setUnlock(true);
+  }
+
+  function onSaveClick() {
+    lockEdit();
+    onSave?.();
+    setOpen(false);
   }
 
   const menu = (
@@ -114,23 +129,32 @@ export function AlbumMenu({ variant = "album", onEdit }: AlbumMenuProps) {
           </button>
           {variant === "album" ? (
             <div>
-              <button
-                type="button"
-                role="menuitem"
-                className="menu-link flex min-h-11 w-full items-center gap-2"
-                onClick={onEditClick}
-                aria-label={t("ui.edit")}
-              >
-                — <Pencil size={16} strokeWidth={2.2} aria-hidden="true" />
-                <span className="sr-only">{t("ui.edit")}</span>
-              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="menu-link flex min-h-11 w-full items-center"
+                  onClick={onSaveClick}
+                >
+                  — {t("ui.save")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="menu-link flex min-h-11 w-full items-center"
+                  onClick={onEditClick}
+                >
+                  — {t("ui.edit")}
+                </button>
+              )}
               {unlock && !canEdit && publicHash ? (
                 <div className="mt-2">
                   <EditUnlock
                     publicHash={publicHash}
                     autoOpen
                     onUnlocked={() => {
-                      onEdit?.();
+                      enableEdit();
                       setOpen(false);
                     }}
                   />

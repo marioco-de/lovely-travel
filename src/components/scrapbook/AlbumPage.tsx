@@ -74,7 +74,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
         {t("ui.skipToMap")}
       </a>
 
-      <AlbumMenu onEdit={() => setEditorOpen(true)} />
+      <AlbumMenu onEdit={() => setEditorOpen(true)} onSave={() => setEditorOpen(false)} />
 
       <HeroCollage />
       <MapInsert activeId={activeId} onSelect={openDay} />

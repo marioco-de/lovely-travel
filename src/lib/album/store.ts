@@ -62,6 +62,7 @@ type AlbumState = {
   reset: () => Promise<void>;
   canEdit: boolean;
   enableEdit: () => void;
+  lockEdit: () => void;
   unlockFeatured: () => void;
   tripId?: string;
   publicHash?: string;
@@ -216,6 +217,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   placeEditId: null,
   setPlaceEditId: (id) => set({ placeEditId: id }),
   enableEdit: () => set({ canEdit: true }),
+  lockEdit: () => set({ canEdit: false, placeEditId: null }),
   unlockFeatured: () => {
     writeFeaturedUnlock();
     set({
