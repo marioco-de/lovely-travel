@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useLightbox } from "@/lib/album/lightbox";
+import { useOpenDayLightbox } from "@/lib/album/lightbox";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
@@ -49,7 +49,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
   const setPhotoMeta = useAlbum((s) => s.setPhotoMeta);
   const [captionOpen, setCaptionOpen] = useState(false);
   const src = usePhotoSrc(photo.id, "src" in photo ? photo.src : "");
-  const openLightbox = useLightbox((s) => s.open);
+  const openDay = useOpenDayLightbox();
   const isDetail = photo.kind === "detail";
   const corners = "corners" in photo ? (photo.corners ?? (isDetail ? "scallop" : "black")) : "black";
   const cornerSet: CornerSet =
@@ -92,7 +92,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
               <button
                 type="button"
                 className="block h-full w-full cursor-zoom-in"
-                onClick={() => openLightbox({ src, alt, place, caption })}
+                onClick={() => openDay(dayId, `photo:${photo.id}`, { src, alt, place, caption })}
               >
                 <DevelopingImage key={src} src={src} alt={alt} priority={priority} />
               </button>

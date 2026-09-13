@@ -9,16 +9,16 @@ const SETS: Record<CornerSet, readonly (typeof ALL)[number][]> = {
 };
 
 const SRC: Record<CornerStyle, string> = {
-  black: "/patterns/corner-classic.svg",
-  kraft: "/patterns/corner-classic.svg",
-  gold: "/patterns/corner-classic.svg",
-  leather: "/patterns/corner-classic.svg",
-  brass: "/patterns/corner-classic.svg",
-  ivory: "/patterns/corner-classic.svg",
-  burgundy: "/patterns/corner-classic.svg",
-  vellum: "/patterns/corner-classic.svg",
-  olive: "/patterns/corner-ink.svg",
+  black: "/patterns/corner-black.svg",
+  kraft: "/patterns/corner-kraft.svg",
+  gold: "/patterns/corner-gold.svg",
   scallop: "/patterns/corner-scalloped.svg",
+  leather: "/patterns/corner-leather.svg",
+  brass: "/patterns/corner-brass.svg",
+  ivory: "/patterns/corner-ivory.svg",
+  olive: "/patterns/corner-olive.svg",
+  burgundy: "/patterns/corner-burgundy.svg",
+  vellum: "/patterns/corner-vellum.svg",
 };
 
 type PhotoCornersProps = {

@@ -3,6 +3,7 @@ import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { nextPoiSize, nextPoiSkin, type PoiData } from "@/lib/album/layout";
 import { searchPoi, type PoiHit } from "@/lib/album/geocode";
+import { useOpenDayLightbox } from "@/lib/album/lightbox";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -33,6 +34,7 @@ function Stars({ rating }: { rating?: number }) {
 export function PoiCard({ dayId, blockId, poi, caption, onCaption, onClearCaption }: PoiCardProps) {
   const t = useT();
   const canEdit = useAlbum((s) => s.canEdit);
+  const openDay = useOpenDayLightbox();
   const patchBlock = useAlbum((s) => s.patchBlock);
   const removeBlock = useAlbum((s) => s.removeBlock);
   const [query, setQuery] = useState(poi.name);
@@ -105,7 +107,13 @@ export function PoiCard({ dayId, blockId, poi, caption, onCaption, onClearCaptio
 
   return (
     <SlideIn from="left" className="poi-block max-w-sm">
-      <div className={cn("poi-card", `poi-card--${skin}`, `poi-card--s${size}`)} ref={wrapRef}>
+      <div
+        className={cn("poi-card", `poi-card--${skin}`, `poi-card--s${size}`, !canEdit && poi.name && "cursor-zoom-in")}
+        ref={wrapRef}
+        onClick={() => {
+          if (!canEdit && poi.name) openDay(dayId, `poi:${blockId}`);
+        }}
+      >
         {canEdit ? (
           <div className="relative">
             <input

@@ -68,6 +68,8 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
             <NoteCard
               body={body}
               paper={block.writingPaper}
+              dayId={day.id}
+              blockId={block.id}
               onBodyChange={(value) => patchPair(block, "body", value)}
               onCyclePaper={() => patchBlock(day.id, block.id, { writingPaper: nextWritingPaper(block.writingPaper) })}
             />
@@ -88,6 +90,8 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
             <PlaceCard
               place={blockPlace}
               caption={blockCaption || body}
+              dayId={day.id}
+              blockId={block.id}
               onPlaceChange={(value) => patchPair(block, "place", value)}
               onCaptionChange={(value) => patchPair(block, "caption", value)}
             />

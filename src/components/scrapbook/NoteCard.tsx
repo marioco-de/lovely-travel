@@ -1,5 +1,6 @@
 import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOpenDayLightbox } from "@/lib/album/lightbox";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { LiveText } from "./LiveText";
@@ -10,18 +11,26 @@ type NoteCardProps = {
   body: string;
   paper?: string;
   className?: string;
+  dayId?: string;
+  blockId?: string;
   onBodyChange?: (value: string) => void;
   onCyclePaper?: () => void;
 };
 
-export function NoteCard({ body, paper = "lined", className, onBodyChange, onCyclePaper }: NoteCardProps) {
+export function NoteCard({ body, paper = "lined", className, dayId, blockId, onBodyChange, onCyclePaper }: NoteCardProps) {
   const t = useT();
   const canEdit = useAlbum((s) => s.canEdit);
+  const openDay = useOpenDayLightbox();
   if (!body && !canEdit) return null;
   return (
     <SlideIn from="left" className={cn("max-w-lg", className)}>
       <div className="write-paper-wrap">
-        <div className={cn("write-paper", `write-paper--${paper}`)}>
+        <div
+          className={cn("write-paper", `write-paper--${paper}`, !canEdit && body && "cursor-zoom-in")}
+          onClick={() => {
+            if (!canEdit && dayId && blockId && body) openDay(dayId, `note:${blockId}`);
+          }}
+        >
           {canEdit && onBodyChange ? (
             <LiveText
               value={body}

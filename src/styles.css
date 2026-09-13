@@ -333,25 +333,6 @@ body {
   filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
 }
 
-.photo-corners--kraft .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2)) sepia(0.55) saturate(1.15);
-}
-
-.photo-corners--gold .photo-corner,
-.photo-corners--brass .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2)) sepia(0.9) saturate(1.7) hue-rotate(8deg);
-}
-
-.photo-corners--leather .photo-corner,
-.photo-corners--burgundy .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.2)) sepia(0.45) hue-rotate(-18deg) saturate(1.25) brightness(0.86);
-}
-
-.photo-corners--ivory .photo-corner,
-.photo-corners--vellum .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.16)) brightness(1.12) saturate(0.55);
-}
-
 .photo-banderole {
   position: absolute;
   inset: 0;
@@ -1802,6 +1783,42 @@ body {
   color: var(--color-ink);
   background: var(--color-page);
   box-shadow: 0 2px 8px rgb(61 42 28 / 0.16);
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  place-items: center;
+  color: var(--color-ink);
+  background: var(--color-page);
+  box-shadow: 0 2px 10px rgb(61 42 28 / 0.2);
+  transform: translateY(-50%);
+}
+
+.lightbox-nav--prev {
+  left: max(0.4rem, calc(50% - 22rem));
+}
+
+.lightbox-nav--next {
+  right: max(0.4rem, calc(50% - 22rem));
+}
+
+.lightbox-note {
+  min-height: 10rem;
+  padding: 1.4rem 1.1rem 1.2rem;
+}
+
+.lightbox-place {
+  padding: 1.6rem 1.1rem 1.4rem;
+  text-align: center;
+}
+
+.lightbox-poi {
+  margin: 0.4rem 0.15rem 0;
 }
 
 @keyframes lightbox-settle {
