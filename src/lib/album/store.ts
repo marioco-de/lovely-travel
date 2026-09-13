@@ -4,6 +4,7 @@ import { days, heroPhotos, type AlbumPhoto } from "./data";
 import { applyFields, collectFields, type AlbumTexts } from "./fields";
 import { geocodePortugal } from "./geocode";
 import { FEATURED_EDIT_HASH, FEATURED_SLUG, readFeaturedUnlock, writeFeaturedUnlock } from "./featured";
+import { isStoredPhotoUrl, mediaUrl, removeAlbumPhoto, uploadAlbumPhoto } from "./photo-store";
 import { createTrip, getEditTrip, getPublicTrip, saveTrip } from "./trips";
 import { ensureTranslations } from "./translate";
 import {
@@ -371,6 +372,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     set({ photos: next, saveStatus: "saving" });
     try {
       await idbSet(PHOTO_STORE, id, new Blob());
+      const editHash = get().editHash;
+      if (editHash) await removeAlbumPhoto({ data: { editHash, photoId: id } });
       scheduleRemote(get);
       set({ saveStatus: "saved" });
     } catch {
@@ -383,18 +386,30 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     try {
       for (const { id, file } of files) {
         const blob = await prepareImage(file);
-        const url = URL.createObjectURL(blob);
+        const localUrl = URL.createObjectURL(blob);
         const prev = next[id];
-        next[id] = url;
+        next[id] = localUrl;
         if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
         await idbSet(PHOTO_STORE, id, blob);
+        set({ photos: { ...next } });
+        const { editHash, publicHash } = get();
+        if (editHash && publicHash) {
+          const dataUrl = await blobToDataUrl(blob);
+          const uploaded = await uploadAlbumPhoto({ data: { editHash, photoId: id, data: dataUrl } });
+          if (uploaded && "url" in uploaded && uploaded.url) {
+            if (next[id]?.startsWith("blob:")) URL.revokeObjectURL(next[id]);
+            next[id] = uploaded.url;
+            set({ photos: { ...next } });
+          } else {
+            throw new Error("upload missed");
+          }
+        }
       }
-      set({ photos: next, saveStatus: "saving" });
       const state = get();
       const key = storageKey(state.publicHash, state.editHash);
       await idbSet(LAYOUT_STORE, key, state.layout);
       scheduleRemote(get);
-      set({ saveStatus: "saved" });
+      set({ photos: next, saveStatus: "saved" });
     } catch {
       set({ photos: next, saveStatus: "error" });
     }
@@ -825,8 +840,13 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const remoteLayout = remote?.payload.layout;
     const localTripLayout = localTrip?.payload.layout;
     const remoteEditHash = remote && "editHash" in remote ? remote.editHash : undefined;
-    const layout = unifyLayouts(remoteLayout, localTripLayout, ...idbLayouts);
-    const photos = mergePhotoMaps(remote?.payload.photos, localTrip?.payload.photos, idbPhotos, get().photos);
+    const layout = remoteLayout
+      ? unifyLayouts(remoteLayout, localTripLayout, ...idbLayouts)
+      : unifyLayouts(localTripLayout, ...idbLayouts);
+    const remotePhotos = remote?.payload.photos ?? {};
+    const photos = Object.keys(remotePhotos).length
+      ? mergePhotoMaps(idbPhotos, localTrip?.payload.photos, remotePhotos)
+      : mergePhotoMaps(remotePhotos, localTrip?.payload.photos, idbPhotos, get().photos);
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
 
@@ -964,7 +984,7 @@ function persistLayout(
               layout: state.layout,
               texts: state.texts,
               hiddenPins: state.hiddenPins,
-              photos: existing?.payload.photos ?? {},
+              photos: storedPhotoMap(state.publicHash, state.photos),
             },
             createdAt: existing?.createdAt ?? new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -984,21 +1004,8 @@ function scheduleRemote(get: () => AlbumState) {
   if (!get().editHash) return;
   window.clearTimeout(remoteTimer);
   remoteTimer = window.setTimeout(() => {
-    void pushRemote(get());
+    void pushRemote(get()).catch(() => useAlbum.setState({ saveStatus: "error" }));
   }, 700);
-}
-
-async function encodePhotos(photos: Record<string, string>) {
-  const out: Record<string, string> = {};
-  for (const [id, url] of Object.entries(photos)) {
-    if (url.startsWith("data:")) {
-      out[id] = url;
-      continue;
-    }
-    const blob = await idbGet<Blob>(PHOTO_STORE, id);
-    if (blob) out[id] = await blobToDataUrl(blob);
-  }
-  return out;
 }
 
 function blobToDataUrl(blob: Blob) {
@@ -1010,27 +1017,35 @@ function blobToDataUrl(blob: Blob) {
   });
 }
 
-async function fitRemotePayload(
-  layout: AlbumLayout,
-  texts: AlbumTexts,
-  hiddenPins: Record<string, boolean>,
-  photos: Record<string, string>,
-) {
-  const base = { layout, texts, hiddenPins, photos: {} as Record<string, string> };
-  const entries = Object.entries(photos).sort((a, b) => a[1].length - b[1].length);
-  for (const [id, data] of entries) {
-    const next = { ...base.photos, [id]: data };
-    if (JSON.stringify({ ...base, photos: next }).length > 3_200_000) break;
-    base.photos = next;
+function storedPhotoMap(publicHash: string | undefined, photos: Record<string, string>) {
+  const out: Record<string, string> = {};
+  for (const [id, url] of Object.entries(photos)) {
+    if (!url || url === CLEARED_PHOTO) continue;
+    if (isStoredPhotoUrl(url) || url.startsWith("data:")) out[id] = url;
+    else if (publicHash) out[id] = mediaUrl(publicHash, id);
   }
-  return base;
+  return out;
+}
+
+async function pushPendingUploads(state: AlbumState) {
+  const next = { ...state.photos };
+  if (!state.editHash || !state.publicHash) return storedPhotoMap(state.publicHash, next);
+  for (const [id, url] of Object.entries(next)) {
+    if (!url || url === CLEARED_PHOTO || isStoredPhotoUrl(url)) continue;
+    const blob = url.startsWith("data:") ? null : await idbGet<Blob>(PHOTO_STORE, id);
+    const dataUrl = url.startsWith("data:") ? url : blob && blob.size > 0 ? await blobToDataUrl(blob) : "";
+    if (!dataUrl) continue;
+    const uploaded = await uploadAlbumPhoto({ data: { editHash: state.editHash, photoId: id, data: dataUrl } });
+    if (uploaded && "url" in uploaded && uploaded.url) next[id] = uploaded.url;
+  }
+  return storedPhotoMap(state.publicHash, next);
 }
 
 async function pushRemote(state: AlbumState) {
   if (!state.editHash) return;
-  const photos = await encodePhotos(state.photos);
+  const photos = await pushPendingUploads(state);
   const title = state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely";
-  const remotePayload = await fitRemotePayload(state.layout, state.texts, state.hiddenPins, photos);
+  const remotePayload = { layout: state.layout, texts: state.texts, hiddenPins: state.hiddenPins, photos };
   if (state.publicHash) {
     try {
       const existing =
@@ -1047,22 +1062,18 @@ async function pushRemote(state: AlbumState) {
         updatedAt: new Date().toISOString(),
       });
     } catch {
-      /* keep going */
+      /* still try the server */
     }
   }
-  try {
-    const result = await saveTrip({
-      data: {
-        editHash: state.editHash,
-        title,
-        sourceLocale: state.sourceLocale,
-        payload: remotePayload,
-      },
-    });
-    if (!result || !("ok" in result) || !result.ok) throw new Error("remote save missed");
-  } catch {
-    /* local copy already written */
-  }
+  const result = await saveTrip({
+    data: {
+      editHash: state.editHash,
+      title,
+      sourceLocale: state.sourceLocale,
+      payload: remotePayload,
+    },
+  });
+  if (!result || !("ok" in result) || !result.ok) throw new Error("remote save missed");
 }
 
 export function usePhotoSrc(photo: AlbumPhoto | string, fallback?: string) {
