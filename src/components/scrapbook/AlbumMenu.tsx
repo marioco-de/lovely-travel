@@ -92,27 +92,29 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   }
 
   const menu = (
-    <div ref={wrapRef} className="album-chrome-fixed">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={t("ui.menu")}
-        onClick={(event) => {
-          event.stopPropagation();
-          setOpen((value) => !value);
-          setUnlock(false);
-        }}
-        className={cn(
-          "stamp-mark is-settled grid min-h-11 min-w-11 place-items-center border-2 border-double border-current px-3 py-2 font-display text-lg font-semibold leading-none tracking-widest",
-          open && "is-active",
-        )}
-        style={{ ["--stamp-rot" as string]: "-3deg" }}
-      >
-        ⋯
-      </button>
+    <div ref={wrapRef} className="album-chrome-layer">
+      <div className="album-chrome-fixed">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-label={t("ui.menu")}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+            setUnlock(false);
+          }}
+          className={cn(
+            "stamp-mark is-settled grid min-h-11 min-w-11 place-items-center border-2 border-double border-current px-3 py-2 font-display text-lg font-semibold leading-none tracking-widest",
+            open && "is-active",
+          )}
+          style={{ ["--stamp-rot" as string]: "-3deg" }}
+        >
+          ⋯
+        </button>
+      </div>
       {open ? (
-        <div role="menu" className="caption-strip album-menu-panel mt-2 min-w-[13.5rem] space-y-3 p-3">
+        <div role="menu" className="caption-strip album-menu-panel min-w-[13.5rem] space-y-3 p-3">
           <div className="album-menu-lang">
             <p className="mb-2 font-display text-[0.65rem] tracking-widest text-ink-soft uppercase">
               {t("ui.language")}
