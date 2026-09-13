@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { isDayNumberLabel, type LayoutDay } from "@/lib/album/layout";
+import { COVER_ID, isDayNumberLabel, type LayoutDay } from "@/lib/album/layout";
 import { PLACES, placeCaption } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { BlockStack } from "./BlockStack";
 import { BulkImportButton } from "./BulkImport";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { DayMark } from "./DayMark";
 import { PaperLayer } from "./PaperLayer";
 import { PlaceField } from "./PlaceField";
@@ -26,7 +28,9 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const setDayGeo = useAlbum((s) => s.setDayGeo);
   const addDayPlace = useAlbum((s) => s.addDayPlace);
   const removeDayPlace = useAlbum((s) => s.removeDayPlace);
+  const removeDay = useAlbum((s) => s.removeDay);
   const reverse = index % 2 === 1;
+  const [confirmDay, setConfirmDay] = useState(false);
   const titleRaw = pairText(day.label, locale);
   const title = isDayNumberLabel(titleRaw) ? "" : titleRaw;
   const stops = (day.places?.length ? day.places : [day.place]).map((item) => pairText(item, locale)).filter(Boolean);
@@ -111,6 +115,11 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   <button type="button" className="album-btn album-btn--ghost" onClick={() => addDayPlace(day.id)}>
                     + {t("ui.addPlaceName")}
                   </button>
+                  {day.id !== COVER_ID ? (
+                    <button type="button" className="album-btn album-btn--ghost" onClick={() => setConfirmDay(true)}>
+                      {t("ui.removeDay")}
+                    </button>
+                  ) : null}
                   <BulkImportButton className="album-btn--ghost" />
                 </div>
               ) : placeLine ? (
@@ -124,6 +133,15 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
           <BlockStack day={day} reverse={reverse} />
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDay}
+        title={t("ui.confirmDay")}
+        onCancel={() => setConfirmDay(false)}
+        onConfirm={() => {
+          setConfirmDay(false);
+          removeDay(day.id);
+        }}
+      />
     </article>
   );
 }

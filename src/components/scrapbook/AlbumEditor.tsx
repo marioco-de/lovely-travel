@@ -173,7 +173,7 @@ function DayEditor({ day }: { day: LayoutDay }) {
         <h4 className="place-type font-typewriter text-place text-lagoon-deep">
           {day.label.de || day.label.en}
         </h4>
-        {!day.builtIn ? (
+        {day.id !== COVER_ID ? (
           <button type="button" onClick={() => setConfirm(true)} className="album-btn album-btn--danger">
             {t("ui.removeDay")}
           </button>

@@ -16,8 +16,8 @@ export type I18nPair = { en: string; de: string } & Partial<Record<Locale, strin
 
 export type BlockKind = "collage" | "photo" | "polaroid" | "place" | "note" | "poi";
 
-export type PhotoFormat = "square" | "fourThree" | "original";
-export const PHOTO_FORMATS: PhotoFormat[] = ["square", "fourThree", "original"];
+export type PhotoFormat = "square" | "fourThree" | "original" | "oval";
+export const PHOTO_FORMATS: PhotoFormat[] = ["square", "fourThree", "original", "oval"];
 
 export type PoiSize = 1 | 2 | 3;
 export const POI_SIZES: PoiSize[] = [1, 2, 3];
@@ -51,11 +51,28 @@ export function emptyPoi(): PoiData {
   return { name: "", category: "", size: 2, skin: "ticket" };
 }
 
+export type PhotoCrop = { x: number; y: number; z: number };
+
+export function emptyCrop(): PhotoCrop {
+  return { x: 0, y: 0, z: 1 };
+}
+
+export function clampCrop(crop: PhotoCrop): PhotoCrop {
+  const z = Math.min(3, Math.max(1, Number.isFinite(crop.z) ? crop.z : 1));
+  const max = 48 * (1 - 1 / z);
+  return {
+    z,
+    x: Math.min(max, Math.max(-max, crop.x || 0)),
+    y: Math.min(max, Math.max(-max, crop.y || 0)),
+  };
+}
+
 export type PhotoNote = {
   title: I18nPair;
   caption: I18nPair;
   frame?: CornerStyle;
   format?: PhotoFormat;
+  crop?: PhotoCrop;
 };
 
 export type LayoutBlock = {
@@ -104,6 +121,7 @@ export type PrintPhoto = {
   corners?: CornerStyle;
   cornerSet?: CornerSet;
   format?: PhotoFormat;
+  crop?: PhotoCrop;
 };
 
 const emptyPair = (): I18nPair => ({ en: "", de: "" });
@@ -185,6 +203,7 @@ export function nextFormat(current?: PhotoFormat): PhotoFormat {
 export function formatLabel(format?: PhotoFormat) {
   if (format === "square") return "1:1";
   if (format === "fourThree") return "4:3";
+  if (format === "oval") return "O";
   return "orig";
 }
 
@@ -343,8 +362,8 @@ export function unifyLayouts(...candidates: Array<AlbumLayout | undefined>): Alb
   };
 }
 
-export const COLLAGE_MIN = 3;
-export const COLLAGE_MAX = 8;
+export const COLLAGE_MIN = 2;
+export const COLLAGE_MAX = 10;
 
 export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
   const photoCount = kind === "collage" ? COLLAGE_MIN : kind === "photo" || kind === "polaroid" ? 1 : 0;

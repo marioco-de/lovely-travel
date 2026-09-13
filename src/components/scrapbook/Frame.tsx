@@ -5,11 +5,11 @@ import { useLocale, useT } from "@/lib/i18n/locale";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
 import { nextFrame, nextFormat, type PhotoFormat, type PrintPhoto } from "@/lib/album/layout";
-import { DevelopingImage } from "./DevelopingImage";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoCorners } from "./PhotoCorners";
 import { PhotoEdgeStamp } from "./PhotoEdgeStamp";
 import { PhotoEditTools } from "./PhotoEditTools";
+import { PhotoStage } from "./PhotoStage";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 const rotateClass: Record<RotateDir, string> = {
@@ -54,11 +54,20 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
   const cornerSet: CornerSet =
     "cornerSet" in photo && photo.cornerSet ? photo.cornerSet : isDetail ? "diagonal" : "all";
   const format: PhotoFormat = "format" in photo && photo.format ? photo.format : "original";
+  const crop = "crop" in photo ? photo.crop : undefined;
+  const oval = format === "oval";
   const alt = isCatalog(photo) ? t(photo.altKey) : photo.alt;
   const place = isCatalog(photo) ? t(photo.placeKey) : photo.place;
   const caption = isCatalog(photo) ? t(photo.captionKey) : photo.caption;
-  const aspect =
-    format === "square" ? "aspect-square" : format === "fourThree" ? "aspect-[4/3]" : isDetail ? "aspect-[4/3]" : "aspect-video";
+  const aspect = oval
+    ? "aspect-[3/4]"
+    : format === "square"
+      ? "aspect-square"
+      : format === "fourThree"
+        ? "aspect-[4/3]"
+        : isDetail
+          ? "aspect-[4/3]"
+          : "aspect-video";
 
   function writeTitle(value: string) {
     if (dayId && blockId) setPhotoNote(dayId, blockId, photo.id, "title", locale, value);
@@ -81,20 +90,26 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
   function cycleFormat() {
     if (dayId && blockId) setPhotoMeta(dayId, blockId, photo.id, { format: nextFormat(format) });
   }
+  function writeCrop(next: { x: number; y: number; z: number }) {
+    if (dayId && blockId) setPhotoMeta(dayId, blockId, photo.id, { crop: next });
+  }
 
   return (
     <figure className={cn("photo-block relative", canEdit && src && "photo-block--tabs", className)}>
       <div className={cn("photo-print relative", rotateClass[photo.rotate])}>
-        <div className="photo-shadow photo-mat relative overflow-visible bg-mat p-1.5">
-          <div className={cn("relative overflow-hidden bg-page-deep", aspect)}>
+        <div className={cn("photo-shadow photo-mat relative overflow-visible bg-mat p-1.5", oval && "photo-mat--oval")}>
+          <div className={cn("relative overflow-hidden bg-page-deep", aspect, oval && "rounded-[50%]")}>
             {src ? (
-              <button
-                type="button"
-                className="block h-full w-full cursor-zoom-in"
-                onClick={() => openDay(dayId, `photo:${photo.id}`, { src, alt, place, caption })}
-              >
-                <DevelopingImage key={src} src={src} alt={alt} priority={priority} />
-              </button>
+              <PhotoStage
+                src={src}
+                alt={alt}
+                crop={crop}
+                oval={oval}
+                editable={canEdit}
+                priority={priority}
+                onCrop={writeCrop}
+                onOpen={() => openDay(dayId, `photo:${photo.id}`, { src, alt, place, caption })}
+              />
             ) : canEdit ? (
               <label className="photo-add grid h-full cursor-pointer place-items-center">
                 <input
@@ -127,7 +142,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
               />
             ) : null}
           </div>
-          <PhotoCorners variant={corners} set={cornerSet} />
+          {!oval ? <PhotoCorners variant={corners} set={cornerSet} /> : null}
         </div>
         <div className="photo-under">
           {showCaption && !captionOpen ? <PhotoCaption place={place} caption={caption} /> : null}
