@@ -16,6 +16,11 @@ export type I18nPair = { en: string; de: string } & Partial<Record<Locale, strin
 
 export type BlockKind = "collage" | "photo" | "polaroid" | "place" | "note";
 
+export type PhotoNote = {
+  title: I18nPair;
+  caption: I18nPair;
+};
+
 export type LayoutBlock = {
   id: string;
   kind: BlockKind;
@@ -23,6 +28,7 @@ export type LayoutBlock = {
   place: I18nPair;
   caption: I18nPair;
   body: I18nPair;
+  photoNotes?: Record<string, PhotoNote>;
 };
 
 export type LayoutDay = {
@@ -99,14 +105,46 @@ function pairFrom(enKey: keyof typeof en, deFallback?: string): I18nPair {
 }
 
 function photoToBlock(photo: (typeof days)[number]["photos"][number], dayPlace: I18nPair): LayoutBlock {
+  const caption = photo.captionKey ? pairFrom(photo.captionKey) : emptyPair();
   return {
     id: `block-${photo.id}`,
     kind: photo.kind === "polaroid" ? "polaroid" : "photo",
     photoIds: [photo.id],
     place: photo.placeKey ? pairFrom(photo.placeKey) : { ...dayPlace },
-    caption: photo.captionKey ? pairFrom(photo.captionKey) : emptyPair(),
+    caption,
     body: emptyPair(),
+    photoNotes: {
+      [photo.id]: {
+        title: emptyPair(),
+        caption,
+      },
+    },
   };
+}
+
+export function emptyPhotoNote(): PhotoNote {
+  return { title: emptyPair(), caption: emptyPair() };
+}
+
+export function noteForPhoto(block: LayoutBlock, photoId: string, index = 0): PhotoNote {
+  const existing = block.photoNotes?.[photoId];
+  if (existing) return existing;
+  const cat = catalogPhoto(photoId);
+  if (cat?.captionKey) {
+    return { title: emptyPair(), caption: pairFrom(cat.captionKey) };
+  }
+  if (index === 0 && (block.caption.en || block.caption.de)) {
+    return { title: emptyPair(), caption: { ...block.caption } };
+  }
+  return emptyPhotoNote();
+}
+
+export function withPhotoNotes(block: LayoutBlock): LayoutBlock {
+  const photoNotes: Record<string, PhotoNote> = { ...block.photoNotes };
+  block.photoIds.forEach((id, index) => {
+    if (!photoNotes[id]) photoNotes[id] = noteForPhoto(block, id, index);
+  });
+  return { ...block, photoNotes };
 }
 
 function uniquePlaces(primary: I18nPair, extras: I18nPair[]): I18nPair[] {
@@ -152,7 +190,7 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
     days: saved.days.map((day) => {
       const fromSeed = seed.days.find((item) => item.id === day.id);
       const places = day.places?.length ? day.places : uniquePlaces(day.place, fromSeed?.places ?? []);
-      if (!fromSeed) return { ...day, places };
+      if (!fromSeed) return { ...day, places, blocks: day.blocks.map(withPhotoNotes) };
       const numberLabel =
         isDayNumberLabel(day.label.en) || isDayNumberLabel(day.label.de);
       return {
@@ -163,6 +201,7 @@ export function mergeLayout(saved: AlbumLayout): AlbumLayout {
         places,
         place: places[0] ?? day.place,
         label: numberLabel ? fromSeed.label : day.label,
+        blocks: day.blocks.map(withPhotoNotes),
       };
     }),
   };
@@ -180,6 +219,7 @@ export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
     place: { ...dayPlace },
     caption: emptyPair(),
     body: emptyPair(),
+    photoNotes: {},
   };
 }
 

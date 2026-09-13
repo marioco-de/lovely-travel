@@ -33,6 +33,12 @@ export function collectFields(source: Locale, texts: AlbumTexts, layout: AlbumLa
       if (caption) fields.push({ key: `block:${block.id}:caption`, text: caption });
       const body = pairValue(block.body, source);
       if (body) fields.push({ key: `block:${block.id}:body`, text: body });
+      for (const [photoId, note] of Object.entries(block.photoNotes ?? {})) {
+        const title = pairValue(note.title, source);
+        if (title) fields.push({ key: `block:${block.id}:photo:${photoId}:title`, text: title });
+        const photoCaption = pairValue(note.caption, source);
+        if (photoCaption) fields.push({ key: `block:${block.id}:photo:${photoId}:caption`, text: photoCaption });
+      }
     }
   }
   return fields;
@@ -59,11 +65,23 @@ export function applyFields(layout: AlbumLayout, texts: AlbumTexts, locale: Loca
         const blockPlace = translated[`block:${block.id}:place`];
         const caption = translated[`block:${block.id}:caption`];
         const body = translated[`block:${block.id}:body`];
+        const photoNotes = { ...block.photoNotes };
+        for (const photoId of block.photoIds) {
+          const title = translated[`block:${block.id}:photo:${photoId}:title`];
+          const photoCaption = translated[`block:${block.id}:photo:${photoId}:caption`];
+          if (!title && !photoCaption) continue;
+          const current = photoNotes[photoId] ?? { title: { en: "", de: "" }, caption: { en: "", de: "" } };
+          photoNotes[photoId] = {
+            title: title ? { ...current.title, [locale]: title } : current.title,
+            caption: photoCaption ? { ...current.caption, [locale]: photoCaption } : current.caption,
+          };
+        }
         return {
           ...block,
           place: blockPlace ? { ...block.place, [locale]: blockPlace } : block.place,
           caption: caption ? { ...block.caption, [locale]: caption } : block.caption,
           body: body ? { ...block.body, [locale]: body } : block.body,
+          photoNotes,
         };
       }),
     };

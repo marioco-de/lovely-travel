@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { catalogSrc, cornersFor, isDayNumberLabel, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
+import { catalogSrc, cornersFor, isDayNumberLabel, noteForPhoto, rotateFor, type LayoutBlock, type LayoutDay, type PrintPhoto } from "@/lib/album/layout";
 import { PLACES, placeCaption } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
@@ -51,13 +51,13 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const placeLine = pinLine || extras.join(" · ");
   const editingPlaces = canEdit && placeEditId === day.id;
 
-  function toPrint(photoId: string, i: number, placeLabel: string, caption: string): PrintPhoto {
+  function toPrint(photoId: string, i: number, title: string, caption: string): PrintPhoto {
     const mount = cornersFor(photoId, i + index);
     return {
       id: photoId,
       src: photos[photoId] ?? catalogSrc(photoId),
-      alt: caption || placeLabel || placeName,
-      place: placeLabel,
+      alt: caption || title || placeName,
+      place: title,
       caption,
       kind: "landscape",
       rotate: rotateFor(`${photoId}:${day.id}:${i}`),
@@ -159,6 +159,11 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
               const visibleIds = block.photoIds.filter((id) => photos[id] || catalogSrc(id));
               const photoId = visibleIds[0] ?? block.photoIds[0];
 
+              function printOf(id: string, i: number) {
+                const note = noteForPhoto(block, id, i);
+                return toPrint(id, blockIndex + i, pairText(note.title, locale), pairText(note.caption, locale));
+              }
+
               let inner = null;
               if (block.kind === "note") {
                 inner = (
@@ -184,44 +189,30 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                   inner = (
                     <SlideIn from="left" className="w-3/4 max-w-xs self-end md:w-[42%] md:max-w-sm">
                       <Polaroid
-                        photo={{
-                          ...toPrint(photoId, blockIndex, blockPlace, blockCaption),
-                          kind: "polaroid",
-                          rotate: "right",
-                        }}
-                        onPlaceChange={(value) => patchPair(block, "place", value)}
-                        onCaptionChange={(value) => patchPair(block, "caption", value)}
+                        photo={{ ...printOf(photoId, 0), kind: "polaroid", rotate: "right" }}
+                        dayId={day.id}
+                        blockId={block.id}
                       />
                     </SlideIn>
                   );
                 }
               } else if (block.kind === "collage") {
-                const tiles = (canEdit ? block.photoIds : visibleIds).map((id, i) =>
-                  toPrint(id, blockIndex + i, blockPlace, blockCaption),
-                );
+                const tiles = (canEdit ? block.photoIds : visibleIds).map((id, i) => printOf(id, i));
                 if (tiles.length === 0) inner = null;
                 else {
                   inner = (
                     <CollageBlock
                       photos={tiles}
-                      place={blockPlace}
-                      caption={blockCaption}
                       reverse={reverse}
                       dayId={day.id}
                       blockId={block.id}
-                      onPlaceChange={(value) => patchPair(block, "place", value)}
-                      onCaptionChange={(value) => patchPair(block, "caption", value)}
                     />
                   );
                 }
               } else if (photoId) {
                 inner = (
                   <SlideIn from="left" className="day-frame max-w-3xl">
-                    <Frame
-                      photo={toPrint(photoId, blockIndex, blockPlace, blockCaption)}
-                      onPlaceChange={(value) => patchPair(block, "place", value)}
-                      onCaptionChange={(value) => patchPair(block, "caption", value)}
-                    />
+                    <Frame photo={printOf(photoId, 0)} dayId={day.id} blockId={block.id} />
                   </SlideIn>
                 );
               }

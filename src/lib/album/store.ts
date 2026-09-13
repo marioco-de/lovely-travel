@@ -12,6 +12,7 @@ import {
   COLLAGE_MIN,
   emptyBlock,
   emptyDay,
+  emptyPhotoNote,
   mergeLayout,
   seedLayout,
   type AlbumLayout,
@@ -57,6 +58,8 @@ type AlbumState = {
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
   patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body">>) => void;
+  setPhotoNote: (dayId: string, blockId: string, photoId: string, field: "title" | "caption", locale: Locale, value: string) => void;
+  clearPhotoNote: (dayId: string, blockId: string, photoId: string) => void;
   addPhotoSlot: (dayId: string, blockId: string) => void;
   removePhotoSlot: (dayId: string, blockId: string, photoId: string) => void;
   reset: () => Promise<void>;
@@ -482,6 +485,48 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       mapDays(get().layout, dayId, (day) => ({
         ...day,
         blocks: day.blocks.map((block) => (block.id === blockId ? { ...block, ...patch } : block)),
+      })),
+    );
+  },
+  setPhotoNote: (dayId, blockId, photoId, field, locale, value) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => ({
+        ...day,
+        blocks: day.blocks.map((block) => {
+          if (block.id !== blockId) return block;
+          const current = block.photoNotes?.[photoId] ?? emptyPhotoNote();
+          return {
+            ...block,
+            photoNotes: {
+              ...block.photoNotes,
+              [photoId]: {
+                ...current,
+                [field]: { ...current[field], [locale]: value },
+              },
+            },
+          };
+        }),
+      })),
+    );
+  },
+  clearPhotoNote: (dayId, blockId, photoId) => {
+    persistLayout(
+      set,
+      get,
+      mapDays(get().layout, dayId, (day) => ({
+        ...day,
+        blocks: day.blocks.map((block) => {
+          if (block.id !== blockId) return block;
+          return {
+            ...block,
+            photoNotes: {
+              ...block.photoNotes,
+              [photoId]: emptyPhotoNote(),
+            },
+          };
+        }),
       })),
     );
   },

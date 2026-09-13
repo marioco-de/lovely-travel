@@ -328,9 +328,9 @@ function BlockEditor({
       ) : null}
       {block.kind === "note" ? (
         <PairPlain pair={block.body} labelKey="ui.note" multiline onChange={(locale, value) => patchBlock(dayId, block.id, { body: { ...block.body, [locale]: value } })} />
-      ) : (
+      ) : block.kind === "place" ? (
         <PairPlain pair={block.caption} labelKey="ui.caption" multiline onChange={(locale, value) => patchBlock(dayId, block.id, { caption: { ...block.caption, [locale]: value } })} />
-      )}
+      ) : null}
 
       {block.kind === "collage" || block.kind === "photo" || block.kind === "polaroid" ? (
         <div className="flex flex-wrap gap-3">

@@ -3,30 +3,21 @@ import { COLLAGE_MAX, COLLAGE_MIN, type PrintPhoto } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { Frame } from "./Frame";
-import { PhotoCaption } from "./PhotoCaption";
 import { Polaroid } from "./Polaroid";
 import { SlideIn } from "./SlideIn";
 
 type CollageBlockProps = {
   photos: PrintPhoto[];
-  place: string;
-  caption: string;
   reverse?: boolean;
   dayId?: string;
   blockId?: string;
-  onPlaceChange?: (value: string) => void;
-  onCaptionChange?: (value: string) => void;
 };
 
 export function CollageBlock({
   photos,
-  place,
-  caption,
   reverse = false,
   dayId,
   blockId,
-  onPlaceChange,
-  onCaptionChange,
 }: CollageBlockProps) {
   const t = useT();
   const canEdit = useAlbum((s) => s.canEdit);
@@ -49,9 +40,9 @@ export function CollageBlock({
               className={`collage-tile collage-tile--${index}`}
             >
               {polaroid ? (
-                <Polaroid photo={{ ...photo, kind: "polaroid" }} />
+                <Polaroid photo={{ ...photo, kind: "polaroid" }} dayId={dayId} blockId={blockId} />
               ) : (
-                <Frame photo={photo} showCaption={false} />
+                <Frame photo={photo} dayId={dayId} blockId={blockId} />
               )}
             </SlideIn>
           );
@@ -78,13 +69,6 @@ export function CollageBlock({
           </button>
         </div>
       ) : null}
-      <PhotoCaption
-        place={place}
-        caption={caption}
-        className="mx-auto max-w-md"
-        onPlaceChange={onPlaceChange}
-        onCaptionChange={onCaptionChange}
-      />
     </div>
   );
 }

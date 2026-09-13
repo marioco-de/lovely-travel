@@ -764,6 +764,53 @@ body {
   overflow: visible;
 }
 
+.photo-edit-tools {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  z-index: 8;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.photo-tool {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(61 42 28 / 0.28);
+  background: rgb(251 246 236 / 0.9);
+  color: var(--color-ink);
+  box-shadow: 0 2px 8px rgb(61 42 28 / 0.16);
+  backdrop-filter: blur(8px);
+}
+
+.photo-tool.is-on {
+  background: var(--color-ink);
+  color: var(--color-mat);
+}
+
+.photo-caption-editor {
+  position: absolute;
+  top: calc(100% - 0.2rem);
+  right: 0.55rem;
+  left: 0.55rem;
+  z-index: 12;
+  padding: 0.7rem 0.85rem 0.85rem;
+}
+
+.photo-caption-clear {
+  margin-top: 0.5rem;
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-typewriter);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-soft);
+}
+
 .lang-fan-leaf {
   position: absolute;
   right: calc(100% + 0.4rem);
