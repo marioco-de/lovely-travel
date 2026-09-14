@@ -1,19 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AlbumPage } from "@/components/scrapbook/AlbumPage";
-import { FEATURED_SLUG } from "@/lib/album/featured";
-import { ensureFeaturedTrip } from "@/lib/album/trips";
+import { PRIVATE_SLUG } from "@/lib/album/featured";
+import { ensurePrivateTrip } from "@/lib/album/trips";
 
 export const Route = createFileRoute("/portugal-mit-michael")({
   loader: async () => {
     try {
-      return await ensureFeaturedTrip();
+      return await ensurePrivateTrip();
     } catch {
-      return { publicHash: FEATURED_SLUG };
+      return { publicHash: PRIVATE_SLUG };
     }
   },
-  component: FeaturedAlbum,
+  component: PrivateAlbum,
 });
 
-function FeaturedAlbum() {
-  return <AlbumPage mode="view" publicHash={FEATURED_SLUG} />;
+function PrivateAlbum() {
+  return <AlbumPage mode="view" publicHash={PRIVATE_SLUG} />;
 }

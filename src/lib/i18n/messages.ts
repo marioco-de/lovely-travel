@@ -1,8 +1,8 @@
 export const en = {
-  "meta.title": "Portugal mit Michael",
+  "meta.title": "Portugal-Urlaub",
   "meta.description":
     "A cream-page scrapbook of a late-summer route from the Azores to the Algarve.",
-  "album.title": "Portugal mit Michael",
+  "album.title": "Portugal-Urlaub",
   "album.kicker": "A late-summer album",
   "album.year": "Portugal · 2026",
   "home.mark": "Lovely",
@@ -11,7 +11,7 @@ export const en = {
   "home.lead":
     "Polaroids develop as you scroll. Pins on a watercolor map. Cream paper, stamps, the trip as it felt.",
   "home.featuredKicker": "An album already on the table",
-  "home.featured": "Portugal mit Michael",
+  "home.featured": "Portugal-Urlaub",
   "home.featuredLine": "Porto to Lagos, late summer.",
   "home.featuredOpen": "Open the album →",
   "home.featuredDays": "Porto · Coimbra · Lisbon · Lagos",
@@ -185,10 +185,10 @@ export const LOCALE_LABEL: Record<Locale, MessageKey> = {
 };
 
 export const de: Record<MessageKey, string> = {
-  "meta.title": "Portugal mit Michael",
+  "meta.title": "Portugal-Urlaub",
   "meta.description":
     "Ein Album auf Creme-Papier: Spätsommer-Route von den Azoren bis zur Algarve.",
-  "album.title": "Portugal mit Michael",
+  "album.title": "Portugal-Urlaub",
   "album.kicker": "Ein Album vom Spätsommer",
   "album.year": "Portugal · 2026",
   "home.mark": "Lovely",
@@ -197,7 +197,7 @@ export const de: Record<MessageKey, string> = {
   "home.lead":
     "Polaroids entwickeln sich beim Scrollen. Pins auf einer Aquarellkarte. Creme-Papier, Stempel, die Reise, wie sie war.",
   "home.featuredKicker": "Ein Album liegt schon auf dem Tisch",
-  "home.featured": "Portugal mit Michael",
+  "home.featured": "Portugal-Urlaub",
   "home.featuredLine": "Porto bis Lagos, Spätsommer.",
   "home.featuredOpen": "Album öffnen →",
   "home.featuredDays": "Porto · Coimbra · Lissabon · Lagos",

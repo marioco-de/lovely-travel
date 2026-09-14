@@ -13,9 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PortugalMitMichaelRouteImport } from './routes/portugal-mit-michael'
+import { Route as PortugalUrlaubRouteImport } from './routes/portugal-urlaub'
 import { Route as EHashRouteImport } from './routes/e.$hash'
 import { Route as THashRouteImport } from './routes/t.$hash'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as MediaHashIdRouteImport } from './routes/media.$hash.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,6 +39,11 @@ const PortugalMitMichaelRoute = PortugalMitMichaelRouteImport.update({
   path: '/portugal-mit-michael',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortugalUrlaubRoute = PortugalUrlaubRouteImport.update({
+  id: '/portugal-urlaub',
+  path: '/portugal-urlaub',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EHashRoute = EHashRouteImport.update({
   id: '/e/$hash',
   path: '/e/$hash',
@@ -52,24 +59,33 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MediaHashIdRoute = MediaHashIdRouteImport.update({
+  id: '/media/$hash/$id',
+  path: '/media/$hash/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/portugal-mit-michael': typeof PortugalMitMichaelRoute
+  '/portugal-urlaub': typeof PortugalUrlaubRoute
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/media/$hash/$id': typeof MediaHashIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/portugal-mit-michael': typeof PortugalMitMichaelRoute
+  '/portugal-urlaub': typeof PortugalUrlaubRoute
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/media/$hash/$id': typeof MediaHashIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,9 +93,11 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/portugal-mit-michael': typeof PortugalMitMichaelRoute
+  '/portugal-urlaub': typeof PortugalUrlaubRoute
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/media/$hash/$id': typeof MediaHashIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,27 +106,33 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/portugal-mit-michael'
+    | '/portugal-urlaub'
     | '/e/$hash'
     | '/t/$hash'
     | '/api/auth/$'
+    | '/media/$hash/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/login'
     | '/portugal-mit-michael'
+    | '/portugal-urlaub'
     | '/e/$hash'
     | '/t/$hash'
     | '/api/auth/$'
+    | '/media/$hash/$id'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/login'
     | '/portugal-mit-michael'
+    | '/portugal-urlaub'
     | '/e/$hash'
     | '/t/$hash'
     | '/api/auth/$'
+    | '/media/$hash/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,9 +140,11 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
   PortugalMitMichaelRoute: typeof PortugalMitMichaelRoute
+  PortugalUrlaubRoute: typeof PortugalUrlaubRoute
   EHashRoute: typeof EHashRoute
   THashRoute: typeof THashRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  MediaHashIdRoute: typeof MediaHashIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -151,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortugalMitMichaelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portugal-urlaub': {
+      id: '/portugal-urlaub'
+      path: '/portugal-urlaub'
+      fullPath: '/portugal-urlaub'
+      preLoaderRoute: typeof PortugalUrlaubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/e/$hash': {
       id: '/e/$hash'
       path: '/e/$hash'
@@ -172,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/media/$hash/$id': {
+      id: '/media/$hash/$id'
+      path: '/media/$hash/$id'
+      fullPath: '/media/$hash/$id'
+      preLoaderRoute: typeof MediaHashIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -180,9 +220,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
   PortugalMitMichaelRoute: PortugalMitMichaelRoute,
+  PortugalUrlaubRoute: PortugalUrlaubRoute,
   EHashRoute: EHashRoute,
   THashRoute: THashRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  MediaHashIdRoute: MediaHashIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

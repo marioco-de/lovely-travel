@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import type { Locale } from "@/lib/i18n/messages";
-import { FEATURED_EDIT_HASH, FEATURED_PASSWORD, FEATURED_SLUG, FEATURED_TITLE } from "./featured";
+import { FEATURED_EDIT_HASH, FEATURED_PASSWORD, FEATURED_SLUG, FEATURED_TITLE, PRIVATE_EDIT_HASH, PRIVATE_SLUG, PRIVATE_TITLE } from "./featured";
 import { seedLayout, type AlbumLayout } from "./layout";
 import type { AlbumTexts } from "./store";
 
@@ -214,6 +214,14 @@ export const unlockTrip = createServerFn({ method: "POST" })
       }
       return { editHash: FEATURED_EDIT_HASH };
     }
+    if (publicHash === PRIVATE_SLUG && password.toLowerCase() === FEATURED_PASSWORD) {
+      try {
+        await ensurePrivateTrip();
+      } catch {
+        /* still unlock */
+      }
+      return { editHash: PRIVATE_EDIT_HASH };
+    }
     const digest = hashPassword(password);
     const sql = await ensurePasswordColumn();
     const rows = await sql<{ edit_hash: string; edit_password_hash: string | null }>`
@@ -232,18 +240,6 @@ export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
     const existing = await sql<{ public_hash: string }>`
       select public_hash from trips where public_hash = ${FEATURED_SLUG} limit 1
     `;
-    if (existing[0]) {
-      await sql`
-        update trips
-        set edit_password_hash = ${digest},
-            edit_hash = ${FEATURED_EDIT_HASH},
-            title = ${FEATURED_TITLE},
-            updated_at = now()
-        where public_hash = ${FEATURED_SLUG}
-      `;
-      return { publicHash: FEATURED_SLUG };
-    }
-    const id = newId();
     const payload = JSON.stringify({
       layout: seedLayout(),
       texts: {
@@ -253,11 +249,59 @@ export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
       hiddenPins: {},
       photos: {},
     });
+    if (existing[0]) {
+      await sql`
+        update trips
+        set edit_password_hash = ${digest},
+            edit_hash = ${FEATURED_EDIT_HASH},
+            title = ${FEATURED_TITLE},
+            payload = ${payload}::jsonb,
+            updated_at = now()
+        where public_hash = ${FEATURED_SLUG}
+      `;
+      return { publicHash: FEATURED_SLUG };
+    }
+    const id = newId();
     await sql`
       insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
       values (${id}, ${FEATURED_SLUG}, ${FEATURED_EDIT_HASH}, ${digest}, ${FEATURED_TITLE}, ${"de"}, ${payload}::jsonb)
     `;
     return { publicHash: FEATURED_SLUG };
+  },
+);
+
+export const ensurePrivateTrip = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ publicHash: string }> => {
+    const sql = await ensurePasswordColumn();
+    const digest = hashPassword(FEATURED_PASSWORD);
+    const existing = await sql<{ public_hash: string }>`
+      select public_hash from trips where public_hash = ${PRIVATE_SLUG} limit 1
+    `;
+    if (existing[0]) {
+      await sql`
+        update trips
+        set edit_hash = ${PRIVATE_EDIT_HASH},
+            edit_password_hash = coalesce(edit_password_hash, ${digest}),
+            updated_at = now()
+        where public_hash = ${PRIVATE_SLUG}
+      `;
+      return { publicHash: PRIVATE_SLUG };
+    }
+    const id = newId();
+    const payload = JSON.stringify({
+      layout: seedLayout(),
+      texts: {
+        en: { "album.title": PRIVATE_TITLE },
+        de: { "album.title": PRIVATE_TITLE },
+      },
+      hiddenPins: {},
+      photos: {},
+    });
+    await sql`
+      insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
+      values (${id}, ${PRIVATE_SLUG}, ${PRIVATE_EDIT_HASH}, ${digest}, ${PRIVATE_TITLE}, ${"de"}, ${payload}::jsonb)
+    `;
+    return { publicHash: PRIVATE_SLUG };
   },
 );
 

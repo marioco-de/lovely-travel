@@ -44,7 +44,7 @@ export function HomeLanding() {
         <h2 className="mt-2 font-typewriter text-day text-lagoon-deep">{t("home.featured")}</h2>
         <p className="mt-1 font-script text-caption text-ink-soft">{t("home.featuredLine")}</p>
         <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink">{t("home.featuredDays")}</p>
-        <a href="/portugal-mit-michael" className="album-btn mt-4 inline-flex">
+        <a href="/portugal-urlaub" className="album-btn mt-4 inline-flex">
           {t("home.featuredOpen")}
         </a>
       </section>

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { FEATURED_EDIT_HASH, FEATURED_SLUG, matchesFeaturedPassword } from "@/lib/album/featured";
+import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG, matchesFeaturedPassword } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { unlockTrip } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -26,6 +26,11 @@ export function EditUnlock({ publicHash, autoOpen = false, onUnlocked }: EditUnl
       unlockFeatured();
       onUnlocked?.();
       window.location.href = `/e/${FEATURED_EDIT_HASH}`;
+      return;
+    }
+    if (publicHash === PRIVATE_SLUG && matchesFeaturedPassword(secret)) {
+      onUnlocked?.();
+      window.location.href = `/e/${PRIVATE_EDIT_HASH}`;
       return;
     }
     setBusy(true);

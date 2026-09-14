@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { FEATURED_SLUG } from "@/lib/album/featured";
+import { FEATURED_SLUG, PRIVATE_SLUG } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { EditUnlock } from "./EditUnlock";
@@ -51,10 +51,12 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   async function share() {
     const url =
       publicHash === FEATURED_SLUG || (!publicHash && variant === "home")
-        ? `${window.location.origin}/portugal-mit-michael`
-        : publicHash
-          ? `${window.location.origin}/t/${publicHash}`
-          : window.location.href;
+        ? `${window.location.origin}/portugal-urlaub`
+        : publicHash === PRIVATE_SLUG
+          ? `${window.location.origin}/portugal-mit-michael`
+          : publicHash
+            ? `${window.location.origin}/t/${publicHash}`
+            : window.location.href;
     try {
       if (navigator.share) {
         await navigator.share({ title: t("album.title"), url });

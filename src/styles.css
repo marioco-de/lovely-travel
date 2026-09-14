@@ -284,84 +284,53 @@ body {
 
 .photo-corner {
   position: absolute;
-  box-sizing: border-box;
-  width: 32px;
-  height: 32px;
-  max-width: 32px;
-  max-height: 32px;
-  overflow: hidden;
-  background: transparent;
+  width: 28px;
+  height: 28px;
+  max-width: 28px;
+  max-height: 28px;
   pointer-events: none;
-}
-
-.photo-corner::before,
-.photo-corner::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: #e8d4b0;
-  box-shadow: 0 1px 1px rgb(61 42 28 / 0.2);
-}
-
-.photo-corner::before {
-  width: 32px;
-  height: 9px;
-  border-bottom: 1px solid rgb(74 44 24 / 0.4);
-}
-
-.photo-corner::after {
-  width: 9px;
-  height: 32px;
-  border-right: 1px solid rgb(74 44 24 / 0.4);
+  background-repeat: no-repeat;
+  background-size: 28px 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath fill='%23E8D4B0' stroke='%234A2C18' stroke-width='1' d='M0.5 0.5H27.5V8.5H8.5V27.5H0.5Z'/%3E%3C/svg%3E");
 }
 
 .collage-tile .photo-corner {
-  width: 20px;
-  height: 20px;
-  max-width: 20px;
-  max-height: 20px;
-}
-
-.collage-tile .photo-corner::before {
-  width: 20px;
-  height: 6px;
-}
-
-.collage-tile .photo-corner::after {
-  width: 6px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  max-width: 18px;
+  max-height: 18px;
+  background-size: 18px 18px;
 }
 
 .photo-corner--tl {
-  top: 0;
-  left: 0;
+  top: -1px;
+  left: -1px;
   transform: none;
 }
 
 .photo-corner--tr {
-  top: 0;
-  right: 0;
+  top: -1px;
+  right: -1px;
   transform: scaleX(-1);
-  transform-origin: top right;
 }
 
 .photo-corner--bl {
-  bottom: 0;
-  left: 0;
+  bottom: -1px;
+  left: -1px;
   transform: scaleY(-1);
-  transform-origin: bottom left;
 }
 
 .photo-corner--br {
-  bottom: 0;
-  right: 0;
+  bottom: -1px;
+  right: -1px;
   transform: scale(-1);
-  transform-origin: bottom right;
 }
 
-.photo-corner img {
-  display: none;
+.photo-corner img,
+.photo-corner::before,
+.photo-corner::after {
+  display: none !important;
+  content: none;
 }
 
 .photo-banderole {
