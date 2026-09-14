@@ -285,93 +285,87 @@ body {
 .photo-corner {
   position: absolute;
   box-sizing: border-box;
-  width: 1.6rem;
-  height: 1.6rem;
-  max-width: 1.6rem;
-  max-height: 1.6rem;
+  width: 32px;
+  height: 32px;
+  max-width: 32px;
+  max-height: 32px;
   overflow: hidden;
-  background: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+.photo-corner::before,
+.photo-corner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #e8d4b0;
+  box-shadow: 0 1px 1px rgb(61 42 28 / 0.2);
+}
+
+.photo-corner::before {
+  width: 32px;
+  height: 9px;
+  border-bottom: 1px solid rgb(74 44 24 / 0.4);
+}
+
+.photo-corner::after {
+  width: 9px;
+  height: 32px;
+  border-right: 1px solid rgb(74 44 24 / 0.4);
 }
 
 .collage-tile .photo-corner {
-  width: 1.05rem;
-  height: 1.05rem;
-  max-width: 1.05rem;
-  max-height: 1.05rem;
+  width: 20px;
+  height: 20px;
+  max-width: 20px;
+  max-height: 20px;
 }
 
-@media (min-width: 768px) {
-  .photo-corner {
-    width: 1.85rem;
-    height: 1.85rem;
-    max-width: 1.85rem;
-    max-height: 1.85rem;
-  }
+.collage-tile .photo-corner::before {
+  width: 20px;
+  height: 6px;
+}
 
-  .collage-tile .photo-corner {
-    width: 1.15rem;
-    height: 1.15rem;
-    max-width: 1.15rem;
-    max-height: 1.15rem;
-  }
+.collage-tile .photo-corner::after {
+  width: 6px;
+  height: 20px;
 }
 
 .photo-corner--tl {
-  top: -0.12rem;
-  left: -0.12rem;
+  top: 0;
+  left: 0;
   transform: none;
 }
 
 .photo-corner--tr {
-  top: -0.12rem;
-  right: -0.12rem;
+  top: 0;
+  right: 0;
   transform: scaleX(-1);
-  transform-origin: center;
+  transform-origin: top right;
 }
 
 .photo-corner--bl {
-  bottom: -0.12rem;
-  left: -0.12rem;
+  bottom: 0;
+  left: 0;
   transform: scaleY(-1);
-  transform-origin: center;
+  transform-origin: bottom left;
 }
 
 .photo-corner--br {
-  bottom: -0.12rem;
-  right: -0.12rem;
+  bottom: 0;
+  right: 0;
   transform: scale(-1);
-  transform-origin: center;
+  transform-origin: bottom right;
 }
 
-.photo-corner img,
-.photo-print .photo-corner img,
-.polaroid-shadow .photo-corner img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: top left;
-  outline: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.photo-corners .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
+.photo-corner img {
+  display: none;
 }
 
 .photo-banderole {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 6;
-  overflow: visible;
-}
-
-.photo-banderole .photo-corner {
-  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.18));
+  display: none;
 }
 
 .banderole-edge {
