@@ -284,14 +284,17 @@ body {
 
 .photo-corner {
   position: absolute;
+  box-sizing: border-box;
   width: 28px;
   height: 28px;
   max-width: 28px;
   max-height: 28px;
   pointer-events: none;
   background-repeat: no-repeat;
+  background-position: top left;
   background-size: 28px 28px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath fill='%23E8D4B0' stroke='%234A2C18' stroke-width='1' d='M0.5 0.5H27.5V8.5H8.5V27.5H0.5Z'/%3E%3C/svg%3E");
+  background-image: url("/patterns/corner-classic.svg");
+  filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
 }
 
 .collage-tile .photo-corner {
@@ -300,6 +303,50 @@ body {
   max-width: 18px;
   max-height: 18px;
   background-size: 18px 18px;
+}
+
+.photo-corners--classic .photo-corner {
+  background-image: url("/patterns/corner-classic.svg");
+}
+
+.photo-corners--black .photo-corner {
+  background-image: url("/patterns/corner-black.svg");
+}
+
+.photo-corners--kraft .photo-corner {
+  background-image: url("/patterns/corner-kraft.svg");
+}
+
+.photo-corners--scallop .photo-corner {
+  background-image: url("/patterns/corner-scalloped.svg");
+}
+
+.photo-corners--olive .photo-corner {
+  background-image: url("/patterns/corner-olive.svg");
+}
+
+.photo-corners--vellum .photo-corner {
+  background-image: url("/patterns/corner-vellum.svg");
+}
+
+.photo-corners--gold .photo-corner {
+  background-image: url("/patterns/corner-gold.svg");
+}
+
+.photo-corners--leather .photo-corner {
+  background-image: url("/patterns/corner-leather.svg");
+}
+
+.photo-corners--brass .photo-corner {
+  background-image: url("/patterns/corner-brass.svg");
+}
+
+.photo-corners--ivory .photo-corner {
+  background-image: url("/patterns/corner-ivory.svg");
+}
+
+.photo-corners--burgundy .photo-corner {
+  background-image: url("/patterns/corner-burgundy.svg");
 }
 
 .photo-corner--tl {
@@ -329,8 +376,7 @@ body {
 .photo-corner img,
 .photo-corner::before,
 .photo-corner::after {
-  display: none !important;
-  content: none;
+  display: none;
 }
 
 .photo-banderole {
