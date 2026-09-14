@@ -922,9 +922,6 @@ body {
   display: flex;
   gap: 0.2rem;
 }
-  position: relative;
-  z-index: 1;
-}
 
 .photo-block--tabs {
   padding-bottom: 0;
