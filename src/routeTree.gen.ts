@@ -17,6 +17,8 @@ import { Route as PortugalUrlaubRouteImport } from './routes/portugal-urlaub'
 import { Route as EHashRouteImport } from './routes/e.$hash'
 import { Route as THashRouteImport } from './routes/t.$hash'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callback'
+import { Route as ApiGoogleStartRouteImport } from './routes/api/google/start'
 import { Route as MediaHashIdRouteImport } from './routes/media.$hash.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +61,16 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGoogleCallbackRoute = ApiGoogleCallbackRouteImport.update({
+  id: '/api/google/callback',
+  path: '/api/google/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGoogleStartRoute = ApiGoogleStartRouteImport.update({
+  id: '/api/google/start',
+  path: '/api/google/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MediaHashIdRoute = MediaHashIdRouteImport.update({
   id: '/media/$hash/$id',
   path: '/media/$hash/$id',
@@ -74,6 +86,8 @@ export interface FileRoutesByFullPath {
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/google/start': typeof ApiGoogleStartRoute
   '/media/$hash/$id': typeof MediaHashIdRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +99,8 @@ export interface FileRoutesByTo {
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/google/start': typeof ApiGoogleStartRoute
   '/media/$hash/$id': typeof MediaHashIdRoute
 }
 export interface FileRoutesById {
@@ -97,6 +113,8 @@ export interface FileRoutesById {
   '/e/$hash': typeof EHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/google/callback': typeof ApiGoogleCallbackRoute
+  '/api/google/start': typeof ApiGoogleStartRoute
   '/media/$hash/$id': typeof MediaHashIdRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +128,8 @@ export interface FileRouteTypes {
     | '/e/$hash'
     | '/t/$hash'
     | '/api/auth/$'
+    | '/api/google/callback'
+    | '/api/google/start'
     | '/media/$hash/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +141,8 @@ export interface FileRouteTypes {
     | '/e/$hash'
     | '/t/$hash'
     | '/api/auth/$'
+    | '/api/google/callback'
+    | '/api/google/start'
     | '/media/$hash/$id'
   id:
     | '__root__'
@@ -132,6 +154,8 @@ export interface FileRouteTypes {
     | '/e/$hash'
     | '/t/$hash'
     | '/api/auth/$'
+    | '/api/google/callback'
+    | '/api/google/start'
     | '/media/$hash/$id'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +168,8 @@ export interface RootRouteChildren {
   EHashRoute: typeof EHashRoute
   THashRoute: typeof THashRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
+  ApiGoogleStartRoute: typeof ApiGoogleStartRoute
   MediaHashIdRoute: typeof MediaHashIdRoute
 }
 
@@ -205,6 +231,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/google/callback': {
+      id: '/api/google/callback'
+      path: '/api/google/callback'
+      fullPath: '/api/google/callback'
+      preLoaderRoute: typeof ApiGoogleCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/google/start': {
+      id: '/api/google/start'
+      path: '/api/google/start'
+      fullPath: '/api/google/start'
+      preLoaderRoute: typeof ApiGoogleStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/media/$hash/$id': {
       id: '/media/$hash/$id'
       path: '/media/$hash/$id'
@@ -224,6 +264,8 @@ const rootRouteChildren: RootRouteChildren = {
   EHashRoute: EHashRoute,
   THashRoute: THashRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
+  ApiGoogleStartRoute: ApiGoogleStartRoute,
   MediaHashIdRoute: MediaHashIdRoute,
 }
 export const routeTree = rootRouteImport

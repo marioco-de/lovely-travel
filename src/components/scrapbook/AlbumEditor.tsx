@@ -381,18 +381,47 @@ function GoogleAlbumField() {
   const t = useT();
   const url = useAlbum((s) => s.googleAlbumUrl);
   const setGoogleAlbumUrl = useAlbum((s) => s.setGoogleAlbumUrl);
+  const editHash = useAlbum((s) => s.editHash);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<"ok" | "missing" | "error" | null>(null);
+
+  async function connectOrImport() {
+    if (!editHash) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const { runGoogleImport } = await import("@/lib/album/google-client");
+      const result = await runGoogleImport(editHash);
+      if (result.ok) setNote("ok");
+      else if (result.reason === "missing") setNote("missing");
+      else if (result.reason !== "connect") setNote("error");
+    } catch {
+      setNote("error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <label className="block">
+    <div className="grid gap-2">
       <span className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.googleAlbum")}</span>
-      <input
-        type="url"
-        value={url}
-        onChange={(event) => setGoogleAlbumUrl(event.target.value)}
-        placeholder="https://photos.app.goo.gl/…"
-        className="album-field mt-1 w-full"
-      />
-      <span className="mt-1 block font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</span>
-    </label>
+      <button type="button" className="album-btn w-fit" disabled={busy || !editHash} onClick={() => void connectOrImport()}>
+        {busy ? t("ui.googleImporting") : t("ui.googleConnect")}
+      </button>
+      {note === "ok" ? <span className="font-script text-sm text-lagoon-deep">{t("ui.googleImported")}</span> : null}
+      {note === "missing" ? <span className="font-script text-sm text-ink-soft">{t("ui.googleNeedEnv")}</span> : null}
+      {note === "error" ? <span className="font-script text-sm text-coral">{t("ui.googleImportError")}</span> : null}
+      <label className="block">
+        <input
+          type="url"
+          value={url}
+          onChange={(event) => setGoogleAlbumUrl(event.target.value)}
+          placeholder="https://photos.app.goo.gl/…"
+          className="album-field mt-1 w-full"
+        />
+        <span className="mt-1 block font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</span>
+      </label>
+    </div>
   );
 }
 

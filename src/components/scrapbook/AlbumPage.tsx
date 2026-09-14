@@ -33,6 +33,14 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   }, [bindTrip, mode, publicHash, editHash]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const flag = new URLSearchParams(window.location.search).get("google");
+    if (flag !== "1" || !editHash) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    void import("@/lib/album/google-client").then(({ runGoogleImport }) => runGoogleImport(editHash));
+  }, [editHash]);
+
+  useEffect(() => {
     document.title = t("meta.title");
     const description = document.querySelector('meta[name="description"]');
     if (description) description.setAttribute("content", t("meta.description"));

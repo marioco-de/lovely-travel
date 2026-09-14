@@ -65,6 +65,7 @@ type AlbumState = {
   insertBlock: (dayId: string, afterId: string, kind: BlockKind) => void;
   addCollageFromFiles: (dayId: string, files: File[]) => Promise<void>;
   importBulk: (drafts: import("./bulk").BulkDayDraft[], onProgress?: (done: number, total: number) => void) => Promise<void>;
+  importStored: (days: { place: string; photos: { id: string; url: string }[] }[]) => Promise<void>;
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
   patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body" | "writingPaper" | "poi">>) => void;
@@ -647,6 +648,41 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       await get().setPhotos(slice.map((photo) => ({ id: photo.id, file: photo.file })));
       onProgress?.(Math.min(i + batch, uploads.length), uploads.length);
     }
+  },
+  importStored: async (incoming) => {
+    const daysIn = incoming.filter((draft) => draft.photos.length > 0);
+    if (daysIn.length === 0) return;
+    let layout = get().layout;
+    const photos = { ...get().photos };
+    for (const draft of daysIn) {
+      const place: I18nPair = { en: draft.place, de: draft.place };
+      let dayId = matchImportDay(layout, draft.place);
+      if (!dayId) {
+        const day = emptyDay(layout.days.filter((item) => item.id !== COVER_ID).length);
+        day.place = place;
+        day.places = [place];
+        day.label = place;
+        layout = { ...layout, days: [...layout.days, day] };
+        dayId = day.id;
+      }
+      const chunks = photoChunks(draft.photos);
+      layout = mapDays(layout, dayId, (day) => {
+        const blocks = [...day.blocks];
+        for (const chunk of chunks) {
+          const kind: BlockKind = chunk.length >= COLLAGE_MIN ? "collage" : "photo";
+          const block = emptyBlock(kind, place);
+          block.photoIds = chunk.map((photo) => photo.id);
+          block.place = place;
+          block.caption = { en: "", de: "" };
+          block.photoNotes = Object.fromEntries(chunk.map((photo) => [photo.id, emptyPhotoNote()]));
+          blocks.push(block);
+        }
+        return { ...day, blocks };
+      });
+      for (const photo of draft.photos) photos[photo.id] = photo.url;
+    }
+    set({ photos });
+    persistLayout(set, get, layout);
   },
   removeBlock: (dayId, blockId) => {
     persistLayout(

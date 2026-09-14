@@ -379,14 +379,16 @@ export const listTrips = createServerFn({ method: "GET" })
   });
 
 export const getStorageHealth = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ ok: boolean; db: "neon" | "pglite" }> => {
+  async (): Promise<{ ok: boolean; db: "neon" | "pglite"; blob: boolean; google: boolean }> => {
     const { dbSource, getSql } = await import("@/lib/db");
+    const { blobConfigured } = await import("./blob-store");
+    const { googleConfigured } = await import("./google-photos.server");
     try {
       const sql = await getSql();
       await sql`select 1 as ok`;
-      return { ok: true, db: dbSource };
+      return { ok: true, db: dbSource, blob: blobConfigured(), google: googleConfigured() };
     } catch {
-      return { ok: false, db: dbSource };
+      return { ok: false, db: dbSource, blob: blobConfigured(), google: googleConfigured() };
     }
   },
 );
