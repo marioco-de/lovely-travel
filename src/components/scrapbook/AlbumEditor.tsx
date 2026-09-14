@@ -100,6 +100,7 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
           <PairField messageKey="album.title" labelKey="ui.title" typewriter />
           <PairField messageKey="album.kicker" labelKey="ui.line" />
           <PairField messageKey="album.year" labelKey="ui.year" typewriter />
+          <GoogleAlbumField />
         </EditorSection>
 
         <EditorSection title={t("ui.collage")}>
@@ -373,6 +374,25 @@ function BlockEditor({
         }}
       />
     </div>
+  );
+}
+
+function GoogleAlbumField() {
+  const t = useT();
+  const url = useAlbum((s) => s.googleAlbumUrl);
+  const setGoogleAlbumUrl = useAlbum((s) => s.setGoogleAlbumUrl);
+  return (
+    <label className="block">
+      <span className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.googleAlbum")}</span>
+      <input
+        type="url"
+        value={url}
+        onChange={(event) => setGoogleAlbumUrl(event.target.value)}
+        placeholder="https://photos.app.goo.gl/…"
+        className="album-field mt-1 w-full"
+      />
+      <span className="mt-1 block font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</span>
+    </label>
   );
 }
 

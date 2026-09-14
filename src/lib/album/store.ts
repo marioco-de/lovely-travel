@@ -26,7 +26,7 @@ import {
 } from "./layout";
 import type { BulkDayDraft } from "./bulk";
 import { PLACES } from "./places";
-import { getLocalTripByEdit, getLocalTripByPublic, makeLocalTrip, saveLocalTrip } from "./trips-local";
+import { getLocalTripByEdit, getLocalTripByPublic, saveLocalTrip } from "./trips-local";
 
 export const CLEARED_PHOTO = "cleared";
 const DB_NAME = "tropical-album";
@@ -44,6 +44,7 @@ type AlbumState = {
   photos: Record<string, string>;
   texts: AlbumTexts;
   hiddenPins: Record<string, boolean>;
+  googleAlbumUrl: string;
   layout: AlbumLayout;
   hydrate: () => Promise<void>;
   setPhoto: (id: string, file: File) => Promise<void>;
@@ -84,6 +85,7 @@ type AlbumState = {
   bindTrip: (opts: { mode: "demo" | "view" | "edit"; publicHash?: string; editHash?: string }) => Promise<void>;
   ensureLocale: (locale: Locale) => Promise<void>;
   createRemote: (password: string) => Promise<{ publicHash: string; editHash: string; editPassword?: string } | null>;
+  setGoogleAlbumUrl: (url: string) => void;
   placeEditId: string | null;
   setPlaceEditId: (id: string | null) => void;
 };
@@ -322,6 +324,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   photos: {},
   texts: emptyTexts(),
   hiddenPins: {},
+  googleAlbumUrl: "",
   layout: seedLayout(),
   canEdit: false,
   placeEditId: null,
@@ -800,6 +803,23 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const featuredUnlocked = isFeatured && (mode === "edit" || Boolean(editHash) || readFeaturedUnlock());
     const hash = publicHash || editHash || (isFeatured ? FEATURED_SLUG : undefined);
 
+    if (mode === "view" && publicHash === FEATURED_SLUG) {
+      set({
+        ready: true,
+        canEdit: false,
+        publicHash: FEATURED_SLUG,
+        editHash: undefined,
+        tripId: undefined,
+        layout: seedLayout(),
+        texts: emptyTexts(),
+        hiddenPins: {},
+        photos: {},
+        googleAlbumUrl: "",
+        saveStatus: "saved",
+      });
+      return;
+    }
+
     if (mode === "demo" && !isFeatured) {
       set({ canEdit: false, publicHash: undefined, editHash: undefined, tripId: undefined });
       await get().hydrate();
@@ -849,6 +869,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       : mergePhotoMaps(remotePhotos, localTrip?.payload.photos, idbPhotos, get().photos);
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
+    const googleAlbumUrl = localTrip?.payload.googleAlbumUrl ?? remote?.payload.googleAlbumUrl ?? "";
 
     set({
       ready: true,
@@ -860,6 +881,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       layout,
       texts,
       hiddenPins,
+      googleAlbumUrl,
       photos,
       saveStatus: "saved",
     });
@@ -895,18 +917,6 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       photos: {},
     };
     const title = "Lovely";
-    const local = typeof window !== "undefined"
-      ? makeLocalTrip({
-          title,
-          sourceLocale: state.sourceLocale,
-          password,
-          payload,
-        })
-      : null;
-    if (local) {
-      await saveLocalTrip(local);
-      sessionStorage.setItem(`album-pw-${local.publicHash}`, password);
-    }
     try {
       const trip = await createTrip({
         data: {
@@ -916,13 +926,17 @@ export const useAlbum = create<AlbumState>((set, get) => ({
           payload,
         },
       });
-      if (local) {
+      if (typeof window !== "undefined") {
         await saveLocalTrip({
-          ...local,
           id: trip.id,
           publicHash: trip.publicHash,
-          editHash: trip.editHash,
+          editHash: trip.editHash ?? "",
+          editPassword: password,
+          title,
+          sourceLocale: state.sourceLocale,
           payload,
+          createdAt: trip.createdAt,
+          updatedAt: trip.updatedAt,
         });
         sessionStorage.setItem(`album-pw-${trip.publicHash}`, password);
       }
@@ -934,26 +948,18 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         layout,
         texts: emptyTexts(),
         hiddenPins: {},
+        googleAlbumUrl: "",
         saveStatus: "saved",
       });
       return { publicHash: trip.publicHash, editHash: trip.editHash ?? "", editPassword: trip.editPassword };
     } catch {
-      if (!local) {
-        set({ saveStatus: "error" });
-        return null;
-      }
-      set({
-        canEdit: true,
-        tripId: local.id,
-        publicHash: local.publicHash,
-        editHash: local.editHash,
-        layout,
-        texts: emptyTexts(),
-        hiddenPins: {},
-        saveStatus: "saved",
-      });
-      return { publicHash: local.publicHash, editHash: local.editHash ?? "", editPassword: password };
+      set({ saveStatus: "error" });
+      return null;
     }
+  },
+  setGoogleAlbumUrl: (url) => {
+    set({ googleAlbumUrl: url.trim(), saveStatus: "saving" });
+    scheduleRemote(get);
   },
 }));
 
@@ -985,6 +991,7 @@ function persistLayout(
               texts: state.texts,
               hiddenPins: state.hiddenPins,
               photos: storedPhotoMap(state.publicHash, state.photos),
+              googleAlbumUrl: state.googleAlbumUrl || undefined,
             },
             createdAt: existing?.createdAt ?? new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -1045,7 +1052,13 @@ async function pushRemote(state: AlbumState) {
   if (!state.editHash) return;
   const photos = await pushPendingUploads(state);
   const title = state.texts.en?.["album.title"] || state.texts.de?.["album.title"] || "Lovely";
-  const remotePayload = { layout: state.layout, texts: state.texts, hiddenPins: state.hiddenPins, photos };
+  const remotePayload = {
+    layout: state.layout,
+    texts: state.texts,
+    hiddenPins: state.hiddenPins,
+    photos,
+    googleAlbumUrl: state.googleAlbumUrl || undefined,
+  };
   if (state.publicHash) {
     try {
       const existing =

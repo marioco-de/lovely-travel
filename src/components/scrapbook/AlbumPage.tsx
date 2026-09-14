@@ -22,6 +22,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
   const reduced = usePrefersReducedMotion();
   const days = useAlbum((s) => s.layout.days).filter((day) => day.id !== COVER_ID);
   const canEdit = useAlbum((s) => s.canEdit);
+  const googleAlbumUrl = useAlbum((s) => s.googleAlbumUrl);
   const bindTrip = useAlbum((s) => s.bindTrip);
   const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
@@ -80,6 +81,13 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
       <AlbumMenu onEdit={() => setEditorOpen(true)} onSave={() => setEditorOpen(false)} />
 
       <HeroCollage />
+      {googleAlbumUrl ? (
+        <p className="mx-auto w-full max-w-7xl px-4 pb-2 md:px-10 lg:px-16">
+          <a href={googleAlbumUrl} className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline" target="_blank" rel="noreferrer">
+            {t("ui.googleAlbum")}
+          </a>
+        </p>
+      ) : null}
       <MapInsert activeId={activeId} onSelect={openDay} />
 
       <section className="w-full overflow-visible">

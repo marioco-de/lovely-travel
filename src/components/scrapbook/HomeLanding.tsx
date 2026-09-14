@@ -39,6 +39,16 @@ export function HomeLanding() {
         </div>
       </section>
 
+      <section className="relative mx-auto w-full max-w-7xl overflow-visible px-4 pb-10 md:px-10 lg:px-16">
+        <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("home.featuredKicker")}</p>
+        <h2 className="mt-2 font-typewriter text-day text-lagoon-deep">{t("home.featured")}</h2>
+        <p className="mt-1 font-script text-caption text-ink-soft">{t("home.featuredLine")}</p>
+        <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink">{t("home.featuredDays")}</p>
+        <a href="/portugal-mit-michael" className="album-btn mt-4 inline-flex">
+          {t("home.featuredOpen")}
+        </a>
+      </section>
+
       <section className="relative mx-auto w-full max-w-7xl overflow-visible px-4 pb-16 md:px-10 lg:px-16">
         <div className="relative w-[88%] max-w-2xl md:w-[58%]">
           <SlideIn from="left">

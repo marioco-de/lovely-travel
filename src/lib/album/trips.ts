@@ -13,6 +13,7 @@ export type TripPayload = {
   hiddenPins: Record<string, boolean>;
   photos: Record<string, string>;
   translationMeta?: Record<string, Record<string, string>>;
+  googleAlbumUrl?: string;
 };
 
 export type TripRecord = {
@@ -43,6 +44,7 @@ const payloadSchema = z.object({
   hiddenPins: z.record(z.string(), z.boolean()).optional(),
   photos: z.record(z.string(), z.string()).optional(),
   translationMeta: z.record(z.string(), z.record(z.string(), z.string())).optional(),
+  googleAlbumUrl: z.string().max(500).optional(),
 });
 
 function newId() {
@@ -79,6 +81,7 @@ function asPayload(raw: unknown): TripPayload {
     hiddenPins: parsed.hiddenPins ?? {},
     photos: parsed.photos ?? {},
     translationMeta: parsed.translationMeta,
+    googleAlbumUrl: parsed.googleAlbumUrl?.trim() || undefined,
   };
 }
 
@@ -330,3 +333,16 @@ export const listTrips = createServerFn({ method: "GET" })
       updatedAt: row.updated_at,
     }));
   });
+
+export const getStorageHealth = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ ok: boolean; db: "neon" | "pglite" }> => {
+    const { dbSource, getSql } = await import("@/lib/db");
+    try {
+      const sql = await getSql();
+      await sql`select 1 as ok`;
+      return { ok: true, db: dbSource };
+    } catch {
+      return { ok: false, db: dbSource };
+    }
+  },
+);

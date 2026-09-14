@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAlbum } from "@/lib/album/store";
+import { getStorageHealth } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 
 export function NewAlbum() {
@@ -9,6 +10,13 @@ export function NewAlbum() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [ephemeral, setEphemeral] = useState(false);
+
+  useEffect(() => {
+    void getStorageHealth()
+      .then((health) => setEphemeral(!health.ok || health.db !== "neon"))
+      .catch(() => setEphemeral(true));
+  }, []);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -60,6 +68,7 @@ export function NewAlbum() {
         {t("ui.createAlbum")}
       </button>
       {error ? <span className="font-script text-sm text-coral">{t("ui.createFailed")}</span> : null}
+      {ephemeral ? <span className="basis-full font-script text-sm text-ink-soft">{t("ui.storageHint")}</span> : null}
     </form>
   );
 }
