@@ -285,24 +285,23 @@ body {
 .photo-corner {
   position: absolute;
   box-sizing: border-box;
-  width: 28px;
-  height: 28px;
-  max-width: 28px;
-  max-height: 28px;
+  width: 42px;
+  height: 42px;
+  max-width: 42px;
+  max-height: 42px;
   pointer-events: none;
   background-repeat: no-repeat;
   background-position: top left;
-  background-size: 28px 28px;
+  background-size: contain;
   background-image: url("/patterns/corner-classic.svg");
   filter: drop-shadow(0 1px 1px rgb(61 42 28 / 0.22));
 }
 
 .collage-tile .photo-corner {
-  width: 18px;
-  height: 18px;
-  max-width: 18px;
-  max-height: 18px;
-  background-size: 18px 18px;
+  width: 24px;
+  height: 24px;
+  max-width: 24px;
+  max-height: 24px;
 }
 
 .photo-corners--classic .photo-corner {
@@ -310,43 +309,43 @@ body {
 }
 
 .photo-corners--black .photo-corner {
-  background-image: url("/patterns/corner-black.svg");
+  background-image: url("/corners/black.png");
 }
 
 .photo-corners--kraft .photo-corner {
-  background-image: url("/patterns/corner-kraft.svg");
+  background-image: url("/corners/kraft.png");
 }
 
 .photo-corners--scallop .photo-corner {
-  background-image: url("/patterns/corner-scalloped.svg");
+  background-image: url("/corners/scallop.png");
 }
 
 .photo-corners--olive .photo-corner {
-  background-image: url("/patterns/corner-olive.svg");
+  background-image: url("/corners/olive.png");
 }
 
 .photo-corners--vellum .photo-corner {
-  background-image: url("/patterns/corner-vellum.svg");
+  background-image: url("/corners/vellum.png");
 }
 
 .photo-corners--gold .photo-corner {
-  background-image: url("/patterns/corner-gold.svg");
+  background-image: url("/corners/gold.png");
 }
 
 .photo-corners--leather .photo-corner {
-  background-image: url("/patterns/corner-leather.svg");
+  background-image: url("/corners/leather.png");
 }
 
 .photo-corners--brass .photo-corner {
-  background-image: url("/patterns/corner-brass.svg");
+  background-image: url("/corners/brass.png");
 }
 
 .photo-corners--ivory .photo-corner {
-  background-image: url("/patterns/corner-ivory.svg");
+  background-image: url("/corners/ivory.png");
 }
 
 .photo-corners--burgundy .photo-corner {
-  background-image: url("/patterns/corner-burgundy.svg");
+  background-image: url("/corners/burgundy.png");
 }
 
 .photo-corner--tl {
