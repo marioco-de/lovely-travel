@@ -45,6 +45,8 @@ type AlbumState = {
   texts: AlbumTexts;
   hiddenPins: Record<string, boolean>;
   googleAlbumUrl: string;
+  highlights: string[];
+  dayAlbums: Record<string, { all: string[]; selected: string[] }>;
   layout: AlbumLayout;
   hydrate: () => Promise<void>;
   setPhoto: (id: string, file: File) => Promise<void>;
@@ -66,6 +68,13 @@ type AlbumState = {
   addCollageFromFiles: (dayId: string, files: File[]) => Promise<void>;
   importBulk: (drafts: import("./bulk").BulkDayDraft[], onProgress?: (done: number, total: number) => void) => Promise<void>;
   importStored: (days: { place: string; photos: { id: string; url: string }[] }[]) => Promise<void>;
+  applyGoogleImport: (input: {
+    photos: Record<string, string>;
+    highlights: string[];
+    days: { id: string; place: string; selected: string[]; all: string[] }[];
+  }) => void;
+  setPhotoUrl: (id: string, url: string) => void;
+  toggleHighlight: (id: string) => void;
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
   patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body" | "writingPaper" | "poi">>) => void;
@@ -326,6 +335,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   texts: emptyTexts(),
   hiddenPins: {},
   googleAlbumUrl: "",
+  highlights: [],
+  dayAlbums: {},
   layout: seedLayout(),
   canEdit: false,
   placeEditId: null,
@@ -684,6 +695,61 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     set({ photos });
     persistLayout(set, get, layout);
   },
+  applyGoogleImport: (input) => {
+    const photos = { ...get().photos, ...input.photos };
+    const dayAlbums: Record<string, { all: string[]; selected: string[] }> = { ...get().dayAlbums };
+    let layout = get().layout;
+    const travelIndex = () => layout.days.filter((item) => item.id !== COVER_ID).length;
+    for (const draft of input.days) {
+      dayAlbums[draft.id] = { all: draft.all, selected: draft.selected };
+      const place: I18nPair = { en: draft.place, de: draft.place };
+      let dayId = layout.days.some((day) => day.id === draft.id) ? draft.id : matchImportDay(layout, draft.place);
+      if (!dayId) {
+        const day = emptyDay(travelIndex());
+        day.id = draft.id;
+        day.place = place;
+        day.places = [place];
+        day.label = place;
+        layout = { ...layout, days: [...layout.days, day] };
+        dayId = day.id;
+      } else {
+        layout = mapDays(layout, dayId, (day) => ({
+          ...day,
+          place: day.place.en ? day.place : place,
+          places: day.places?.length ? day.places : [place],
+        }));
+      }
+      const showcase = draft.selected.slice(0, COLLAGE_MAX);
+      if (showcase.length) {
+        layout = mapDays(layout, dayId, (day) => {
+          const block = emptyBlock(showcase.length >= COLLAGE_MIN ? "collage" : "photo", place);
+          block.photoIds = showcase;
+          block.photoNotes = Object.fromEntries(showcase.map((id) => [id, emptyPhotoNote()]));
+          return { ...day, blocks: [...day.blocks, block] };
+        });
+      }
+    }
+    if (input.highlights.length) {
+      layout = mapDays(layout, COVER_ID, (day) => {
+        const block = emptyBlock(input.highlights.length >= COLLAGE_MIN ? "collage" : "photo", day.place);
+        block.photoIds = input.highlights.slice(0, COLLAGE_MAX);
+        block.photoNotes = Object.fromEntries(block.photoIds.map((id) => [id, emptyPhotoNote()]));
+        return { ...day, blocks: [block, ...day.blocks.filter((item) => item.kind === "note")] };
+      });
+    }
+    set({ photos, highlights: input.highlights, dayAlbums });
+    persistLayout(set, get, layout);
+  },
+  setPhotoUrl: (id, url) => {
+    set({ photos: { ...get().photos, [id]: url }, saveStatus: "saving" });
+    scheduleRemote(get);
+  },
+  toggleHighlight: (id) => {
+    const current = get().highlights;
+    const highlights = current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(0, 8);
+    set({ highlights, saveStatus: "saving" });
+    scheduleRemote(get);
+  },
   removeBlock: (dayId, blockId) => {
     persistLayout(
       set,
@@ -851,6 +917,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         hiddenPins: {},
         photos: {},
         googleAlbumUrl: "",
+        highlights: [],
+        dayAlbums: {},
         saveStatus: "saved",
       });
       return;
@@ -906,6 +974,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
     const googleAlbumUrl = localTrip?.payload.googleAlbumUrl ?? remote?.payload.googleAlbumUrl ?? "";
+    const highlights = remote?.payload.highlights ?? localTrip?.payload.highlights ?? [];
+    const dayAlbums = remote?.payload.dayAlbums ?? localTrip?.payload.dayAlbums ?? {};
 
     set({
       ready: true,
@@ -918,6 +988,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       texts,
       hiddenPins,
       googleAlbumUrl,
+      highlights,
+      dayAlbums,
       photos,
       saveStatus: "saved",
     });
@@ -985,6 +1057,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         texts: emptyTexts(),
         hiddenPins: {},
         googleAlbumUrl: "",
+        highlights: [],
+        dayAlbums: {},
         saveStatus: "saved",
       });
       return { publicHash: trip.publicHash, editHash: trip.editHash ?? "", editPassword: trip.editPassword };
@@ -1028,6 +1102,8 @@ function persistLayout(
               hiddenPins: state.hiddenPins,
               photos: storedPhotoMap(state.publicHash, state.photos),
               googleAlbumUrl: state.googleAlbumUrl || undefined,
+              highlights: state.highlights,
+              dayAlbums: state.dayAlbums,
             },
             createdAt: existing?.createdAt ?? new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -1094,6 +1170,8 @@ async function pushRemote(state: AlbumState) {
     hiddenPins: state.hiddenPins,
     photos,
     googleAlbumUrl: state.googleAlbumUrl || undefined,
+    highlights: state.highlights,
+    dayAlbums: state.dayAlbums,
   };
   if (state.publicHash) {
     try {

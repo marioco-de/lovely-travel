@@ -2035,3 +2035,23 @@ body {
   color: #2c1c12;
 }
 
+.day-full-link {
+  font-family: var(--font-typewriter), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lagoon-deep, #2f6f6a);
+  text-decoration: none;
+  border-bottom: 1px dashed rgb(47 111 106 / 0.55);
+  padding-bottom: 0.12rem;
+}
+
+.day-full-link:hover {
+  color: var(--ink, #3d2a1c);
+}
+
+.photo-highlight-picks {
+  border-top: 1px dashed rgb(61 42 28 / 0.15);
+}
+
+

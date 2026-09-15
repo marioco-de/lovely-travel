@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatLabel, type PhotoFormat } from "@/lib/album/layout";
+import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -17,6 +18,7 @@ type PhotoEditToolsProps = {
   onRemove: () => void;
   onCycleFrame: () => void;
   onCycleFormat: () => void;
+  photoId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -33,10 +35,14 @@ export function PhotoEditTools({
   onRemove,
   onCycleFrame,
   onCycleFormat,
+  photoId,
   open,
   onOpenChange,
 }: PhotoEditToolsProps) {
   const t = useT();
+  const highlights = useAlbum((s) => s.highlights);
+  const photoMap = useAlbum((s) => s.photos);
+  const setPhotoUrl = useAlbum((s) => s.setPhotoUrl);
   const fileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -151,6 +157,32 @@ export function PhotoEditTools({
                   }}
                 />
               </label>
+              {photoId && highlights.length ? (
+                <div className="photo-highlight-picks">
+                  <p className="px-2 pt-1 font-display text-[0.58rem] tracking-widest text-ink-soft uppercase">
+                    {t("ui.highlights")}
+                  </p>
+                  <div className="flex flex-wrap gap-1 px-2 pb-2">
+                    {highlights.map((id) => {
+                      const src = photoMap[id];
+                      if (!src) return null;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          className="h-10 w-10 overflow-hidden border border-stamp/30"
+                          onClick={() => {
+                            setPhotoUrl(photoId, src);
+                            setMenuOpen(false);
+                          }}
+                        >
+                          <img src={src} alt="" className="h-full w-full object-cover" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <button
                 type="button"
                 className="photo-tab-menu-item"

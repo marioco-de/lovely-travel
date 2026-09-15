@@ -141,6 +141,16 @@ function parseJpegExif(buffer: ArrayBuffer): PhotoExif | null {
   return null;
 }
 
+export function readExifBytes(buffer: ArrayBuffer, fallback = 0): PhotoExif {
+  try {
+    const parsed = parseJpegExif(buffer);
+    if (!parsed) return { takenAt: fallback };
+    return { takenAt: parsed.takenAt || fallback, lat: parsed.lat, lng: parsed.lng };
+  } catch {
+    return { takenAt: fallback };
+  }
+}
+
 export async function readPhotoExif(file: File): Promise<PhotoExif> {
   const fallback = file.lastModified || Date.now();
   try {

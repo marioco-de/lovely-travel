@@ -23,6 +23,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const t = useT();
   const locale = useLocale((s) => s.locale);
   const canEdit = useAlbum((s) => s.canEdit);
+  const publicHash = useAlbum((s) => s.publicHash);
   const setDayLabel = useAlbum((s) => s.setDayLabel);
   const setDayPlaceAt = useAlbum((s) => s.setDayPlaceAt);
   const setDayGeo = useAlbum((s) => s.setDayGeo);
@@ -131,6 +132,11 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
           </div>
 
           <BlockStack day={day} reverse={reverse} />
+          <p className="mt-10 text-center">
+            <a href={`/d/${encodeURIComponent(publicHash || "album")}/${encodeURIComponent(day.id)}`} className="day-full-link">
+              {t("ui.fullDay")}
+            </a>
+          </p>
         </div>
       </div>
       <ConfirmDialog

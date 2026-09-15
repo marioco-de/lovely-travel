@@ -14,6 +14,8 @@ export type TripPayload = {
   photos: Record<string, string>;
   translationMeta?: Record<string, Record<string, string>>;
   googleAlbumUrl?: string;
+  highlights?: string[];
+  dayAlbums?: Record<string, { all: string[]; selected: string[] }>;
 };
 
 export type TripRecord = {
@@ -45,6 +47,8 @@ const payloadSchema = z.object({
   photos: z.record(z.string(), z.string()).optional(),
   translationMeta: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   googleAlbumUrl: z.string().max(500).optional(),
+  highlights: z.array(z.string()).optional(),
+  dayAlbums: z.record(z.string(), z.object({ all: z.array(z.string()), selected: z.array(z.string()) })).optional(),
 });
 
 function newId() {
@@ -82,7 +86,38 @@ function asPayload(raw: unknown): TripPayload {
     photos: parsed.photos ?? {},
     translationMeta: parsed.translationMeta,
     googleAlbumUrl: parsed.googleAlbumUrl?.trim() || undefined,
+    highlights: parsed.highlights,
+    dayAlbums: parsed.dayAlbums,
   };
+}
+
+async function withCatalog(tripId: string, payload: TripPayload): Promise<TripPayload> {
+  try {
+    const { getSql } = await import("@/lib/db");
+    const { loadCatalog } = await import("./catalog.server");
+    const sql = await getSql();
+    const catalog = await loadCatalog(sql, tripId);
+    if (!catalog.photos.length && !catalog.days.length) return payload;
+    const photos = { ...payload.photos };
+    for (const photo of catalog.photos) {
+      if (photo.blobUrl) photos[photo.id] = photo.blobUrl;
+    }
+    const dayAlbums = { ...payload.dayAlbums };
+    for (const day of catalog.days) {
+      dayAlbums[day.id] = {
+        all: day.photos.map((item) => item.photoId),
+        selected: day.photos.filter((item) => item.inDayAlbum).map((item) => item.photoId),
+      };
+    }
+    return {
+      ...payload,
+      photos,
+      dayAlbums,
+      highlights: catalog.highlights.length ? catalog.highlights.map((item) => item.photoId) : payload.highlights,
+    };
+  } catch {
+    return payload;
+  }
 }
 
 export const createTrip = createServerFn({ method: "POST" })
@@ -127,7 +162,7 @@ export const createTrip = createServerFn({ method: "POST" })
       editPassword,
       title: row.title,
       sourceLocale: row.source_locale as Locale,
-      payload: asPayload(row.payload),
+      payload: await withCatalog(row.id, asPayload(row.payload)),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -157,7 +192,7 @@ export const getPublicTrip = createServerFn({ method: "GET" })
       publicHash: row.public_hash,
       title: row.title,
       sourceLocale: row.source_locale as Locale,
-      payload: asPayload(row.payload),
+      payload: await withCatalog(row.id, asPayload(row.payload)),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -189,7 +224,7 @@ export const getEditTrip = createServerFn({ method: "GET" })
       editHash: row.edit_hash,
       title: row.title,
       sourceLocale: row.source_locale as Locale,
-      payload: asPayload(row.payload),
+      payload: await withCatalog(row.id, asPayload(row.payload)),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

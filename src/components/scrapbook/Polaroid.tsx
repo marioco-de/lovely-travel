@@ -139,6 +139,7 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
           {canEdit && src ? (
             <PhotoEditTools
               hasSrc
+              photoId={photo.id}
               title={place}
               caption={caption}
               format={format}

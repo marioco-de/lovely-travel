@@ -149,6 +149,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
           {canEdit && src ? (
             <PhotoEditTools
               hasSrc
+              photoId={photo.id}
               title={place}
               caption={caption}
               format={format}
