@@ -7,10 +7,11 @@ import { useT } from "@/lib/i18n/locale";
 type EditUnlockProps = {
   publicHash: string;
   autoOpen?: boolean;
+  to?: "edit" | "settings";
   onUnlocked?: () => void;
 };
 
-export function EditUnlock({ publicHash, autoOpen = false, onUnlocked }: EditUnlockProps) {
+export function EditUnlock({ publicHash, autoOpen = false, to = "edit", onUnlocked }: EditUnlockProps) {
   const t = useT();
   const unlockFeatured = useAlbum((s) => s.unlockFeatured);
   const [open, setOpen] = useState(autoOpen);
@@ -18,19 +19,22 @@ export function EditUnlock({ publicHash, autoOpen = false, onUnlocked }: EditUnl
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  function go(editHash: string) {
+    onUnlocked?.();
+    window.location.href = to === "settings" ? `/s/${editHash}` : `/e/${editHash}`;
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const secret = password.trim();
     if (!secret) return;
     if (publicHash === FEATURED_SLUG && matchesFeaturedPassword(secret)) {
       unlockFeatured();
-      onUnlocked?.();
-      window.location.href = `/e/${FEATURED_EDIT_HASH}`;
+      go(FEATURED_EDIT_HASH);
       return;
     }
     if (publicHash === PRIVATE_SLUG && matchesFeaturedPassword(secret)) {
-      onUnlocked?.();
-      window.location.href = `/e/${PRIVATE_EDIT_HASH}`;
+      go(PRIVATE_EDIT_HASH);
       return;
     }
     setBusy(true);
@@ -38,8 +42,7 @@ export function EditUnlock({ publicHash, autoOpen = false, onUnlocked }: EditUnl
     try {
       const result = await unlockTrip({ data: { publicHash, password: secret } });
       if (result?.editHash) {
-        onUnlocked?.();
-        window.location.href = `/e/${result.editHash}`;
+        go(result.editHash);
         return;
       }
     } catch {
@@ -73,11 +76,7 @@ export function EditUnlock({ publicHash, autoOpen = false, onUnlocked }: EditUnl
         className="album-field w-full py-2 text-sm"
         autoFocus
       />
-      <button
-        type="submit"
-        disabled={busy}
-        className="menu-link min-h-11 text-left disabled:opacity-50"
-      >
+      <button type="submit" disabled={busy} className="menu-link min-h-11 text-left disabled:opacity-50">
         {t("ui.editUnlock")}
       </button>
       {error ? <span className="font-script text-sm text-coral">{t("ui.editPasswordWrong")}</span> : null}

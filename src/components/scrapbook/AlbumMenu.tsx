@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { FEATURED_SLUG, PRIVATE_SLUG } from "@/lib/album/featured";
+import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { EditUnlock } from "./EditUnlock";
@@ -25,6 +25,7 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlock, setUnlock] = useState(false);
+  const [unlockTo, setUnlockTo] = useState<"edit" | "settings">("edit");
   const [mounted, setMounted] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +87,28 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
       setOpen(false);
       return;
     }
+    setUnlockTo("edit");
+    setUnlock(true);
+  }
+
+  function settingsHref() {
+    if (editHash) return `/s/${editHash}`;
+    if (publicHash === FEATURED_SLUG) return `/s/${FEATURED_EDIT_HASH}`;
+    if (publicHash === PRIVATE_SLUG) return `/s/${PRIVATE_EDIT_HASH}`;
+    return "";
+  }
+
+  function onSettingsClick() {
+    const href = settingsHref();
+    if (canEdit && href) {
+      window.location.href = href;
+      return;
+    }
+    if (editHash) {
+      window.location.href = `/s/${editHash}`;
+      return;
+    }
+    setUnlockTo("settings");
     setUnlock(true);
   }
 
@@ -141,6 +164,14 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
                     type="button"
                     role="menuitem"
                     className="menu-link flex min-h-11 w-full items-center"
+                    onClick={onSettingsClick}
+                  >
+                    — {t("ui.settings")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="menu-link flex min-h-11 w-full items-center"
                     onClick={() => {
                       setOpen(false);
                       pickBulk();
@@ -158,20 +189,31 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
                   </button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="menu-link flex min-h-11 w-full items-center"
-                  onClick={onEditClick}
-                >
-                  — {t("ui.edit")}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="menu-link flex min-h-11 w-full items-center"
+                    onClick={onEditClick}
+                  >
+                    — {t("ui.edit")}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="menu-link flex min-h-11 w-full items-center"
+                    onClick={onSettingsClick}
+                  >
+                    — {t("ui.settings")}
+                  </button>
+                </>
               )}
               {unlock && !canEdit && publicHash ? (
                 <div className="mt-2">
                   <EditUnlock
                     publicHash={publicHash}
                     autoOpen
+                    to={unlockTo}
                     onUnlocked={() => {
                       enableEdit();
                       setOpen(false);

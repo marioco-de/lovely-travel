@@ -139,14 +139,10 @@ export function GoogleImport() {
         </button>
       </div>
       <p className="font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</p>
-      {needsAuth ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-script text-sm text-ink-soft">{t("ui.googleNeedLogin")}</p>
-          <button type="button" className="album-btn" onClick={() => void connectFallback()}>
-            {t("ui.googleConnect")}
-          </button>
-        </div>
-      ) : null}
+      <button type="button" className="album-btn w-fit" disabled={busy || !editHash} onClick={() => void connectFallback()}>
+        {t("ui.googleConnect")}
+      </button>
+      {needsAuth ? <p className="font-script text-sm text-ink-soft">{t("ui.googleNeedLogin")}</p> : null}
       {error ? <p className="font-script text-sm text-coral">{t("ui.googleImportError")}</p> : null}
 
       {days ? (

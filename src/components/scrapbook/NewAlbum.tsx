@@ -29,7 +29,7 @@ export function NewAlbum() {
     setError(false);
     const created = await createRemote(secret);
     if (created?.editHash) {
-      window.location.href = `/e/${created.editHash}`;
+      window.location.href = `/s/${created.editHash}`;
       return;
     }
     setError(true);

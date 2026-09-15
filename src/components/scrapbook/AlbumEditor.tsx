@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DayStarter } from "./DayStarter";
 import { BulkImportButton } from "./BulkImport";
-import { GoogleImport } from "./GoogleImport";
 import { Stamp } from "./Stamp";
 
 type AlbumEditorProps = {
@@ -101,7 +100,6 @@ export function AlbumEditor({ open, onClose }: AlbumEditorProps) {
           <PairField messageKey="album.title" labelKey="ui.title" typewriter />
           <PairField messageKey="album.kicker" labelKey="ui.line" />
           <PairField messageKey="album.year" labelKey="ui.year" typewriter />
-          <GoogleImport />
         </EditorSection>
 
         <EditorSection title={t("ui.collage")}>

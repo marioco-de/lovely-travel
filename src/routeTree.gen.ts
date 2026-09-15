@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PortugalMitMichaelRouteImport } from './routes/portugal-mit-michael'
 import { Route as PortugalUrlaubRouteImport } from './routes/portugal-urlaub'
 import { Route as EHashRouteImport } from './routes/e.$hash'
+import { Route as SHashRouteImport } from './routes/s.$hash'
 import { Route as THashRouteImport } from './routes/t.$hash'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callback'
@@ -50,6 +51,11 @@ const PortugalUrlaubRoute = PortugalUrlaubRouteImport.update({
 const EHashRoute = EHashRouteImport.update({
   id: '/e/$hash',
   path: '/e/$hash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SHashRoute = SHashRouteImport.update({
+  id: '/s/$hash',
+  path: '/s/$hash',
   getParentRoute: () => rootRouteImport,
 } as any)
 const THashRoute = THashRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/portugal-mit-michael': typeof PortugalMitMichaelRoute
   '/portugal-urlaub': typeof PortugalUrlaubRoute
   '/e/$hash': typeof EHashRoute
+  '/s/$hash': typeof SHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/portugal-mit-michael': typeof PortugalMitMichaelRoute
   '/portugal-urlaub': typeof PortugalUrlaubRoute
   '/e/$hash': typeof EHashRoute
+  '/s/$hash': typeof SHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/portugal-mit-michael': typeof PortugalMitMichaelRoute
   '/portugal-urlaub': typeof PortugalUrlaubRoute
   '/e/$hash': typeof EHashRoute
+  '/s/$hash': typeof SHashRoute
   '/t/$hash': typeof THashRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/portugal-mit-michael'
     | '/portugal-urlaub'
     | '/e/$hash'
+    | '/s/$hash'
     | '/t/$hash'
     | '/api/auth/$'
     | '/api/google/callback'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/portugal-mit-michael'
     | '/portugal-urlaub'
     | '/e/$hash'
+    | '/s/$hash'
     | '/t/$hash'
     | '/api/auth/$'
     | '/api/google/callback'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/portugal-mit-michael'
     | '/portugal-urlaub'
     | '/e/$hash'
+    | '/s/$hash'
     | '/t/$hash'
     | '/api/auth/$'
     | '/api/google/callback'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   PortugalMitMichaelRoute: typeof PortugalMitMichaelRoute
   PortugalUrlaubRoute: typeof PortugalUrlaubRoute
   EHashRoute: typeof EHashRoute
+  SHashRoute: typeof SHashRoute
   THashRoute: typeof THashRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/e/$hash'
       fullPath: '/e/$hash'
       preLoaderRoute: typeof EHashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$hash': {
+      id: '/s/$hash'
+      path: '/s/$hash'
+      fullPath: '/s/$hash'
+      preLoaderRoute: typeof SHashRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/t/$hash': {
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortugalMitMichaelRoute: PortugalMitMichaelRoute,
   PortugalUrlaubRoute: PortugalUrlaubRoute,
   EHashRoute: EHashRoute,
+  SHashRoute: SHashRoute,
   THashRoute: THashRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
