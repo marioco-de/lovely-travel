@@ -1,5 +1,6 @@
 import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTapOpen } from "@/hooks/use-tap-open";
 import { useOpenDayLightbox } from "@/lib/album/lightbox";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
@@ -21,15 +22,23 @@ export function NoteCard({ body, paper = "lined", className, dayId, blockId, onB
   const t = useT();
   const canEdit = useAlbum((s) => s.canEdit);
   const openDay = useOpenDayLightbox();
+  const tap = useTapOpen(
+    () => {
+      if (dayId && blockId && body) openDay(dayId, `note:${blockId}`);
+    },
+    !canEdit && Boolean(body),
+  );
   if (!body && !canEdit) return null;
   return (
     <SlideIn from="left" className={cn("max-w-lg", className)}>
       <div className="write-paper-wrap">
         <div
           className={cn("write-paper", `write-paper--${paper}`, !canEdit && body && "cursor-zoom-in")}
-          onClick={() => {
-            if (!canEdit && dayId && blockId && body) openDay(dayId, `note:${blockId}`);
-          }}
+          onPointerDown={tap.onPointerDown}
+          onPointerMove={tap.onPointerMove}
+          onPointerUp={tap.onPointerUp}
+          onPointerCancel={tap.onPointerCancel}
+          onClick={tap.onClick}
         >
           {canEdit && onBodyChange ? (
             <LiveText

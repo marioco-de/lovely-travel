@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTapOpen } from "@/hooks/use-tap-open";
 import { useOpenDayLightbox } from "@/lib/album/lightbox";
 import { useAlbum } from "@/lib/album/store";
 import { LiveText } from "./LiveText";
@@ -18,14 +19,22 @@ type PlaceCardProps = {
 export function PlaceCard({ place, caption, className, dayId, blockId, onPlaceChange, onCaptionChange }: PlaceCardProps) {
   const canEdit = useAlbum((s) => s.canEdit);
   const openDay = useOpenDayLightbox();
+  const tap = useTapOpen(
+    () => {
+      if (dayId && blockId) openDay(dayId, `place:${blockId}`);
+    },
+    !canEdit,
+  );
   if (!place && !caption && !canEdit) return null;
   return (
     <SlideIn from="left" className={cn("max-w-sm", className)}>
       <div
         className={cn("relative border-y border-dashed border-stamp/30 py-3 pr-4 pl-2 text-center", !canEdit && "cursor-zoom-in")}
-        onClick={() => {
-          if (!canEdit && dayId && blockId) openDay(dayId, `place:${blockId}`);
-        }}
+        onPointerDown={tap.onPointerDown}
+        onPointerMove={tap.onPointerMove}
+        onPointerUp={tap.onPointerUp}
+        onPointerCancel={tap.onPointerCancel}
+        onClick={tap.onClick}
       >
         {canEdit && onPlaceChange ? (
           <LiveText

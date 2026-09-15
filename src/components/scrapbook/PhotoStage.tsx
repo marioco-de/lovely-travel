@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type TouchEvent, type WheelEvent } from "react";
 import { cn } from "@/lib/utils";
+import { useTapOpen } from "@/hooks/use-tap-open";
 import { clampCrop, emptyCrop, type PhotoCrop } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
 
@@ -21,6 +22,7 @@ export function PhotoStage({ src, alt, crop, editable, oval, priority, onCrop, o
   const drag = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean } | null>(null);
   const pinch = useRef<{ dist: number; z: number } | null>(null);
   const dragging = useRef(false);
+  const tap = useTapOpen(onOpen, !editable);
 
   useEffect(() => {
     if (dragging.current) return;
@@ -34,7 +36,10 @@ export function PhotoStage({ src, alt, crop, editable, oval, priority, onCrop, o
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (!editable) return;
+    if (!editable) {
+      tap.onPointerDown(event);
+      return;
+    }
     event.preventDefault();
     (event.currentTarget as HTMLDivElement).setPointerCapture(event.pointerId);
     dragging.current = true;
@@ -57,13 +62,23 @@ export function PhotoStage({ src, alt, crop, editable, oval, priority, onCrop, o
     );
   }
 
-  function onPointerUp() {
+  function onPointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (!editable) {
+      tap.onPointerUp(event);
+      return;
+    }
     const moved = drag.current?.moved;
     if (moved) onCrop?.(clampCrop(value));
     drag.current = null;
     pinch.current = null;
     dragging.current = false;
-    if (!moved && !editable) onOpen?.();
+  }
+
+  function onPointerCancel() {
+    tap.onPointerCancel();
+    drag.current = null;
+    pinch.current = null;
+    dragging.current = false;
   }
 
   function onWheel(event: WheelEvent<HTMLDivElement>) {
@@ -99,15 +114,16 @@ export function PhotoStage({ src, alt, crop, editable, oval, priority, onCrop, o
       className={cn("photo-stage relative h-full w-full", oval && "photo-stage--oval", editable && "is-edit")}
       style={style}
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
+      onPointerMove={(event) => {
+        tap.onPointerMove(event);
+        onPointerMove(event);
+      }}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onClick={tap.onClick}
       onWheel={onWheel}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
-      onClick={() => {
-        if (!editable) onOpen?.();
-      }}
     >
       <DevelopingImage src={src} alt={alt} priority={priority} className="photo-stage-img" />
       {editable ? (

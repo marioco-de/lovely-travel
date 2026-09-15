@@ -3,6 +3,7 @@ import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { nextPoiSize, nextPoiSkin, type PoiData } from "@/lib/album/layout";
 import { searchPoi, type PoiHit } from "@/lib/album/geocode";
+import { useTapOpen } from "@/hooks/use-tap-open";
 import { useOpenDayLightbox } from "@/lib/album/lightbox";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
@@ -35,6 +36,12 @@ export function PoiCard({ dayId, blockId, poi, caption, onCaption, onClearCaptio
   const t = useT();
   const canEdit = useAlbum((s) => s.canEdit);
   const openDay = useOpenDayLightbox();
+  const tap = useTapOpen(
+    () => {
+      if (poi.name) openDay(dayId, `poi:${blockId}`);
+    },
+    !canEdit && Boolean(poi.name),
+  );
   const patchBlock = useAlbum((s) => s.patchBlock);
   const removeBlock = useAlbum((s) => s.removeBlock);
   const [query, setQuery] = useState(poi.name);
@@ -110,9 +117,11 @@ export function PoiCard({ dayId, blockId, poi, caption, onCaption, onClearCaptio
       <div
         className={cn("poi-card", `poi-card--${skin}`, `poi-card--s${size}`, !canEdit && poi.name && "cursor-zoom-in")}
         ref={wrapRef}
-        onClick={() => {
-          if (!canEdit && poi.name) openDay(dayId, `poi:${blockId}`);
-        }}
+        onPointerDown={tap.onPointerDown}
+        onPointerMove={tap.onPointerMove}
+        onPointerUp={tap.onPointerUp}
+        onPointerCancel={tap.onPointerCancel}
+        onClick={canEdit ? undefined : tap.onClick}
       >
         {canEdit ? (
           <div className="relative">
