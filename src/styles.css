@@ -349,26 +349,26 @@ body {
 }
 
 .photo-corner--tl {
-  top: -1px;
-  left: -1px;
+  top: -10px;
+  left: -10px;
   transform: none;
 }
 
 .photo-corner--tr {
-  top: -1px;
-  right: -1px;
+  top: -10px;
+  right: -10px;
   transform: scaleX(-1);
 }
 
 .photo-corner--bl {
-  bottom: -1px;
-  left: -1px;
+  bottom: -10px;
+  left: -10px;
   transform: scaleY(-1);
 }
 
 .photo-corner--br {
-  bottom: -1px;
-  right: -1px;
+  bottom: -10px;
+  right: -10px;
   transform: scale(-1);
 }
 
@@ -884,6 +884,7 @@ body {
 .photo-mat {
   position: relative;
   z-index: 1;
+  overflow: visible;
 }
 
 .photo-mat--oval {
@@ -976,8 +977,8 @@ body {
 
 .photo-under .caption-strip {
   position: relative;
-  z-index: 2;
-  margin-top: 0.7rem;
+  z-index: 0;
+  margin-top: -0.9rem;
   padding-top: 1.45rem;
 }
 
@@ -1711,6 +1712,7 @@ body {
 
 .collage-tile {
   min-width: 0;
+  overflow: visible;
 }
 
 .collage-mosaic--n2 .collage-tile--0 {
