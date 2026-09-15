@@ -275,6 +275,16 @@ export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
     const existing = await sql<{ public_hash: string }>`
       select public_hash from trips where public_hash = ${FEATURED_SLUG} limit 1
     `;
+    if (existing[0]) {
+      await sql`
+        update trips
+        set edit_password_hash = coalesce(edit_password_hash, ${digest}),
+            edit_hash = ${FEATURED_EDIT_HASH},
+            title = ${FEATURED_TITLE}
+        where public_hash = ${FEATURED_SLUG}
+      `;
+      return { publicHash: FEATURED_SLUG };
+    }
     const payload = JSON.stringify({
       layout: seedLayout(),
       texts: {
@@ -284,18 +294,6 @@ export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
       hiddenPins: {},
       photos: {},
     });
-    if (existing[0]) {
-      await sql`
-        update trips
-        set edit_password_hash = ${digest},
-            edit_hash = ${FEATURED_EDIT_HASH},
-            title = ${FEATURED_TITLE},
-            payload = ${payload}::jsonb,
-            updated_at = now()
-        where public_hash = ${FEATURED_SLUG}
-      `;
-      return { publicHash: FEATURED_SLUG };
-    }
     const id = newId();
     await sql`
       insert into trips (id, public_hash, edit_hash, edit_password_hash, title, source_locale, payload)
@@ -316,8 +314,7 @@ export const ensurePrivateTrip = createServerFn({ method: "POST" }).handler(
       await sql`
         update trips
         set edit_hash = ${PRIVATE_EDIT_HASH},
-            edit_password_hash = coalesce(edit_password_hash, ${digest}),
-            updated_at = now()
+            edit_password_hash = coalesce(edit_password_hash, ${digest})
         where public_hash = ${PRIVATE_SLUG}
       `;
       return { publicHash: PRIVATE_SLUG };
@@ -380,8 +377,26 @@ export const saveTrip = createServerFn({ method: "POST" })
       returning updated_at::text
     `;
     const row = rows[0];
-    if (!row) return { ok: false };
-    return { ok: true, updatedAt: row.updated_at };
+    if (row) return { ok: true, updatedAt: row.updated_at };
+    const publicHash =
+      data.editHash === FEATURED_EDIT_HASH
+        ? FEATURED_SLUG
+        : data.editHash === PRIVATE_EDIT_HASH
+          ? PRIVATE_SLUG
+          : data.editHash.replace(/-edit$/, "");
+    const id = newId();
+    await sql`
+      insert into trips (id, public_hash, edit_hash, title, source_locale, payload)
+      values (
+        ${id},
+        ${publicHash || token(9)},
+        ${data.editHash},
+        ${data.title},
+        ${data.sourceLocale},
+        ${JSON.stringify(data.payload)}::jsonb
+      )
+    `;
+    return { ok: true, updatedAt: new Date().toISOString() };
   });
 
 export const listTrips = createServerFn({ method: "GET" })

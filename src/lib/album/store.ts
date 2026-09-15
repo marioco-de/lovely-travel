@@ -3,9 +3,9 @@ import { LOCALES, type Locale, type MessageKey } from "@/lib/i18n/messages";
 import { days, heroPhotos, type AlbumPhoto } from "./data";
 import { applyFields, collectFields, type AlbumTexts } from "./fields";
 import { geocodePortugal } from "./geocode";
-import { FEATURED_EDIT_HASH, FEATURED_SLUG, readFeaturedUnlock, writeFeaturedUnlock } from "./featured";
+import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG, readFeaturedUnlock, writeFeaturedUnlock } from "./featured";
 import { isStoredPhotoUrl, mediaUrl, removeAlbumPhoto, uploadAlbumPhoto } from "./photo-store";
-import { createTrip, getEditTrip, getPublicTrip, saveTrip } from "./trips";
+import { createTrip, ensureFeaturedTrip, ensurePrivateTrip, getEditTrip, getPublicTrip, saveTrip } from "./trips";
 import { ensureTranslations } from "./translate";
 import {
   catalogSrc,
@@ -218,9 +218,15 @@ function storageKey(publicHash?: string, editHash?: string) {
   return publicHash || editHash || FEATURED_SLUG;
 }
 
-async function readSavedLayouts(hash?: string) {
+function layoutKeys(publicHash?: string, editHash?: string) {
+  const keys = [publicHash, editHash].filter((item): item is string => Boolean(item));
+  if (publicHash === FEATURED_SLUG || editHash === FEATURED_EDIT_HASH) keys.push("album");
+  return [...new Set(keys)];
+}
+
+async function readSavedLayouts(hash?: string, extra?: string) {
   if (typeof indexedDB === "undefined") return [] as AlbumLayout[];
-  const keys = [...new Set([hash, FEATURED_SLUG, "album"].filter(Boolean))] as string[];
+  const keys = layoutKeys(hash, extra);
   const found: AlbumLayout[] = [];
   for (const key of keys) {
     const saved = await idbGet<AlbumLayout>(LAYOUT_STORE, key);
@@ -932,7 +938,17 @@ export const useAlbum = create<AlbumState>((set, get) => ({
 
     const [idbPhotos, idbLayouts, localTrip, en, de] = await Promise.all([
       typeof indexedDB === "undefined" ? Promise.resolve({}) : loadPhotoUrls(),
-      typeof indexedDB === "undefined" ? Promise.resolve([] as AlbumLayout[]) : readSavedLayouts(hash),
+      typeof indexedDB === "undefined"
+        ? Promise.resolve([] as AlbumLayout[])
+        : readSavedLayouts(
+            publicHash || (isFeatured ? FEATURED_SLUG : undefined),
+            editHash ||
+              (isFeatured
+                ? FEATURED_EDIT_HASH
+                : publicHash === PRIVATE_SLUG
+                  ? PRIVATE_EDIT_HASH
+                  : undefined),
+          ),
       editHash
         ? getLocalTripByEdit(editHash)
         : publicHash
@@ -950,6 +966,11 @@ export const useAlbum = create<AlbumState>((set, get) => ({
 
     let remote: Awaited<ReturnType<typeof getEditTrip>> | Awaited<ReturnType<typeof getPublicTrip>> | null = null;
     try {
+      if (publicHash === PRIVATE_SLUG || editHash === PRIVATE_EDIT_HASH) {
+        await ensurePrivateTrip();
+      } else if (isFeatured && mode !== "view") {
+        await ensureFeaturedTrip();
+      }
       remote = editHash
         ? await getEditTrip({ data: { hash: editHash } })
         : publicHash
@@ -964,13 +985,20 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const remoteLayout = remote?.payload.layout;
     const localTripLayout = localTrip?.payload.layout;
     const remoteEditHash = remote && "editHash" in remote ? remote.editHash : undefined;
-    const layout = remoteLayout
-      ? unifyLayouts(remoteLayout, localTripLayout, ...idbLayouts)
-      : unifyLayouts(localTripLayout, ...idbLayouts);
+    const remoteAt = remote?.updatedAt ? Date.parse(remote.updatedAt) : 0;
+    const localAt = localTrip?.updatedAt ? Date.parse(localTrip.updatedAt) : 0;
+    const localIsNewer = Boolean(localTripLayout?.days?.length) && localAt > remoteAt;
+    const layout = localIsNewer
+      ? unifyLayouts(localTripLayout, remoteLayout, ...idbLayouts)
+      : remoteLayout
+        ? unifyLayouts(remoteLayout, localTripLayout, ...idbLayouts)
+        : unifyLayouts(localTripLayout, ...idbLayouts);
     const remotePhotos = remote?.payload.photos ?? {};
-    const photos = Object.keys(remotePhotos).length
-      ? mergePhotoMaps(idbPhotos, localTrip?.payload.photos, remotePhotos)
-      : mergePhotoMaps(remotePhotos, localTrip?.payload.photos, idbPhotos, get().photos);
+    const photos = localIsNewer
+      ? mergePhotoMaps(remotePhotos, localTrip?.payload.photos, idbPhotos)
+      : Object.keys(remotePhotos).length
+        ? mergePhotoMaps(idbPhotos, localTrip?.payload.photos, remotePhotos)
+        : mergePhotoMaps(localTrip?.payload.photos, idbPhotos);
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
     const googleAlbumUrl = localTrip?.payload.googleAlbumUrl ?? remote?.payload.googleAlbumUrl ?? "";
@@ -993,6 +1021,9 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       photos,
       saveStatus: "saved",
     });
+    if (localIsNewer && (editHash || featuredUnlocked || get().editHash)) {
+      scheduleRemote(get);
+    }
   },
   ensureLocale: async (locale) => {
     const { sourceLocale, layout, texts, tripId } = get();
@@ -1086,6 +1117,8 @@ function persistLayout(
     const key = storageKey(state.publicHash, state.editHash);
     void idbSet(LAYOUT_STORE, key, state.layout)
       .then(async () => {
+        const alt = state.editHash && state.publicHash && state.editHash !== key ? state.editHash : null;
+        if (alt) await idbSet(LAYOUT_STORE, alt, state.layout);
         if (state.publicHash && state.editHash) {
           const existing =
             (await getLocalTripByEdit(state.editHash)) ?? (await getLocalTripByPublic(state.publicHash));
