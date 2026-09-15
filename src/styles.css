@@ -923,19 +923,60 @@ body {
   border-radius: 50%;
 }
 
-.photo-stage-img .polaroid-emulsion {
-  object-position: var(--crop-x, 50%) var(--crop-y, 50%);
-  transform: scale(var(--crop-z, 1));
+.photo-stage-img {
+  height: 100%;
+  width: 100%;
+  transform: translate(var(--crop-tx, 0%), var(--crop-ty, 0%)) scale(var(--crop-z, 1));
   transform-origin: center center;
+  will-change: transform;
+}
+
+.photo-stage-img .polaroid-emulsion {
+  object-fit: cover;
+  object-position: center;
+}
+
+.photo-crop-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.45rem 0.45rem;
+  background: linear-gradient(180deg, transparent, rgb(251 246 236 / 0.88) 38%);
+  pointer-events: auto;
+}
+
+.photo-crop-btn {
+  flex: none;
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border: 1px solid rgb(61 42 28 / 0.28);
+  background: rgb(251 246 236 / 0.92);
+  color: var(--color-ink);
+  font-family: var(--font-typewriter), ui-monospace, monospace;
+  font-size: 1.2rem;
+  line-height: 1;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 2px 4px rgb(61 42 28 / 0.12);
+}
+
+.photo-crop-slider {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 1.35rem;
+  margin: 0;
+  accent-color: var(--color-lagoon-deep, #2f6f6a);
+  cursor: pointer;
 }
 
 .photo-crop-zoom {
-  position: absolute;
-  right: 0.4rem;
-  bottom: 0.4rem;
-  z-index: 5;
-  display: flex;
-  gap: 0.2rem;
+  display: none;
 }
 
 .photo-block--tabs {

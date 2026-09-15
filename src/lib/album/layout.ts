@@ -59,11 +59,11 @@ export function emptyCrop(): PhotoCrop {
 
 export function clampCrop(crop: PhotoCrop): PhotoCrop {
   const z = Math.min(3, Math.max(1, Number.isFinite(crop.z) ? crop.z : 1));
-  const max = 48 * (1 - 1 / z);
+  const max = 50 * (1 - 0.15 / z);
   return {
     z,
-    x: Math.min(max, Math.max(-max, crop.x || 0)),
-    y: Math.min(max, Math.max(-max, crop.y || 0)),
+    x: Math.min(max, Math.max(-max, Number.isFinite(crop.x) ? crop.x : 0)),
+    y: Math.min(max, Math.max(-max, Number.isFinite(crop.y) ? crop.y : 0)),
   };
 }
 
