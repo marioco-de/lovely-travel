@@ -26,7 +26,7 @@ export function PhotoCaption({
         "min-w-0 text-center",
         variant === "band"
           ? "relative z-20 px-2 pt-5 pb-3.5"
-          : "caption-strip relative z-0 mx-3 mt-0 px-3.5 pt-6 pb-3.5 -rotate-1 md:mx-5",
+          : "caption-strip relative z-[1] mx-3 mt-0 px-3.5 pt-6 pb-3.5 -rotate-1 md:mx-5",
         className,
       )}
     >
