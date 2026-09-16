@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
+import { peekOwnerSession } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 import { EditUnlock } from "./EditUnlock";
 import { LanguageToggle } from "./LanguageToggle";
@@ -20,7 +21,7 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   const canEdit = useAlbum((s) => s.canEdit);
   const editHash = useAlbum((s) => s.editHash);
   const lockEdit = useAlbum((s) => s.lockEdit);
-  const enableEdit = useAlbum((s) => s.enableEdit);
+  const becomeOwner = useAlbum((s) => s.becomeOwner);
   const { pick: pickBulk } = useBulkImport();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -75,17 +76,21 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
     }
   }
 
-  function onEditClick() {
+  async function onEditClick() {
     if (canEdit) {
       onEdit?.();
       setOpen(false);
       return;
     }
-    if (editHash) {
-      enableEdit();
-      onEdit?.();
-      setOpen(false);
-      return;
+    const key = publicHash || editHash;
+    if (key) {
+      const session = await peekOwnerSession({ data: { hash: key } }).catch(() => null);
+      if (session?.editHash) {
+        becomeOwner(session.editHash);
+        onEdit?.();
+        setOpen(false);
+        return;
+      }
     }
     setUnlockTo("edit");
     setUnlock(true);
@@ -100,16 +105,11 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
 
   function onSettingsClick() {
     const href = settingsHref();
-    if (canEdit && href) {
-      window.location.href = href;
-      return;
+    if (href) window.location.href = href;
+    else {
+      setUnlockTo("settings");
+      setUnlock(true);
     }
-    if (editHash) {
-      window.location.href = `/s/${editHash}`;
-      return;
-    }
-    setUnlockTo("settings");
-    setUnlock(true);
   }
 
   function onSaveClick() {
@@ -198,14 +198,6 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
                   >
                     — {t("ui.edit")}
                   </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="menu-link flex min-h-11 w-full items-center"
-                    onClick={onSettingsClick}
-                  >
-                    — {t("ui.settings")}
-                  </button>
                 </>
               )}
               {unlock && !canEdit && publicHash ? (
@@ -214,9 +206,10 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
                     publicHash={publicHash}
                     autoOpen
                     to={unlockTo}
-                    onUnlocked={() => {
-                      enableEdit();
+                    onUnlocked={(hash) => {
+                      becomeOwner(hash);
                       setOpen(false);
+                      if (unlockTo === "edit") onEdit?.();
                     }}
                   />
                 </div>

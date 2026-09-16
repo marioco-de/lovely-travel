@@ -87,6 +87,7 @@ type AlbumState = {
   canEdit: boolean;
   enableEdit: () => void;
   lockEdit: () => void;
+  becomeOwner: (editHash: string) => void;
   unlockFeatured: () => void;
   tripId?: string;
   publicHash?: string;
@@ -349,6 +350,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   setPlaceEditId: (id) => set({ placeEditId: id }),
   enableEdit: () => set({ canEdit: true }),
   lockEdit: () => set({ canEdit: false, placeEditId: null }),
+  becomeOwner: (editHash) => set({ canEdit: true, editHash }),
   unlockFeatured: () => {
     writeFeaturedUnlock();
     set({
@@ -1007,7 +1009,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
 
     set({
       ready: true,
-      canEdit: Boolean(editHash && (remoteEditHash || localTrip?.editHash)) || featuredUnlocked,
+      canEdit: mode === "edit" && (Boolean(editHash && (remoteEditHash || localTrip?.editHash)) || featuredUnlocked),
       tripId: remote?.id ?? localTrip?.id,
       publicHash: remote?.publicHash || localTrip?.publicHash || (isFeatured ? FEATURED_SLUG : publicHash),
       editHash: remoteEditHash ?? localTrip?.editHash ?? (featuredUnlocked ? FEATURED_EDIT_HASH : undefined),

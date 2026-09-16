@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { dayKey } from "./exif";
 import { newId } from "./layout";
+import { clusterByPlace } from "./place-split";
 
 export type ImportPhoto = {
   id: string;
@@ -49,24 +50,28 @@ export const previewGoogleLink = createServerFn({ method: "POST" })
         };
       });
     photos.sort((a, b) => (a.takenAt || Number.MAX_SAFE_INTEGER) - (b.takenAt || Number.MAX_SAFE_INTEGER));
-    const grouped = new Map<string, ImportPhoto[]>();
+    const byDate = new Map<string, ImportPhoto[]>();
     for (const photo of photos) {
-      const list = grouped.get(photo.dateKey) ?? [];
+      const list = byDate.get(photo.dateKey) ?? [];
       list.push(photo);
-      grouped.set(photo.dateKey, list);
+      byDate.set(photo.dateKey, list);
     }
-    const days: ImportDayDraft[] = [...grouped.entries()].map(([dateKey, list]) => {
-      const places = list.map((photo) => photo.place).filter((place) => place && place !== UNKNOWN);
-      const tally = new Map<string, number>();
-      for (const place of places) tally.set(place, (tally.get(place) ?? 0) + 1);
-      const top = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-      return {
-        id: newId("imp"),
-        dateKey,
-        place: top || UNKNOWN,
-        photos: list,
-      };
-    });
+    const days: ImportDayDraft[] = [];
+    for (const [dateKey, list] of byDate.entries()) {
+      const clusters = clusterByPlace(list);
+      for (const cluster of clusters) {
+        const places = cluster.map((photo) => photo.place).filter((place) => place && place !== UNKNOWN);
+        const tally = new Map<string, number>();
+        for (const place of places) tally.set(place, (tally.get(place) ?? 0) + 1);
+        const top = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+        days.push({
+          id: newId("imp"),
+          dateKey,
+          place: top || UNKNOWN,
+          photos: cluster,
+        });
+      }
+    }
     return { days, needsAuth: false, title: album.title, total: photos.length };
   });
 
@@ -97,6 +102,8 @@ const draftSchema = z.object({
 export const confirmGoogleLink = createServerFn({ method: "POST" })
   .validator(draftSchema)
   .handler(async ({ data }) => {
+    const { requireOwner } = await import("./owner-session.server");
+    if (!(await requireOwner(data.editHash))) return { ok: false as const, photos: {} as Record<string, string>, days: [], highlights: [] as string[] };
     const { getSql } = await import("@/lib/db");
     const { uploadAlbumPhoto } = await import("./photo-store");
     const { readExifBytes } = await import("./exif");

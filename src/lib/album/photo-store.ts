@@ -62,6 +62,8 @@ export const uploadAlbumPhoto = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }): Promise<{ url: string } | { error: string }> => {
+    const { requireOwner } = await import("./owner-session.server");
+    if (!(await requireOwner(data.editHash))) return { error: "locked" };
     const sql = await ensurePhotoTable();
     const trip = await sql<{ public_hash: string }>`
       select public_hash from trips where edit_hash = ${data.editHash} limit 1

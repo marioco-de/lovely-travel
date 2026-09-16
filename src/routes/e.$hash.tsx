@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AlbumPage } from "@/components/scrapbook/AlbumPage";
+import { OwnerGate } from "@/components/scrapbook/OwnerGate";
 
 export const Route = createFileRoute("/e/$hash")({
   component: EditTrip,
@@ -7,5 +8,5 @@ export const Route = createFileRoute("/e/$hash")({
 
 function EditTrip() {
   const { hash } = Route.useParams();
-  return <AlbumPage mode="edit" editHash={hash} />;
+  return <OwnerGate hash={hash}>{(editHash) => <AlbumPage mode="edit" editHash={editHash} />}</OwnerGate>;
 }

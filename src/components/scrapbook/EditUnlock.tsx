@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from "react";
-import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG, matchesFeaturedPassword } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { unlockTrip } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -8,35 +7,27 @@ type EditUnlockProps = {
   publicHash: string;
   autoOpen?: boolean;
   to?: "edit" | "settings";
-  onUnlocked?: () => void;
+  onUnlocked?: (editHash: string) => void;
 };
 
 export function EditUnlock({ publicHash, autoOpen = false, to = "edit", onUnlocked }: EditUnlockProps) {
   const t = useT();
-  const unlockFeatured = useAlbum((s) => s.unlockFeatured);
+  const becomeOwner = useAlbum((s) => s.becomeOwner);
   const [open, setOpen] = useState(autoOpen);
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
 
   function go(editHash: string) {
-    onUnlocked?.();
-    window.location.href = to === "settings" ? `/s/${editHash}` : `/e/${editHash}`;
+    becomeOwner(editHash);
+    onUnlocked?.(editHash);
+    if (to === "settings") window.location.href = `/s/${editHash}`;
   }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const secret = password.trim();
     if (!secret) return;
-    if (publicHash === FEATURED_SLUG && matchesFeaturedPassword(secret)) {
-      unlockFeatured();
-      go(FEATURED_EDIT_HASH);
-      return;
-    }
-    if (publicHash === PRIVATE_SLUG && matchesFeaturedPassword(secret)) {
-      go(PRIVATE_EDIT_HASH);
-      return;
-    }
     setBusy(true);
     setError(false);
     try {
@@ -76,7 +67,7 @@ export function EditUnlock({ publicHash, autoOpen = false, to = "edit", onUnlock
         className="album-field w-full py-2 text-sm"
         autoFocus
       />
-      <button type="submit" disabled={busy} className="menu-link min-h-11 text-left disabled:opacity-50">
+      <button type="submit" disabled={busy} className="album-link min-h-11 text-left disabled:opacity-50 menu-link">
         {t("ui.editUnlock")}
       </button>
       {error ? <span className="font-script text-sm text-coral">{t("ui.editPasswordWrong")}</span> : null}

@@ -155,6 +155,8 @@ export const createTrip = createServerFn({ method: "POST" })
     `;
     const row = rows[0];
     if (!row) throw new Error("Could not create album");
+    const { issueOwnerSession } = await import("./owner-session.server");
+    await issueOwnerSession(row.edit_hash);
     return {
       id: row.id,
       publicHash: row.public_hash,
@@ -247,6 +249,8 @@ export const unlockTrip = createServerFn({ method: "POST" })
       } catch {
         /* still unlock the named album */
       }
+      const { issueOwnerSession } = await import("./owner-session.server");
+      await issueOwnerSession(FEATURED_EDIT_HASH);
       return { editHash: FEATURED_EDIT_HASH };
     }
     if (publicHash === PRIVATE_SLUG && password.toLowerCase() === FEATURED_PASSWORD) {
@@ -255,6 +259,8 @@ export const unlockTrip = createServerFn({ method: "POST" })
       } catch {
         /* still unlock */
       }
+      const { issueOwnerSession } = await import("./owner-session.server");
+      await issueOwnerSession(PRIVATE_EDIT_HASH);
       return { editHash: PRIVATE_EDIT_HASH };
     }
     const digest = hashPassword(password);
@@ -265,8 +271,70 @@ export const unlockTrip = createServerFn({ method: "POST" })
     const row = rows[0];
     if (!row?.edit_password_hash) return null;
     if (!sameSecret(row.edit_password_hash, digest)) return null;
+    const { issueOwnerSession } = await import("./owner-session.server");
+    await issueOwnerSession(row.edit_hash);
     return { editHash: row.edit_hash };
   });
+
+export const unlockTripByEditHash = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      editHash: z.string().min(8).max(64),
+      password: z.string().min(1).max(80),
+    }),
+  )
+  .handler(async ({ data }): Promise<{ editHash: string; publicHash: string } | null> => {
+    const password = data.password.trim();
+    const editHash = data.editHash.trim();
+    if (!password || !editHash) return null;
+    if (editHash === FEATURED_EDIT_HASH && password.toLowerCase() === FEATURED_PASSWORD) {
+      const { issueOwnerSession } = await import("./owner-session.server");
+      await issueOwnerSession(FEATURED_EDIT_HASH);
+      return { editHash: FEATURED_EDIT_HASH, publicHash: FEATURED_SLUG };
+    }
+    if (editHash === PRIVATE_EDIT_HASH && password.toLowerCase() === FEATURED_PASSWORD) {
+      const { issueOwnerSession } = await import("./owner-session.server");
+      await issueOwnerSession(PRIVATE_EDIT_HASH);
+      return { editHash: PRIVATE_EDIT_HASH, publicHash: PRIVATE_SLUG };
+    }
+    const digest = hashPassword(password);
+    const sql = await ensurePasswordColumn();
+    const rows = await sql<{ edit_hash: string; public_hash: string; edit_password_hash: string | null }>`
+      select edit_hash, public_hash, edit_password_hash from trips where edit_hash = ${editHash} limit 1
+    `;
+    const row = rows[0];
+    if (!row?.edit_password_hash) return null;
+    if (!sameSecret(row.edit_password_hash, digest)) return null;
+    const { issueOwnerSession } = await import("./owner-session.server");
+    await issueOwnerSession(row.edit_hash);
+    return { editHash: row.edit_hash, publicHash: row.public_hash };
+  });
+
+export const peekOwnerSession = createServerFn({ method: "GET" })
+  .validator(z.object({ hash: z.string().min(4).max(64).optional() }))
+  .handler(async ({ data }): Promise<{ editHash: string } | null> => {
+    const { readOwnerSession } = await import("./owner-session.server");
+    const session = await readOwnerSession();
+    if (!session) return null;
+    if (!data.hash || data.hash === session) return { editHash: session };
+    const sql = await ensurePasswordColumn();
+    const rows = await sql<{ edit_hash: string; public_hash: string }>`
+      select edit_hash, public_hash from trips
+      where edit_hash = ${data.hash} or public_hash = ${data.hash}
+      limit 1
+    `;
+    const row = rows[0];
+    if (row && row.edit_hash === session) return { editHash: session };
+    if (data.hash === FEATURED_SLUG && session === FEATURED_EDIT_HASH) return { editHash: session };
+    if (data.hash === PRIVATE_SLUG && session === PRIVATE_EDIT_HASH) return { editHash: session };
+    return null;
+  });
+
+export const lockOwnerSession = createServerFn({ method: "POST" }).handler(async () => {
+  const { clearOwnerSession } = await import("./owner-session.server");
+  await clearOwnerSession();
+  return { ok: true as const };
+});
 
 export const ensureFeaturedTrip = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ publicHash: string }> => {
@@ -345,6 +413,8 @@ export const setTripPassword = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }): Promise<{ ok: true } | { ok: false }> => {
+    const { requireOwner } = await import("./owner-session.server");
+    if (!(await requireOwner(data.editHash))) return { ok: false };
     const sql = await ensurePasswordColumn();
     const rows = await sql<{ id: string }>`
       update trips
@@ -365,6 +435,8 @@ export const saveTrip = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }): Promise<{ ok: true; updatedAt: string } | { ok: false }> => {
+    const { requireOwner } = await import("./owner-session.server");
+    if (!(await requireOwner(data.editHash))) return { ok: false };
     const { getSql } = await import("@/lib/db");
     const sql = await getSql();
     const rows = await sql<{ updated_at: string }>`

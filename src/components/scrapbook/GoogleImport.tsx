@@ -119,6 +119,48 @@ export function GoogleImport() {
     );
   }
 
+  function splitFrom(dayId: string, photoIndex: number) {
+    setDays((current) => {
+      if (!current) return current;
+      const index = current.findIndex((day) => day.id === dayId);
+      const day = current[index];
+      if (!day || photoIndex <= 0 || photoIndex >= day.photos.length) return current;
+      const left = day.photos.slice(0, photoIndex);
+      const right = day.photos.slice(photoIndex);
+      const next: DayDraft = {
+        id: `imp-${Date.now().toString(36)}`,
+        dateKey: day.dateKey,
+        place: day.place,
+        photos: right,
+        selected: new Set([...day.selected].filter((id) => right.some((photo) => photo.id === id))),
+      };
+      const updated: DayDraft = {
+        ...day,
+        photos: left,
+        selected: new Set([...day.selected].filter((id) => left.some((photo) => photo.id === id))),
+      };
+      const copy = [...current];
+      copy.splice(index, 1, updated, next);
+      return copy;
+    });
+  }
+
+  function mergePrev(dayId: string) {
+    setDays((current) => {
+      if (!current) return current;
+      const index = current.findIndex((day) => day.id === dayId);
+      if (index < 1) return current;
+      const prev = current[index - 1]!;
+      const day = current[index]!;
+      if (prev.dateKey !== day.dateKey) return current;
+      const photos = [...prev.photos, ...day.photos];
+      const selected = new Set([...prev.selected, ...day.selected]);
+      const copy = [...current];
+      copy.splice(index - 1, 2, { ...prev, photos, selected });
+      return copy;
+    });
+  }
+
   function toggleStar(id: string) {
     setHighlights((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id);
@@ -156,7 +198,7 @@ export function GoogleImport() {
           </p>
           <p className="mt-1 font-script text-sm text-ink-soft">{t("ui.googleReviewHint")}</p>
           <div className="mt-4 grid gap-5">
-            {days.map((day) => (
+            {days.map((day, dayIndex) => (
               <section key={day.id} className="grid gap-2">
                 <div className="flex flex-wrap items-end gap-2">
                   <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{day.dateKey}</p>
@@ -175,38 +217,54 @@ export function GoogleImport() {
                   <span className="font-typewriter text-[0.7rem] tracking-wide text-ink-soft">
                     {day.selected.size}/{day.photos.length}
                   </span>
+                  {dayIndex > 0 && days[dayIndex - 1]?.dateKey === day.dateKey ? (
+                    <button type="button" className="album-btn album-btn--ghost" onClick={() => mergePrev(day.id)}>
+                      {t("ui.mergePlace")}
+                    </button>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {day.photos.map((photo) => {
+                  {day.photos.map((photo, photoIndex) => {
                     const on = day.selected.has(photo.id);
                     const star = highlights.includes(photo.id);
                     return (
-                      <button
-                        key={photo.id}
-                        type="button"
-                        onClick={() => togglePhoto(day.id, photo.id)}
-                        onContextMenu={(event) => {
-                          event.preventDefault();
-                          toggleStar(photo.id);
-                        }}
-                        className={cn(
-                          "relative h-16 w-16 overflow-hidden border",
-                          on ? "border-lagoon-deep opacity-100" : "border-stamp/30 opacity-40",
-                        )}
-                        title={t("ui.googlePickHint")}
-                      >
-                        <img src={photo.thumb} alt="" className="h-full w-full object-cover" />
-                        <span
-                          role="presentation"
-                          className="absolute top-0.5 right-0.5 grid h-5 w-5 place-items-center bg-page/80 font-typewriter text-[0.7rem]"
-                          onClick={(event) => {
-                            event.stopPropagation();
+                      <div key={photo.id} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => togglePhoto(day.id, photo.id)}
+                          onContextMenu={(event) => {
+                            event.preventDefault();
                             toggleStar(photo.id);
                           }}
+                          className={cn(
+                            "relative h-16 w-16 overflow-hidden border",
+                            on ? "border-lagoon-deep opacity-100" : "border-stamp/30 opacity-40",
+                          )}
+                          title={t("ui.googlePickHint")}
                         >
-                          {star ? "★" : "☆"}
-                        </span>
-                      </button>
+                          <img src={photo.thumb} alt="" className="h-full w-full object-cover" />
+                          <span
+                            role="presentation"
+                            className="absolute top-0.5 right-0.5 grid h-5 w-5 place-items-center bg-page/80 font-typewriter text-[0.7rem]"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleStar(photo.id);
+                            }}
+                          >
+                            {star ? "★" : "☆"}
+                          </span>
+                        </button>
+                        {photoIndex > 0 ? (
+                          <button
+                            type="button"
+                            className="absolute -right-1 bottom-0 z-10 grid h-5 min-w-5 place-items-center bg-page px-0.5 font-typewriter text-[0.6rem] text-ink-soft"
+                            title={t("ui.splitFromHere")}
+                            onClick={() => splitFrom(day.id, photoIndex)}
+                          >
+                            |
+                          </button>
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
