@@ -123,17 +123,7 @@ function parseJpegExif(buffer: ArrayBuffer): PhotoExif | null {
         continue;
       }
       const tiff = start + 6;
-      const endian = view.getUint16(tiff);
-      const le = endian === 0x4949;
-      if (!le && endian !== 0x4d4d) return null;
-      const ifd0 = tiff + u32(view, tiff + 4, le);
-      const head = readIfd(view, ifd0, tiff, le);
-      const exif = head.exifOffset ? readIfd(view, head.exifOffset, tiff, le, 1) : {};
-      const gps = head.gpsOffset ? readGps(view, head.gpsOffset, tiff, le) : {};
-      return {
-        takenAt: exif.date ?? head.date ?? 0,
-        ...gps,
-      };
+      return parseTiff(view, tiff);
     }
     if (marker === 0xda) break;
     offset += 2 + size;
@@ -141,9 +131,71 @@ function parseJpegExif(buffer: ArrayBuffer): PhotoExif | null {
   return null;
 }
 
+function parseTiff(view: DataView, tiff: number): PhotoExif | null {
+  if (tiff + 8 > view.byteLength) return null;
+  const endian = view.getUint16(tiff);
+  const le = endian === 0x4949;
+  if (!le && endian !== 0x4d4d) return null;
+  const ifd0 = tiff + u32(view, tiff + 4, le);
+  const head = readIfd(view, ifd0, tiff, le);
+  const exif = head.exifOffset ? readIfd(view, head.exifOffset, tiff, le, 1) : {};
+  const gps = head.gpsOffset ? readGps(view, head.gpsOffset, tiff, le) : {};
+  return {
+    takenAt: exif.date ?? head.date ?? 0,
+    ...gps,
+  };
+}
+
+function indexOfBytes(haystack: Uint8Array, needle: number[]) {
+  outer: for (let i = 0; i <= haystack.length - needle.length; i += 1) {
+    for (let j = 0; j < needle.length; j += 1) {
+      if (haystack[i + j] !== needle[j]) continue outer;
+    }
+    return i;
+  }
+  return -1;
+}
+
+function parseEmbeddedExif(buffer: ArrayBuffer): PhotoExif | null {
+  const bytes = new Uint8Array(buffer);
+  const marker = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
+  let from = 0;
+  while (from < bytes.length - 16) {
+    const rel = indexOfBytes(bytes.subarray(from), marker);
+    if (rel < 0) return null;
+    const at = from + rel;
+    const parsed = parseTiff(new DataView(buffer), at + 6);
+    if (parsed && (parsed.takenAt || parsed.lat != null)) return parsed;
+    from = at + 1;
+  }
+  return null;
+}
+
+function dmsToDeg(raw: string, ref?: string) {
+  const nums = raw.match(/[\d.]+/g)?.map(Number) ?? [];
+  if (!nums.length) return null;
+  const deg = nums[0]! + (nums[1] ?? 0) / 60 + (nums[2] ?? 0) / 3600;
+  const southWest = /[SW]/i.test(raw) || (ref ? /[SW]/i.test(ref) : false);
+  return southWest ? -deg : deg;
+}
+
+function parseXmpGps(buffer: ArrayBuffer): PhotoExif | null {
+  const text = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+  if (!text.includes("<x:xmpmeta") && !text.includes("exif:GPSLatitude")) return null;
+  const latRaw = text.match(/exif:GPSLatitude="([^"]+)"/)?.[1] ?? text.match(/<exif:GPSLatitude>([^<]+)</)?.[1];
+  const lngRaw = text.match(/exif:GPSLongitude="([^"]+)"/)?.[1] ?? text.match(/<exif:GPSLongitude>([^<]+)</)?.[1];
+  const latRef = text.match(/exif:GPSLatitudeRef="([^"]+)"/)?.[1];
+  const lngRef = text.match(/exif:GPSLongitudeRef="([^"]+)"/)?.[1];
+  if (!latRaw || !lngRaw) return null;
+  const lat = dmsToDeg(latRaw, latRef);
+  const lng = dmsToDeg(lngRaw, lngRef);
+  if (lat == null || lng == null) return null;
+  return { takenAt: 0, lat, lng };
+}
+
 export function readExifBytes(buffer: ArrayBuffer, fallback = 0): PhotoExif {
   try {
-    const parsed = parseJpegExif(buffer);
+    const parsed = parseJpegExif(buffer) ?? parseEmbeddedExif(buffer) ?? parseXmpGps(buffer);
     if (!parsed) return { takenAt: fallback };
     return { takenAt: parsed.takenAt || fallback, lat: parsed.lat, lng: parsed.lng };
   } catch {

@@ -21,6 +21,7 @@ export function GoogleImport() {
   const [busy, setBusy] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [error, setError] = useState(false);
+  const [total, setTotal] = useState(0);
 
   async function preview() {
     const share = url.trim();
@@ -33,6 +34,7 @@ export function GoogleImport() {
       if (result.needsAuth || !result.days.length) {
         setNeedsAuth(true);
         setDays(null);
+        setTotal(0);
         return;
       }
       const drafted: DayDraft[] = result.days.map((day) => ({
@@ -40,6 +42,7 @@ export function GoogleImport() {
         selected: new Set(day.photos.slice(0, DAY_CAP).map((photo) => photo.id)),
       }));
       setDays(drafted);
+      setTotal(result.total ?? drafted.reduce((sum, day) => sum + day.photos.length, 0));
       setHighlights(
         drafted
           .map((day) => [...day.selected][0])
@@ -148,6 +151,9 @@ export function GoogleImport() {
       {days ? (
         <div className="caption-strip confirm-card p-4">
           <p className="font-typewriter text-place text-lagoon-deep">{t("ui.googleReview")}</p>
+          <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink">
+            {total} {t("ui.googleTotal")}
+          </p>
           <p className="mt-1 font-script text-sm text-ink-soft">{t("ui.googleReviewHint")}</p>
           <div className="mt-4 grid gap-5">
             {days.map((day) => (

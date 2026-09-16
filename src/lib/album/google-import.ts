@@ -26,38 +26,48 @@ const UNKNOWN = "Unbekannter Ort";
 
 export const previewGoogleLink = createServerFn({ method: "POST" })
   .validator(z.object({ url: z.string().min(12).max(500) }))
-  .handler(async ({ data }): Promise<{ days: ImportDayDraft[]; needsAuth: boolean; title?: string }> => {
+  .handler(async ({ data }): Promise<{ days: ImportDayDraft[]; needsAuth: boolean; title?: string; total?: number }> => {
     const { fetchSharedAlbum } = await import("./shared-album.server");
     const album = await fetchSharedAlbum(data.url);
     if (album.needsAuth || album.photos.length === 0) {
       return { days: [], needsAuth: album.needsAuth || album.photos.length === 0, title: album.title };
     }
-    const photos: ImportPhoto[] = album.photos.map((photo, index) => {
-      const takenAt = photo.takenAt || Date.now() - (album.photos.length - index) * 60_000;
-      return {
-        id: newId("gph"),
-        uid: photo.uid,
-        thumb: photo.thumb,
-        url: photo.url,
-        takenAt,
-        dateKey: dayKey(takenAt),
-        place: UNKNOWN,
-      };
-    });
-    photos.sort((a, b) => a.takenAt - b.takenAt);
+    const photos: ImportPhoto[] = album.photos
+      .filter((photo) => photo.uid.startsWith("AF1Qip") && photo.url.includes("/pw/"))
+      .map((photo) => {
+        const takenAt = photo.takenAt || 0;
+        return {
+          id: newId("gph"),
+          uid: photo.uid,
+          thumb: photo.thumb,
+          url: photo.url,
+          takenAt,
+          dateKey: takenAt ? dayKey(takenAt) : "unknown",
+          lat: photo.lat,
+          lng: photo.lng,
+          place: photo.place?.trim() || UNKNOWN,
+        };
+      });
+    photos.sort((a, b) => (a.takenAt || Number.MAX_SAFE_INTEGER) - (b.takenAt || Number.MAX_SAFE_INTEGER));
     const grouped = new Map<string, ImportPhoto[]>();
     for (const photo of photos) {
       const list = grouped.get(photo.dateKey) ?? [];
       list.push(photo);
       grouped.set(photo.dateKey, list);
     }
-    const days: ImportDayDraft[] = [...grouped.entries()].map(([dateKey, list]) => ({
-      id: newId("imp"),
-      dateKey,
-      place: UNKNOWN,
-      photos: list,
-    }));
-    return { days, needsAuth: false, title: album.title };
+    const days: ImportDayDraft[] = [...grouped.entries()].map(([dateKey, list]) => {
+      const places = list.map((photo) => photo.place).filter((place) => place && place !== UNKNOWN);
+      const tally = new Map<string, number>();
+      for (const place of places) tally.set(place, (tally.get(place) ?? 0) + 1);
+      const top = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+      return {
+        id: newId("imp"),
+        dateKey,
+        place: top || UNKNOWN,
+        photos: list,
+      };
+    });
+    return { days, needsAuth: false, title: album.title, total: photos.length };
   });
 
 const draftSchema = z.object({
@@ -135,7 +145,7 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
           takenAt: new Date(exif.takenAt || photo.takenAt).toISOString(),
           lat: exif.lat,
           lng: exif.lng,
-          placeLabel: photo.place || "",
+          placeLabel: photo.place && photo.place !== UNKNOWN ? photo.place : "",
         });
       } catch {
         uploaded[photo.id] = photo.url;
