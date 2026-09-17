@@ -227,6 +227,14 @@ export function GoogleImport() {
     });
   }
 
+  function hideDate(dateKey: string) {
+    const gone = new Set(
+      days?.filter((day) => day.dateKey === dateKey).flatMap((day) => day.photos.map((photo) => photo.id)) ?? [],
+    );
+    setDays((current) => current?.filter((day) => day.dateKey !== dateKey) ?? null);
+    if (gone.size) setHighlights((current) => current.filter((id) => !gone.has(id)));
+  }
+
   function mergePrev(dayId: string) {
     setDays((current) => {
       if (!current) return current;
@@ -483,7 +491,20 @@ export function GoogleImport() {
                 }}
               >
                 <div className="flex flex-wrap items-end gap-2">
-                  <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{day.dateKey}</p>
+                  <p className="flex items-center gap-0.5 font-display text-kicker tracking-widest text-ink-soft uppercase">
+                    {day.dateKey}
+                    {dayIndex === 0 || days[dayIndex - 1]?.dateKey !== day.dateKey ? (
+                      <button
+                        type="button"
+                        className="grid h-7 w-7 place-items-center font-typewriter text-lg leading-none text-ink-soft"
+                        aria-label={t("ui.hideDate")}
+                        title={t("ui.hideDate")}
+                        onClick={() => hideDate(day.dateKey)}
+                      >
+                        ×
+                      </button>
+                    ) : null}
+                  </p>
                   <input
                     value={day.place}
                     onChange={(event) =>
