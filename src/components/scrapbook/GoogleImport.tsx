@@ -4,7 +4,7 @@ import { dayKey, isDayKey } from "@/lib/album/exif";
 import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
 import { newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
-import { useT } from "@/lib/i18n/locale";
+import { useFormatDay, useT } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -185,6 +185,7 @@ async function compressUpload(file: File): Promise<Blob> {
 
 export function GoogleImport() {
   const t = useT();
+  const formatDay = useFormatDay();
   const editHash = useAlbum((s) => s.editHash);
   const savedUrl = useAlbum((s) => s.googleAlbumUrl);
   const albumUrls = useAlbum((s) => s.googleAlbumUrls);
@@ -953,8 +954,8 @@ export function GoogleImport() {
                 }}
               >
                 <div className="flex flex-wrap items-end gap-2">
-                  <p className="flex items-center gap-0.5 font-display text-kicker tracking-widest text-ink-soft uppercase">
-                    {day.dateKey}
+                  <p className="flex items-center gap-0.5 font-typewriter text-place font-bold text-ink">
+                    {formatDay(day.dateKey)}
                     {dayIndex === 0 || days[dayIndex - 1]?.dateKey !== day.dateKey ? (
                       <button
                         type="button"

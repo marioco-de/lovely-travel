@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { create } from "zustand";
+import { isDayKey } from "@/lib/album/exif";
 import { useAlbum } from "@/lib/album/store";
 import { messages, LOCALES, type Locale, type MessageKey } from "./messages";
 
@@ -24,6 +25,18 @@ export const useLocale = create<LocaleState>((set) => ({
     }
   },
 }));
+
+export function formatDayKey(dateKey: string, locale: Locale) {
+  if (!isDayKey(dateKey)) return dateKey;
+  const [year, month, day] = dateKey.split("-");
+  if (locale === "de") return `${day}.${month}.${year}`;
+  return dateKey;
+}
+
+export function useFormatDay() {
+  const locale = useLocale((s) => s.locale);
+  return (dateKey: string) => formatDayKey(dateKey, locale);
+}
 
 export function useT() {
   const locale = useLocale((s) => s.locale);

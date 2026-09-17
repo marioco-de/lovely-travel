@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { draftsFromPhotos, ingestFiles, mergeDraftUp, revokeDrafts, splitDraft, unknownPlace, type BulkDayDraft } from "@/lib/album/bulk";
 import { useAlbum } from "@/lib/album/store";
-import { useLocale, useT } from "@/lib/i18n/locale";
+import { formatDayKey, useLocale, useT } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 
 const BulkCtx = createContext({ pick: () => {} });
@@ -93,7 +93,7 @@ export function BulkImportRoot({ children }: { children: ReactNode }) {
                 <div className="mt-4 space-y-5">
                   {drafts.map((day, index) => (
                     <section key={day.id} className="border-t border-[rgb(61_42_28_/_0.12)] pt-3">
-                      <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{day.dateKey}</p>
+                      <p className="font-typewriter text-place font-bold text-ink">{formatDayKey(day.dateKey, locale)}</p>
                       <input
                         value={day.place}
                         onChange={(event) =>
