@@ -52,6 +52,76 @@ function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
   }));
 }
 
+function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft[] {
+  const hiddenDates = new Set(current.filter((day) => day.hidden).map((day) => day.dateKey));
+  const next: DayDraft[] = current.map((day) => ({
+    ...day,
+    photos: day.photos.map((photo) => ({ ...photo })),
+    selected: new Set(day.selected),
+  }));
+  const byUid = new Map<string, { day: DayDraft; photo: ImportPhoto }>();
+  for (const day of next) {
+    for (const photo of day.photos) byUid.set(photo.uid || photo.id, { day, photo });
+  }
+
+  function dayFor(dateKey: string, place: string) {
+    const exact = next.find((day) => day.dateKey === dateKey && day.place === place);
+    if (exact) return exact;
+    const sameDate = next.find((day) => day.dateKey === dateKey);
+    if (sameDate && (place === UNKNOWN || sameDate.place === UNKNOWN || sameDate.place === place)) return sameDate;
+    const created: DayDraft = {
+      id: `imp-${Date.now().toString(36)}-${next.length}`,
+      dateKey,
+      place,
+      photos: [],
+      selected: new Set(),
+      hidden: hiddenDates.has(dateKey),
+    };
+    const insertAt = next.findIndex((day) => day.dateKey > dateKey);
+    if (insertAt < 0) next.push(created);
+    else next.splice(insertAt, 0, created);
+    return created;
+  }
+
+  for (const draft of incoming) {
+    for (const fresh of draft.photos) {
+      const uid = fresh.uid || fresh.id;
+      const hit = byUid.get(uid);
+      if (hit) {
+        hit.photo.thumb = fresh.thumb || hit.photo.thumb;
+        hit.photo.url = fresh.url || hit.photo.url;
+        if (fresh.takenAt) {
+          hit.photo.takenAt = fresh.takenAt;
+          hit.photo.dateKey = fresh.dateKey;
+        }
+        if (fresh.place && fresh.place !== UNKNOWN) hit.photo.place = fresh.place;
+        if (fresh.lat != null) hit.photo.lat = fresh.lat;
+        if (fresh.lng != null) hit.photo.lng = fresh.lng;
+        const destKey = hit.photo.dateKey || draft.dateKey;
+        if (destKey !== hit.day.dateKey) {
+          const wasSelected = hit.day.selected.has(hit.photo.id);
+          hit.day.photos = hit.day.photos.filter((item) => item.id !== hit.photo.id);
+          hit.day.selected.delete(hit.photo.id);
+          const dest = dayFor(destKey, hit.photo.place || draft.place);
+          dest.photos.push(hit.photo);
+          if (wasSelected) dest.selected.add(hit.photo.id);
+          byUid.set(uid, { day: dest, photo: hit.photo });
+        }
+        continue;
+      }
+      const dest = dayFor(draft.dateKey, draft.place);
+      dest.photos.push(fresh);
+      byUid.set(uid, { day: dest, photo: fresh });
+    }
+  }
+
+  for (const day of next) {
+    day.photos.sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
+    if (hiddenDates.has(day.dateKey)) day.hidden = true;
+  }
+  return next.filter((day) => day.photos.length > 0);
+}
+
 async function fileToDataUrl(file: File) {
   const blob = await compressUpload(file);
   return new Promise<string>((resolve, reject) => {
@@ -196,6 +266,11 @@ export function GoogleImport() {
   async function preview() {
     const share = url.trim();
     if (share.length < 12) return;
+    const known = albumUrls.includes(share) || share === savedUrl;
+    if (known && days?.length) {
+      await refreshAlbum(share);
+      return;
+    }
     setBusy(true);
     setError(false);
     setNeedsAuth(false);
@@ -207,9 +282,7 @@ export function GoogleImport() {
       }
       const drafted = fromDays(result.days, true);
       previewLock.current = true;
-      const known = albumUrls.includes(share) || share === savedUrl;
-      const replace = !days?.length || known;
-      if (replace) {
+      if (!days?.length) {
         setDays(drafted);
         setTotal(result.total ?? drafted.reduce((sum, day) => sum + day.photos.length, 0));
         setHighlights(
@@ -224,6 +297,31 @@ export function GoogleImport() {
       }
       addGoogleAlbumUrl(share);
       setPendingPreview(true);
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshAlbum(share: string) {
+    if (share.length < 12) return;
+    setBusy(true);
+    setError(false);
+    setNeedsAuth(false);
+    try {
+      const result = await previewGoogleLink({ data: { url: share } });
+      if (result.needsAuth || !result.days.length) {
+        setNeedsAuth(true);
+        return;
+      }
+      previewLock.current = true;
+      const merged = mergeRefresh(daysRef.current ?? [], result.days);
+      setDays(merged);
+      setTotal(result.total ?? merged.reduce((sum, day) => sum + day.photos.length, 0));
+      addGoogleAlbumUrl(share);
+      setPendingPreview(true);
+      persistFlags(merged);
     } catch {
       setError(true);
     } finally {
@@ -702,6 +800,16 @@ export function GoogleImport() {
               <span className="min-w-0 truncate">{item}</span>
               <button
                 type="button"
+                className="grid h-8 w-8 shrink-0 place-items-center text-stamp"
+                aria-label={t("ui.googleRefresh")}
+                title={t("ui.googleRefresh")}
+                disabled={busy}
+                onClick={() => void refreshAlbum(item)}
+              >
+                <RefreshIcon />
+              </button>
+              <button
+                type="button"
                 className="grid h-7 w-7 shrink-0 place-items-center text-lg leading-none"
                 aria-label={t("ui.removeAlbum")}
                 title={t("ui.removeAlbum")}
@@ -725,7 +833,7 @@ export function GoogleImport() {
           className="album-field min-w-[16rem] flex-1"
         />
         <button type="button" className="album-btn" disabled={busy || !url.trim()} onClick={() => void preview()}>
-          {busy ? t("ui.googleImporting") : days?.length ? t("ui.googleAddAlbum") : t("ui.googleFromLink")}
+          {busy ? t("ui.googleImporting") : albumUrls.includes(url.trim()) || url.trim() === savedUrl ? t("ui.googleRefresh") : days?.length ? t("ui.googleAddAlbum") : t("ui.googleFromLink")}
         </button>
       </div>
       <p className="font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</p>
@@ -1164,6 +1272,15 @@ function SelectIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
       <path d="M8 12.2 10.6 14.8 16.2 8.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RefreshIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 12a8 8 0 1 1-2.2-5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M20 5v5h-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
