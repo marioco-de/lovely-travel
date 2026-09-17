@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { dayKey } from "@/lib/album/exif";
-import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
+import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
 import { newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
@@ -117,6 +117,12 @@ export function GoogleImport() {
   const didDrag = useRef(false);
   const pressRef = useRef<{ photo: DragPhoto; x: number; y: number; pointerId: number; timer: number } | null>(null);
   const previewLock = useRef(false);
+  const daysRef = useRef<DayDraft[] | null>(null);
+  const highlightsRef = useRef<string[]>([]);
+  const flagTimer = useRef(0);
+
+  daysRef.current = days;
+  highlightsRef.current = highlights;
 
   useEffect(() => {
     setDensity(readDensity());
@@ -230,12 +236,12 @@ export function GoogleImport() {
     await runGoogleImport(editHash);
   }
 
-  function curationPayload() {
+  function curationPayload(list = daysRef.current, stars = highlightsRef.current) {
     return {
       editHash: editHash!,
       shareUrl: url.trim() || undefined,
-      highlights,
-      days: (days ?? []).map((day) => ({
+      highlights: stars,
+      days: (list ?? []).map((day) => ({
         id: day.id,
         dateKey: day.dateKey,
         place: day.place,
@@ -250,6 +256,27 @@ export function GoogleImport() {
         })),
       })),
     };
+  }
+
+  function persistFlags(nextDays?: DayDraft[] | null, nextHighlights?: string[]) {
+    const list = nextDays ?? daysRef.current;
+    const stars = nextHighlights ?? highlightsRef.current;
+    if (nextDays !== undefined) daysRef.current = nextDays;
+    if (nextHighlights) highlightsRef.current = nextHighlights;
+    if (!editHash || !list?.length) return;
+    syncCuration({
+      highlights: stars,
+      days: list.map((day) => ({
+        id: day.id,
+        place: day.place,
+        selected: [...day.selected],
+        all: day.photos.map((photo) => photo.id),
+      })),
+    });
+    window.clearTimeout(flagTimer.current);
+    flagTimer.current = window.setTimeout(() => {
+      void saveCurationFlags({ data: curationPayload(list, stars) }).catch(() => setError(true));
+    }, 400);
   }
 
   async function confirm() {
@@ -340,16 +367,18 @@ export function GoogleImport() {
   }
 
   function togglePhoto(dayId: string, photoId: string) {
-    setDays(
-      (current) =>
+    setDays((current) => {
+      const next =
         current?.map((day) => {
           if (day.id !== dayId) return day;
           const selected = new Set(day.selected);
           if (selected.has(photoId)) selected.delete(photoId);
           else selected.add(photoId);
           return { ...day, selected };
-        }) ?? null,
-    );
+        }) ?? null;
+      persistFlags(next);
+      return next;
+    });
   }
 
   function splitFrom(dayId: string, photoIndex: number) {
@@ -382,11 +411,14 @@ export function GoogleImport() {
     const gone = new Set(
       days?.filter((day) => day.dateKey === dateKey).flatMap((day) => day.photos.map((photo) => photo.id)) ?? [],
     );
-    setDays((current) => current?.filter((day) => day.dateKey !== dateKey) ?? null);
+    const nextDays = days?.filter((day) => day.dateKey !== dateKey) ?? null;
+    const nextHighlights = gone.size ? highlights.filter((id) => !gone.has(id)) : highlights;
+    setDays(nextDays);
     if (gone.size) {
-      setHighlights((current) => current.filter((id) => !gone.has(id)));
+      setHighlights(nextHighlights);
       setPicked((current) => new Set([...current].filter((id) => !gone.has(id))));
     }
+    persistFlags(nextDays, nextHighlights);
   }
 
   function mergePrev(dayId: string) {
@@ -407,9 +439,10 @@ export function GoogleImport() {
 
   function toggleStar(id: string) {
     setHighlights((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id);
-      const next = [...current, id];
-      return next.length > HIGHLIGHT_CAP ? next.slice(next.length - HIGHLIGHT_CAP) : next;
+      const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
+      const capped = next.length > HIGHLIGHT_CAP ? next.slice(next.length - HIGHLIGHT_CAP) : next;
+      persistFlags(daysRef.current, capped);
+      return capped;
     });
   }
 
@@ -517,8 +550,8 @@ export function GoogleImport() {
   }
 
   function setPickedInDay(on: boolean) {
-    setDays(
-      (current) =>
+    setDays((current) => {
+      const next =
         current?.map((day) => {
           const selected = new Set(day.selected);
           for (const id of picked) {
@@ -527,8 +560,10 @@ export function GoogleImport() {
             else selected.delete(id);
           }
           return { ...day, selected };
-        }) ?? null,
-    );
+        }) ?? null;
+      persistFlags(next);
+      return next;
+    });
   }
 
   function starPicked() {
@@ -537,7 +572,9 @@ export function GoogleImport() {
       for (const id of picked) {
         if (!next.includes(id)) next.push(id);
       }
-      return next.length > HIGHLIGHT_CAP ? next.slice(next.length - HIGHLIGHT_CAP) : next;
+      const capped = next.length > HIGHLIGHT_CAP ? next.slice(next.length - HIGHLIGHT_CAP) : next;
+      persistFlags(daysRef.current, capped);
+      return capped;
     });
   }
 

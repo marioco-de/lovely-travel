@@ -360,3 +360,42 @@ export const addCurationPhoto = createServerFn({ method: "POST" })
     );
     return { ok: true as const, url };
   });
+
+export const saveCurationFlags = createServerFn({ method: "POST" })
+  .validator(draftSchema)
+  .handler(async ({ data }) => {
+    const { requireOwner } = await import("./owner-session.server");
+    if (!(await requireOwner(data.editHash))) return { ok: false as const };
+    const { getSql } = await import("@/lib/db");
+    const { mergeCatalog } = await import("./catalog.server");
+    const sql = await getSql();
+    const trip = await sql<{ id: string }>`select id from trips where edit_hash = ${data.editHash} limit 1`;
+    const tripId = trip[0]?.id;
+    if (!tripId) return { ok: false as const };
+    const catalogPhotos = data.days.flatMap((day) =>
+      day.photos.map((photo) => ({
+        id: photo.id,
+        blobUrl: photo.thumb || photo.url,
+        sourceUrl: photo.url,
+        googleId: photo.uid,
+        takenAt: photo.takenAt ? new Date(photo.takenAt).toISOString() : undefined,
+        placeLabel: photo.place && photo.place !== UNKNOWN ? photo.place : "",
+      })),
+    );
+    await mergeCatalog(sql, tripId, {
+      photos: catalogPhotos,
+      days: data.days.map((day, index) => ({
+        id: day.id,
+        sortIndex: index,
+        title: day.dateKey,
+        placeLabel: day.place,
+        photos: day.photos.map((photo, sortIndex) => ({
+          photoId: photo.id,
+          inDayAlbum: photo.selected,
+          sortIndex,
+        })),
+      })),
+      highlights: data.highlights.map((photoId, sortIndex) => ({ photoId, sortIndex })),
+    });
+    return { ok: true as const };
+  });
