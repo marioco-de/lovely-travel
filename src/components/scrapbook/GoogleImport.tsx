@@ -7,7 +7,8 @@ import { useT } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 
 const DAY_CAP = 20;
-const HIGHLIGHT_CAP = 8;
+const HIGHLIGHT_CAP = 12;
+const HIGHLIGHT_SEED = 5;
 const DENSITY_KEY = "lovely-curate-density";
 const UNKNOWN = "Unbekannter Ort";
 const DESKTOP_COLS = [8, 6, 4, 2] as const;
@@ -128,7 +129,7 @@ export function GoogleImport() {
         drafted
           .map((day) => [...day.selected][0])
           .filter((id): id is string => Boolean(id))
-          .slice(0, HIGHLIGHT_CAP),
+          .slice(0, HIGHLIGHT_SEED),
       );
       setGoogleAlbumUrl(share);
     } catch {
@@ -245,7 +246,8 @@ export function GoogleImport() {
   function toggleStar(id: string) {
     setHighlights((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id);
-      return [...current, id].slice(0, HIGHLIGHT_CAP);
+      const next = [...current, id];
+      return next.length > HIGHLIGHT_CAP ? next.slice(next.length - HIGHLIGHT_CAP) : next;
     });
   }
 
