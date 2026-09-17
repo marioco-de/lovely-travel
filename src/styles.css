@@ -2322,3 +2322,41 @@ body {
   height: 100%;
   object-fit: cover;
 }
+
+.curate-ctx {
+  position: fixed;
+  z-index: 100002;
+  min-width: 13.5rem;
+  max-width: min(18rem, calc(100vw - 1.2rem));
+  padding: 0.4rem 0.2rem 0.65rem;
+  background: #fbf6ec;
+  box-shadow: 0 14px 36px rgb(61 42 28 / 0.22);
+}
+
+.curate-ctx .menu-link {
+  font-size: var(--text-kicker);
+}
+
+.curate-ctx-field {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.45rem 0.75rem 0.15rem;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.curate-ctx-field input {
+  width: 100%;
+  min-height: 2.2rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px dashed color-mix(in oklab, var(--color-stamp) 35%, transparent);
+  background: var(--color-pearl);
+  color: var(--color-ink);
+  font-family: var(--font-typewriter);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}

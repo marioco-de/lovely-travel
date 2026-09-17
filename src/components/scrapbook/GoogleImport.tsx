@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { dayKey } from "@/lib/album/exif";
 import { confirmGoogleLink, previewGoogleLink, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 const DAY_CAP = 20;
 const HIGHLIGHT_CAP = 8;
 const DENSITY_KEY = "lovely-curate-density";
+const UNKNOWN = "Unbekannter Ort";
 const DESKTOP_COLS = [8, 6, 4, 2] as const;
 const MOBILE_COLS = [4, 3, 2, 1] as const;
 
@@ -15,6 +17,7 @@ type Density = 0 | 1 | 2 | 3;
 type Tool = "select" | "split" | "star";
 type DayDraft = ImportDayDraft & { selected: Set<string> };
 type DragPhoto = { dayId: string; photoId: string; index: number; thumb: string };
+type CtxMenu = { dayId: string; photoId: string; index: number; x: number; y: number };
 
 function readDensity(): Density {
   try {
@@ -24,6 +27,18 @@ function readDensity(): Density {
     /* ignore */
   }
   return 0;
+}
+
+function toLocalInput(ms: number) {
+  if (!ms) return "";
+  const date = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function fromLocalInput(value: string) {
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : 0;
 }
 
 export function GoogleImport() {
@@ -45,7 +60,9 @@ export function GoogleImport() {
   const [fanOpen, setFanOpen] = useState(false);
   const [dropDay, setDropDay] = useState<string | null>(null);
   const [lift, setLift] = useState<{ photo: DragPhoto; x: number; y: number } | null>(null);
+  const [menu, setMenu] = useState<CtxMenu | null>(null);
   const clickTimer = useRef(0);
+  const lastTap = useRef<{ id: string; time: number } | null>(null);
   const dragRef = useRef<DragPhoto | null>(null);
   const didDrag = useRef(false);
   const pressRef = useRef<{ photo: DragPhoto; x: number; y: number; pointerId: number; timer: number } | null>(null);
@@ -66,6 +83,24 @@ export function GoogleImport() {
       /* ignore */
     }
   }, [density]);
+
+  useEffect(() => {
+    if (!menu) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenu(null);
+    };
+    const onDown = (event: MouseEvent) => {
+      const node = event.target as HTMLElement | null;
+      if (node?.closest(".curate-ctx")) return;
+      setMenu(null);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+    };
+  }, [menu]);
 
   const cols = wide ? DESKTOP_COLS[density] : MOBILE_COLS[density];
 
@@ -130,7 +165,7 @@ export function GoogleImport() {
               thumb: photo.thumb,
               takenAt: photo.takenAt,
               selected: day.selected.has(photo.id),
-              place: day.place,
+              place: photo.place || day.place,
             })),
           })),
         },
@@ -214,6 +249,55 @@ export function GoogleImport() {
     });
   }
 
+  function applyPhoto(photoId: string, patch: Partial<Pick<ImportPhoto, "takenAt" | "place">>) {
+    setDays((current) => {
+      if (!current) return current;
+      let found: ImportPhoto | undefined;
+      let wasSelected = false;
+      for (const day of current) {
+        const photo = day.photos.find((item) => item.id === photoId);
+        if (photo) {
+          found = { ...photo };
+          wasSelected = day.selected.has(photoId);
+          break;
+        }
+      }
+      if (!found) return current;
+      if (patch.takenAt != null) {
+        found.takenAt = patch.takenAt;
+        found.dateKey = patch.takenAt ? dayKey(patch.takenAt) : "unknown";
+      }
+      if (patch.place != null) found.place = patch.place.trim() || UNKNOWN;
+      const stripped = current.map((day) => ({
+        ...day,
+        photos: day.photos.filter((item) => item.id !== photoId),
+        selected: new Set([...day.selected].filter((id) => id !== photoId)),
+      }));
+      let destIndex = stripped.findIndex((day) => day.dateKey === found!.dateKey && day.place === found!.place);
+      let next = stripped.map((day) => ({ ...day, photos: [...day.photos], selected: new Set(day.selected) }));
+      if (destIndex < 0) {
+        const dest: DayDraft = {
+          id: `imp-${Date.now().toString(36)}`,
+          dateKey: found.dateKey,
+          place: found.place,
+          photos: [],
+          selected: new Set(),
+        };
+        destIndex = next.findIndex((day) => day.dateKey > found!.dateKey);
+        if (destIndex < 0) {
+          next = [...next, dest];
+          destIndex = next.length - 1;
+        } else {
+          next = [...next.slice(0, destIndex), dest, ...next.slice(destIndex)];
+        }
+      }
+      const dest = next[destIndex]!;
+      dest.photos = [...dest.photos, found].sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
+      if (wasSelected) dest.selected.add(photoId);
+      return next.filter((day) => day.photos.length > 0);
+    });
+  }
+
   function movePhoto(fromDayId: string, photoId: string, toDayId: string, toIndex: number) {
     setDays((current) => {
       if (!current) return current;
@@ -243,7 +327,7 @@ export function GoogleImport() {
     });
   }
 
-  function onTileClick(dayId: string, photo: ImportPhoto, photoIndex: number) {
+  function handleTap(dayId: string, photo: ImportPhoto, photoIndex: number) {
     if (didDrag.current) {
       didDrag.current = false;
       return;
@@ -258,27 +342,16 @@ export function GoogleImport() {
       setTool("select");
       return;
     }
+    const now = Date.now();
+    if (lastTap.current && lastTap.current.id === photo.id && now - lastTap.current.time < 420) {
+      window.clearTimeout(clickTimer.current);
+      lastTap.current = null;
+      toggleStar(photo.id);
+      return;
+    }
+    lastTap.current = { id: photo.id, time: now };
     window.clearTimeout(clickTimer.current);
-    clickTimer.current = window.setTimeout(() => togglePhoto(dayId, photo.id), 260);
-  }
-
-  function onTileDoubleClick(photoId: string) {
-    window.clearTimeout(clickTimer.current);
-    toggleStar(photoId);
-  }
-
-  function onDragStart(event: DragEvent, photo: DragPhoto) {
-    dragRef.current = photo;
-    didDrag.current = true;
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", photo.photoId);
-  }
-
-  function onDragEnd() {
-    window.setTimeout(() => {
-      dragRef.current = null;
-      setDropDay(null);
-    }, 40);
+    clickTimer.current = window.setTimeout(() => togglePhoto(dayId, photo.id), 420);
   }
 
   function dropOn(dayId: string, index: number) {
@@ -297,17 +370,28 @@ export function GoogleImport() {
     pressRef.current = null;
   }
 
+  function startLift(photo: DragPhoto, x: number, y: number) {
+    dragRef.current = photo;
+    didDrag.current = true;
+    window.clearTimeout(clickTimer.current);
+    setMenu(null);
+    setLift({ photo, x, y });
+  }
+
   function onPointerDown(event: ReactPointerEvent, photo: DragPhoto) {
-    if (event.pointerType === "mouse") return;
+    if (event.button !== 0) return;
+    if (tool !== "select") return;
     event.currentTarget.setPointerCapture(event.pointerId);
     clearPress();
     const pointerId = event.pointerId;
-    const timer = window.setTimeout(() => {
-      const press = pressRef.current;
-      if (!press || press.pointerId !== pointerId) return;
-      dragRef.current = press.photo;
-      setLift({ photo: press.photo, x: press.x, y: press.y });
-    }, 340);
+    const timer =
+      event.pointerType === "mouse"
+        ? 0
+        : window.setTimeout(() => {
+            const press = pressRef.current;
+            if (!press || press.pointerId !== pointerId) return;
+            startLift(press.photo, press.x, press.y);
+          }, 340);
     pressRef.current = { photo, x: event.clientX, y: event.clientY, pointerId, timer };
   }
 
@@ -315,7 +399,12 @@ export function GoogleImport() {
     const press = pressRef.current;
     if (press && !lift) {
       const dist = Math.hypot(event.clientX - press.x, event.clientY - press.y);
-      if (dist > 12) clearPress();
+      if (event.pointerType === "mouse" && dist > 8) {
+        clearPress();
+        startLift(press.photo, event.clientX, event.clientY);
+      } else if (event.pointerType !== "mouse" && dist > 12) {
+        clearPress();
+      }
     }
     if (lift) {
       setLift((current) => (current ? { ...current, x: event.clientX, y: event.clientY } : current));
@@ -325,18 +414,31 @@ export function GoogleImport() {
     }
   }
 
-  function onPointerUp(event: ReactPointerEvent) {
-    if (lift && dragRef.current) {
+  function onPointerUp(event: ReactPointerEvent, dayId: string, photo: ImportPhoto, photoIndex: number) {
+    const dragging = dragRef.current && didDrag.current;
+    if (dragging) {
       const node = document.elementFromPoint(event.clientX, event.clientY);
       const cell = node?.closest("[data-curate-index]");
       const dayNode = node?.closest("[data-curate-day]");
-      const dayId = dayNode?.getAttribute("data-curate-day");
+      const targetDay = dayNode?.getAttribute("data-curate-day");
       const index = cell?.getAttribute("data-curate-index");
-      if (dayId) dropOn(dayId, index != null ? Number(index) : Number.MAX_SAFE_INTEGER);
+      if (targetDay) dropOn(targetDay, index != null ? Number(index) : Number.MAX_SAFE_INTEGER);
+      else {
+        dragRef.current = null;
+        setLift(null);
+        setDropDay(null);
+      }
+      clearPress();
+      return;
     }
     clearPress();
     setLift(null);
+    if (event.button !== 0) return;
+    handleTap(dayId, photo, photoIndex);
   }
+
+  const menuPhoto = menu && days ? days.find((day) => day.id === menu.dayId)?.photos.find((photo) => photo.id === menu.photoId) : null;
+  const menuDay = menu && days ? days.find((day) => day.id === menu.dayId) : null;
 
   return (
     <div className="grid gap-3">
@@ -373,14 +475,9 @@ export function GoogleImport() {
                 key={day.id}
                 data-curate-day={day.id}
                 className={cn("curate-day grid gap-2", dropDay === day.id && "is-drop")}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDropDay(day.id);
-                }}
-                onDragLeave={() => setDropDay((current) => (current === day.id ? null : current))}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  dropOn(day.id, day.photos.length);
+                onDragOver={(event) => event.preventDefault()}
+                onPointerUp={() => {
+                  /* drop handled on the tile */
                 }}
               >
                 <div className="flex flex-wrap items-end gap-2">
@@ -414,35 +511,25 @@ export function GoogleImport() {
                     const firstRow = photoIndex < cols;
                     const dragPhoto: DragPhoto = { dayId: day.id, photoId: photo.id, index: photoIndex, thumb: photo.thumb };
                     return (
-                      <div
-                        key={photo.id}
-                        className="curate-cell"
-                        data-curate-index={photoIndex}
-                        onDragOver={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setDropDay(day.id);
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          dropOn(day.id, photoIndex);
-                        }}
-                      >
+                      <div key={photo.id} className="curate-cell" data-curate-index={photoIndex}>
                         <button
                           type="button"
-                          draggable
-                          onDragStart={(event) => onDragStart(event, dragPhoto)}
-                          onDragEnd={onDragEnd}
                           onPointerDown={(event) => onPointerDown(event, dragPhoto)}
                           onPointerMove={onPointerMove}
-                          onPointerUp={onPointerUp}
+                          onPointerUp={(event) => onPointerUp(event, day.id, photo, photoIndex)}
                           onPointerCancel={() => {
                             clearPress();
                             setLift(null);
                           }}
-                          onClick={() => onTileClick(day.id, photo, photoIndex)}
-                          onDoubleClick={() => onTileDoubleClick(photo.id)}
+                          onContextMenu={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            window.clearTimeout(clickTimer.current);
+                            clearPress();
+                            const x = Math.min(event.clientX, window.innerWidth - 260);
+                            const y = Math.min(event.clientY, window.innerHeight - 320);
+                            setMenu({ dayId: day.id, photoId: photo.id, index: photoIndex, x, y });
+                          }}
                           className={cn("curate-tile", !on && "is-off", star && "is-star")}
                           title={t("ui.googlePickHint")}
                         >
@@ -502,6 +589,104 @@ export function GoogleImport() {
             document.body,
           )
         : null}
+      {menu && menuPhoto && menuDay
+        ? createPortal(
+            <CurateContextMenu
+              ctx={menu}
+              photo={menuPhoto}
+              selected={menuDay.selected.has(menuPhoto.id)}
+              starred={highlights.includes(menuPhoto.id)}
+              onHighlight={() => {
+                toggleStar(menuPhoto.id);
+                setMenu(null);
+              }}
+              onKeep={() => {
+                togglePhoto(menu.dayId, menuPhoto.id);
+                setMenu(null);
+              }}
+              onSplit={() => {
+                splitFrom(menu.dayId, menu.index);
+                setMenu(null);
+              }}
+              onDate={(value) => applyPhoto(menuPhoto.id, { takenAt: value })}
+              onPlace={(value) => applyPhoto(menuPhoto.id, { place: value })}
+            />,
+            document.body,
+          )
+        : null}
+    </div>
+  );
+}
+
+function CurateContextMenu({
+  ctx,
+  photo,
+  selected,
+  starred,
+  onHighlight,
+  onKeep,
+  onSplit,
+  onDate,
+  onPlace,
+}: {
+  ctx: CtxMenu;
+  photo: ImportPhoto;
+  selected: boolean;
+  starred: boolean;
+  onHighlight: () => void;
+  onKeep: () => void;
+  onSplit: () => void;
+  onDate: (value: number) => void;
+  onPlace: (value: string) => void;
+}) {
+  const t = useT();
+  const [dateValue, setDateValue] = useState(toLocalInput(photo.takenAt));
+  const [placeValue, setPlaceValue] = useState(photo.place);
+  useEffect(() => {
+    setDateValue(toLocalInput(photo.takenAt));
+    setPlaceValue(photo.place);
+  }, [photo.id, photo.takenAt, photo.place]);
+
+  return (
+    <div className="caption-strip curate-ctx" style={{ left: ctx.x, top: ctx.y }} role="menu">
+      <button type="button" className="menu-link px-3 py-2" onClick={onHighlight}>
+        {starred ? t("ui.curateUnhighlight") : t("ui.curateHighlight")}
+      </button>
+      <button type="button" className="menu-link px-3 py-2" onClick={onKeep}>
+        {selected ? t("ui.curateDrop") : t("ui.curateKeep")}
+      </button>
+      {ctx.index > 0 ? (
+        <button type="button" className="menu-link px-3 py-2" onClick={onSplit}>
+          {t("ui.splitFromHere")}
+        </button>
+      ) : null}
+      <label className="curate-ctx-field">
+        <span>{t("ui.curateEditDate")}</span>
+        <input
+          type="datetime-local"
+          value={dateValue}
+          onChange={(event) => setDateValue(event.target.value)}
+          onBlur={() => {
+            const ms = fromLocalInput(dateValue);
+            if (ms) onDate(ms);
+          }}
+        />
+      </label>
+      <label className="curate-ctx-field">
+        <span>{t("ui.curateEditPlace")}</span>
+        <input
+          type="text"
+          value={placeValue}
+          onChange={(event) => setPlaceValue(event.target.value)}
+          onBlur={() => onPlace(placeValue)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              onPlace(placeValue);
+            }
+          }}
+        />
+      </label>
     </div>
   );
 }
