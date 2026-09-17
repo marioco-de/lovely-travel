@@ -141,7 +141,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
       </div>
       <ConfirmDialog
         open={confirmDay}
-        title={t("ui.confirmDay")}
+        title={t("ui.confirmRemove")}
         onCancel={() => setConfirmDay(false)}
         onConfirm={() => {
           setConfirmDay(false);

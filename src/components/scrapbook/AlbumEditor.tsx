@@ -274,7 +274,7 @@ function DayEditor({ day }: { day: LayoutDay }) {
       ))}
       <ConfirmDialog
         open={confirm}
-        title={t("ui.confirmDay")}
+        title={t("ui.confirmRemove")}
         onCancel={() => setConfirm(false)}
         onConfirm={() => {
           removeDay(day.id);

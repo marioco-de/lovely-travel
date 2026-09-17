@@ -5,7 +5,7 @@ import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, s
 import { newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
-import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const DAY_CAP = 20;
 const HIGHLIGHT_CAP = 12;
@@ -182,6 +182,7 @@ export function GoogleImport() {
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [picking, setPicking] = useState(false);
   const [pickMenu, setPickMenu] = useState<string | null>(null);
+  const [removeUrl, setRemoveUrl] = useState<string | null>(null);
   const clickTimer = useRef(0);
   const lastTap = useRef<{ id: string; time: number } | null>(null);
   const dragRef = useRef<DragPhoto | null>(null);
@@ -813,10 +814,7 @@ export function GoogleImport() {
                 className="grid h-7 w-7 shrink-0 place-items-center text-lg leading-none"
                 aria-label={t("ui.removeAlbum")}
                 title={t("ui.removeAlbum")}
-                onClick={() => {
-                  removeGoogleAlbumUrl(item);
-                  if (url === item) setUrl("");
-                }}
+                onClick={() => setRemoveUrl(item)}
               >
                 ×
               </button>
@@ -1056,6 +1054,18 @@ export function GoogleImport() {
             document.body,
           )
         : null}
+      <ConfirmDialog
+        open={Boolean(removeUrl)}
+        title={t("ui.confirmRemove")}
+        onCancel={() => setRemoveUrl(null)}
+        onConfirm={() => {
+          if (removeUrl) {
+            removeGoogleAlbumUrl(removeUrl);
+            if (url === removeUrl) setUrl("");
+          }
+          setRemoveUrl(null);
+        }}
+      />
     </div>
   );
 }
