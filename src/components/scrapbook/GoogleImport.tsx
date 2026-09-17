@@ -5,6 +5,7 @@ import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, s
 import { newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
+import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 const DAY_CAP = 20;
