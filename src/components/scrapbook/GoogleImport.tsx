@@ -62,6 +62,9 @@ export function GoogleImport() {
   const [dropDay, setDropDay] = useState<string | null>(null);
   const [lift, setLift] = useState<{ photo: DragPhoto; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState<CtxMenu | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const [picking, setPicking] = useState(false);
+  const [pickMenu, setPickMenu] = useState<string | null>(null);
   const clickTimer = useRef(0);
   const lastTap = useRef<{ id: string; time: number } | null>(null);
   const dragRef = useRef<DragPhoto | null>(null);
@@ -102,6 +105,21 @@ export function GoogleImport() {
       window.removeEventListener("mousedown", onDown);
     };
   }, [menu]);
+
+  useEffect(() => {
+    if (!pickMenu) return;
+    const onDown = (event: MouseEvent) => {
+      const node = event.target as HTMLElement | null;
+      if (node?.closest("[data-pick-menu]")) return;
+      setPickMenu(null);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [pickMenu]);
+
+  useEffect(() => {
+    if (picked.size === 0 && !pickMenu) setPicking(false);
+  }, [picked, pickMenu]);
 
   const cols = wide ? DESKTOP_COLS[density] : MOBILE_COLS[density];
 
@@ -232,7 +250,10 @@ export function GoogleImport() {
       days?.filter((day) => day.dateKey === dateKey).flatMap((day) => day.photos.map((photo) => photo.id)) ?? [],
     );
     setDays((current) => current?.filter((day) => day.dateKey !== dateKey) ?? null);
-    if (gone.size) setHighlights((current) => current.filter((id) => !gone.has(id)));
+    if (gone.size) {
+      setHighlights((current) => current.filter((id) => !gone.has(id)));
+      setPicked((current) => new Set([...current].filter((id) => !gone.has(id))));
+    }
   }
 
   function mergePrev(dayId: string) {
@@ -337,6 +358,56 @@ export function GoogleImport() {
     });
   }
 
+  function togglePicked(id: string) {
+    setPicked((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function pickAll(dayId: string) {
+    const day = days?.find((item) => item.id === dayId);
+    if (!day) return;
+    setPicked((current) => new Set([...current, ...day.photos.map((photo) => photo.id)]));
+    setPicking(true);
+    setPickMenu(null);
+  }
+
+  function pickNone(dayId: string) {
+    const day = days?.find((item) => item.id === dayId);
+    if (!day) return;
+    const ids = new Set(day.photos.map((photo) => photo.id));
+    setPicked((current) => new Set([...current].filter((id) => !ids.has(id))));
+    setPickMenu(null);
+  }
+
+  function setPickedInDay(on: boolean) {
+    setDays(
+      (current) =>
+        current?.map((day) => {
+          const selected = new Set(day.selected);
+          for (const id of picked) {
+            if (!day.photos.some((photo) => photo.id === id)) continue;
+            if (on) selected.add(id);
+            else selected.delete(id);
+          }
+          return { ...day, selected };
+        }) ?? null,
+    );
+  }
+
+  function starPicked() {
+    setHighlights((current) => {
+      const next = [...current];
+      for (const id of picked) {
+        if (!next.includes(id)) next.push(id);
+      }
+      return next.length > HIGHLIGHT_CAP ? next.slice(next.length - HIGHLIGHT_CAP) : next;
+    });
+  }
+
   function handleTap(dayId: string, photo: ImportPhoto, photoIndex: number) {
     if (didDrag.current) {
       didDrag.current = false;
@@ -350,6 +421,10 @@ export function GoogleImport() {
     if (tool === "split") {
       splitFrom(dayId, photoIndex);
       setTool("select");
+      return;
+    }
+    if (picking) {
+      togglePicked(photo.id);
       return;
     }
     const now = Date.now();
@@ -517,8 +592,33 @@ export function GoogleImport() {
                     className="album-field max-w-xs"
                     aria-label={t("ui.place")}
                   />
-                  <span className="font-typewriter text-[0.7rem] tracking-wide text-ink-soft">
+                  <span className="relative flex items-center gap-1 font-typewriter text-[0.7rem] tracking-wide text-ink-soft" data-pick-menu={day.id}>
                     {day.selected.size}/{day.photos.length}
+                    <button
+                      type="button"
+                      className={cn(
+                        "grid h-8 w-8 place-items-center text-stamp",
+                        (pickMenu === day.id || day.photos.some((photo) => picked.has(photo.id))) && "bg-tape/50",
+                      )}
+                      aria-label={t("ui.curateSelect")}
+                      aria-expanded={pickMenu === day.id}
+                      onClick={() => {
+                        setPicking(true);
+                        setPickMenu((current) => (current === day.id ? null : day.id));
+                      }}
+                    >
+                      <SelectIcon />
+                    </button>
+                    {pickMenu === day.id ? (
+                      <div className="caption-strip curate-select-fan" role="menu">
+                        <button type="button" className="menu-link px-3 py-2" onClick={() => pickAll(day.id)}>
+                          {t("ui.curateSelectAll")}
+                        </button>
+                        <button type="button" className="menu-link px-3 py-2" onClick={() => pickNone(day.id)}>
+                          {t("ui.curateSelectNone")}
+                        </button>
+                      </div>
+                    ) : null}
                   </span>
                   {dayIndex > 0 && days[dayIndex - 1]?.dateKey === day.dateKey ? (
                     <button type="button" className="album-btn album-btn--ghost" onClick={() => mergePrev(day.id)}>
@@ -532,6 +632,7 @@ export function GoogleImport() {
                     const star = highlights.includes(photo.id);
                     const firstCol = photoIndex % cols === 0;
                     const firstRow = photoIndex < cols;
+                    const marked = picked.has(photo.id);
                     const dragPhoto: DragPhoto = { dayId: day.id, photoId: photo.id, index: photoIndex, thumb: photo.thumb };
                     return (
                       <div key={photo.id} className="curate-cell" data-curate-index={photoIndex}>
@@ -553,11 +654,12 @@ export function GoogleImport() {
                             const y = Math.min(event.clientY, window.innerHeight - 320);
                             setMenu({ dayId: day.id, photoId: photo.id, index: photoIndex, x, y });
                           }}
-                          className={cn("curate-tile", !on && "is-off", star && "is-star")}
+                          className={cn("curate-tile", !on && "is-off", star && "is-star", marked && "is-picked")}
                           title={t("ui.googlePickHint")}
                         >
                           <img src={photo.thumb} alt="" />
                           {star ? <span className="curate-star-mark">★</span> : null}
+                          {marked ? <span className="curate-pick-mark">✓</span> : null}
                         </button>
                         {photoIndex > 0 && !firstCol ? (
                           <button
@@ -595,12 +697,16 @@ export function GoogleImport() {
             wide={wide}
             tool={tool}
             fanOpen={fanOpen}
+            pickedCount={picked.size}
             onDensity={(value) => {
               setDensity(value);
               setFanOpen(false);
             }}
             onFan={() => setFanOpen((open) => !open)}
             onTool={(value) => setTool((current) => (current === value ? "select" : value))}
+            onBulkStar={starPicked}
+            onBulkShow={() => setPickedInDay(true)}
+            onBulkHide={() => setPickedInDay(false)}
           />
         </div>
       ) : null}
@@ -719,17 +825,25 @@ function CurateDock({
   wide,
   tool,
   fanOpen,
+  pickedCount,
   onDensity,
   onFan,
   onTool,
+  onBulkStar,
+  onBulkShow,
+  onBulkHide,
 }: {
   density: Density;
   wide: boolean;
   tool: Tool;
   fanOpen: boolean;
+  pickedCount: number;
   onDensity: (value: Density) => void;
   onFan: () => void;
   onTool: (value: Tool) => void;
+  onBulkStar: () => void;
+  onBulkShow: () => void;
+  onBulkHide: () => void;
 }) {
   const t = useT();
   const [mounted, setMounted] = useState(false);
@@ -738,7 +852,21 @@ function CurateDock({
   const densities: Density[] = [0, 1, 2, 3];
   return createPortal(
     <div className="curate-dock">
-      <div className="curate-dock-inner">
+      <div className="curate-dock-stack">
+        {pickedCount > 0 ? (
+          <div className="curate-bulk">
+            <button type="button" className="album-btn album-btn--tiny" onClick={onBulkStar}>
+              {t("ui.curateBulkStar")}
+            </button>
+            <button type="button" className="album-btn album-btn--tiny" onClick={onBulkShow}>
+              {t("ui.curateBulkShow")}
+            </button>
+            <button type="button" className="album-btn album-btn--tiny" onClick={onBulkHide}>
+              {t("ui.curateBulkHide")}
+            </button>
+          </div>
+        ) : null}
+        <div className="curate-dock-inner">
         {wide ? (
           densities.map((value) => (
             <button
@@ -796,6 +924,7 @@ function CurateDock({
             </button>
           </>
         )}
+        </div>
       </div>
     </div>,
     document.body,
@@ -821,6 +950,15 @@ function GridIcon({ n }: { n: Density }) {
   return (
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
       {dots}
+    </svg>
+  );
+}
+
+function SelectIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 12.2 10.6 14.8 16.2 8.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
