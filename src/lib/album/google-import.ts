@@ -27,6 +27,27 @@ export type ImportDayDraft = {
 
 const UNKNOWN = "Unbekannter Ort";
 
+function photoKey(photo: { id: string; uid?: string; url?: string; thumb?: string }) {
+  if (photo.uid?.startsWith("AF1Qip")) return `g:${photo.uid}`;
+  if (photo.id.startsWith("AF1Qip")) return `g:${photo.id}`;
+  const raw = (photo.url || photo.thumb || "").split("=")[0] ?? "";
+  const pw = raw.match(/\/pw\/([^/?]+)/);
+  if (pw?.[1]) return `pw:${pw[1]}`;
+  return `id:${photo.id}`;
+}
+
+function uniqueDayPhotos(photos: ImportPhoto[]) {
+  const seen = new Set<string>();
+  const out: ImportPhoto[] = [];
+  for (const photo of photos) {
+    const key = photoKey(photo);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(photo);
+  }
+  return out;
+}
+
 export const previewGoogleLink = createServerFn({ method: "POST" })
   .validator(z.object({ url: z.string().min(12).max(500) }))
   .handler(async ({ data }): Promise<{ days: ImportDayDraft[]; needsAuth: boolean; title?: string; total?: number }> => {
@@ -242,29 +263,41 @@ export const loadCuration = createServerFn({ method: "POST" })
     const urls = [...(payload.googleAlbumUrls ?? []), payload.googleAlbumUrl ?? ""].filter(Boolean);
     const days: ImportDayDraft[] = catalog.days
       .filter((day) => isDayKey(day.title))
-      .map((day) => ({
-      id: day.id,
-      dateKey: day.title,
-      place: day.placeLabel || UNKNOWN,
-      hidden: day.hidden,
-      photos: day.photos.map((member) => {
-        const photo = photos.get(member.photoId);
-        const takenAt = photo?.takenAt ? Date.parse(photo.takenAt) || 0 : 0;
-        const url = photo?.sourceUrl || photo?.blobUrl || "";
+      .map((day) => {
+        const mapped = uniqueDayPhotos(
+          day.photos.map((member) => {
+            const photo = photos.get(member.photoId);
+            const takenAt = photo?.takenAt ? Date.parse(photo.takenAt) || 0 : 0;
+            const url = photo?.sourceUrl || photo?.blobUrl || "";
+            return {
+              id: member.photoId,
+              uid: photo?.googleId || member.photoId,
+              thumb: photo?.blobUrl || url,
+              url,
+              takenAt,
+              dateKey: takenAt ? dayKey(takenAt) : day.title,
+              lat: photo?.lat,
+              lng: photo?.lng,
+              place: photo?.placeLabel || day.placeLabel || UNKNOWN,
+            };
+          }),
+        );
+        const selected = new Set(
+          day.photos.filter((member) => member.inDayAlbum).map((member) => photoKey({
+            id: member.photoId,
+            uid: photos.get(member.photoId)?.googleId || member.photoId,
+            url: photos.get(member.photoId)?.sourceUrl || photos.get(member.photoId)?.blobUrl || "",
+          })),
+        );
         return {
-          id: member.photoId,
-          uid: photo?.googleId || member.photoId,
-          thumb: photo?.blobUrl || url,
-          url,
-          takenAt,
-          dateKey: takenAt ? dayKey(takenAt) : day.title,
-          lat: photo?.lat,
-          lng: photo?.lng,
-          place: photo?.placeLabel || day.placeLabel || UNKNOWN,
+          id: day.id,
+          dateKey: day.title,
+          place: day.placeLabel || UNKNOWN,
+          hidden: day.hidden,
+          photos: mapped,
+          selectedIds: mapped.filter((photo) => selected.has(photoKey(photo))).map((photo) => photo.id),
         };
-      }),
-      selectedIds: day.photos.filter((member) => member.inDayAlbum).map((member) => member.photoId),
-    }));
+      });
     return {
       days,
       highlights: catalog.highlights.map((item) => item.photoId),
@@ -411,5 +444,11 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
       })),
       highlights: data.highlights.map((photoId, sortIndex) => ({ photoId, sortIndex })),
     });
+    if (data.shareUrl) {
+      await sql.query(
+        `update trips set payload = jsonb_set(coalesce(payload, '{}'::jsonb), '{googleAlbumUrl}', to_jsonb($1::text), true), updated_at = now() where id = $2`,
+        [data.shareUrl, tripId],
+      );
+    }
     return { ok: true as const };
   });

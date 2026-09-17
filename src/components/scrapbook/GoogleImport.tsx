@@ -44,15 +44,37 @@ function fromLocalInput(value: string) {
   return Number.isFinite(ms) ? ms : 0;
 }
 
+function photoMatchKey(photo: ImportPhoto) {
+  if (photo.uid?.startsWith("AF1Qip")) return photo.uid;
+  if (photo.id.startsWith("AF1Qip")) return photo.id;
+  const pw = (photo.url || photo.thumb).split("=")[0]?.match(/\/pw\/([^/?]+)/);
+  return pw?.[1] || photo.uid || photo.id;
+}
+
+function uniquePhotos(photos: ImportPhoto[]) {
+  const seen = new Set<string>();
+  const out: ImportPhoto[] = [];
+  for (const photo of photos) {
+    const key = photoMatchKey(photo);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(photo);
+  }
+  return out;
+}
+
 function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
   return days
     .filter((day) => isDayKey(day.dateKey))
-    .map((day) => ({
-    ...day,
-    selected: new Set(
-      day.selectedIds ?? (capNew ? day.photos.slice(0, DAY_CAP).map((photo) => photo.id) : []),
-    ),
-  }));
+    .map((day) => {
+      const photos = uniquePhotos(day.photos);
+      const selectedIds = new Set(day.selectedIds ?? (capNew ? photos.slice(0, DAY_CAP).map((photo) => photo.id) : []));
+      return {
+        ...day,
+        photos,
+        selected: new Set(photos.filter((photo) => selectedIds.has(photo.id)).map((photo) => photo.id)),
+      };
+    });
 }
 
 function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft[] {
@@ -66,7 +88,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
   }));
   const byUid = new Map<string, { day: DayDraft; photo: ImportPhoto }>();
   for (const day of next) {
-    for (const photo of day.photos) byUid.set(photo.uid || photo.id, { day, photo });
+    for (const photo of day.photos) byUid.set(photoMatchKey(photo), { day, photo });
   }
 
   function dayFor(dateKey: string, place: string) {
@@ -90,7 +112,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
 
   for (const draft of incoming) {
     for (const fresh of draft.photos) {
-      const uid = fresh.uid || fresh.id;
+      const uid = photoMatchKey(fresh);
       const hit = byUid.get(uid);
       if (hit) {
         hit.photo.thumb = fresh.thumb || hit.photo.thumb;
@@ -121,7 +143,9 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
   }
 
   for (const day of next) {
+    day.photos = uniquePhotos(day.photos);
     day.photos.sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
+    day.selected = new Set([...day.selected].filter((id) => day.photos.some((photo) => photo.id === id)));
     if (hiddenDates.has(day.dateKey)) day.hidden = true;
   }
   return next.filter((day) => day.photos.length > 0 && isDayKey(day.dateKey));
@@ -219,7 +243,10 @@ export function GoogleImport() {
       setHighlights(result.highlights);
       setTotal(result.total);
       setPendingPreview(false);
-      if (result.urls[0]) setUrl((current) => current || result.urls[0]!);
+      if (result.urls.length) {
+        for (const item of result.urls) addGoogleAlbumUrl(item);
+        setUrl((current) => current || result.urls[0]!);
+      }
     });
     return () => {
       active = false;
@@ -853,15 +880,16 @@ export function GoogleImport() {
     handleTap(dayId, photo, photoIndex);
   }
 
+  const linkedAlbums = [...new Set([...albumUrls, savedUrl].filter((item) => item.trim().length > 12))];
   const menuPhoto = menu && days ? days.find((day) => day.id === menu.dayId)?.photos.find((photo) => photo.id === menu.photoId) : null;
   const menuDay = menu && days ? days.find((day) => day.id === menu.dayId) : null;
 
   return (
     <div className="grid gap-3">
       <span className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.googleAlbum")}</span>
-      {albumUrls.length ? (
+      {linkedAlbums.length ? (
         <ul className="grid gap-1">
-          {albumUrls.map((item) => (
+          {linkedAlbums.map((item) => (
             <li key={item} className="flex min-w-0 items-center gap-1 font-typewriter text-kicker tracking-wide text-ink-soft">
               <span className="min-w-0 truncate">{item}</span>
               <button

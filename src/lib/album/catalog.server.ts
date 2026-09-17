@@ -401,5 +401,72 @@ export async function repairUnknownCatalog(sql: Sql, tripId: string) {
     await sql.query(`delete from photos where id = $1 and trip_id = $2`, [row.id, tripId]);
   }
   await dropInvalidDays(sql, tripId);
+  await dedupeCatalogPhotos(sql, tripId);
+}
+
+function photoDedupeKey(photo: CatalogPhoto) {
+  const gid = photo.googleId || (photo.id.startsWith("AF1Qip") ? photo.id : "");
+  if (gid.startsWith("AF1Qip")) return `g:${gid}`;
+  const raw = (photo.sourceUrl || photo.blobUrl || "").split("=")[0] ?? "";
+  const pw = raw.match(/\/pw\/([^/?]+)/);
+  if (pw?.[1]) return `pw:${pw[1]}`;
+  return `id:${photo.id}`;
+}
+
+export async function dedupeCatalogPhotos(sql: Sql, tripId: string) {
+  const catalog = await loadCatalog(sql, tripId);
+  const groups = new Map<string, CatalogPhoto[]>();
+  for (const photo of catalog.photos) {
+    if (photo.id.startsWith("upl")) continue;
+    const key = photoDedupeKey(photo);
+    const list = groups.get(key) ?? [];
+    list.push(photo);
+    groups.set(key, list);
+  }
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => Number(b.id.startsWith("AF1Qip")) - Number(a.id.startsWith("AF1Qip")));
+    const keep = list[0]!;
+    for (const extra of list.slice(1)) {
+      await sql.query(
+        `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
+         select day_id, $2, in_day_album, sort_index from day_photos where photo_id = $1
+         on conflict (day_id, photo_id) do update set
+           in_day_album = day_photos.in_day_album or excluded.in_day_album`,
+        [extra.id, keep.id],
+      );
+      await sql.query(`delete from day_photos where photo_id = $1`, [extra.id]);
+      await sql.query(
+        `insert into album_highlights (trip_id, photo_id, sort_index)
+         select trip_id, $2, sort_index from album_highlights where trip_id = $3 and photo_id = $1
+         on conflict (trip_id, photo_id) do nothing`,
+        [extra.id, keep.id, tripId],
+      );
+      await sql.query(`delete from album_highlights where trip_id = $1 and photo_id = $2`, [tripId, extra.id]);
+      await sql.query(`delete from photos where id = $1 and trip_id = $2`, [extra.id, tripId]);
+    }
+  }
+
+  const days = await sql<{ id: string; title: string; place_label: string; sort_index: number }>`
+    select id, title, place_label, sort_index from trip_days where trip_id = ${tripId} order by sort_index
+  `;
+  const keepByKey = new Map<string, string>();
+  for (const day of days) {
+    const key = `${day.title}|${day.place_label}`;
+    const keepId = keepByKey.get(key);
+    if (!keepId) {
+      keepByKey.set(key, day.id);
+      continue;
+    }
+    await sql.query(
+      `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
+       select $2, photo_id, in_day_album, sort_index from day_photos where day_id = $1
+       on conflict (day_id, photo_id) do update set
+         in_day_album = day_photos.in_day_album or excluded.in_day_album`,
+      [day.id, keepId],
+    );
+    await sql.query(`delete from day_photos where day_id = $1`, [day.id]);
+    await sql.query(`delete from trip_days where id = $1 and trip_id = $2`, [day.id, tripId]);
+  }
 }
 

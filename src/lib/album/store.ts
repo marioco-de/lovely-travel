@@ -1029,10 +1029,15 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
     const googleAlbumUrl = localTrip?.payload.googleAlbumUrl ?? remote?.payload.googleAlbumUrl ?? "";
-    const googleAlbumUrls =
-      remote?.payload.googleAlbumUrls ??
-      localTrip?.payload.googleAlbumUrls ??
-      (googleAlbumUrl ? [googleAlbumUrl] : []);
+    const googleAlbumUrls = [
+      ...new Set(
+        [
+          ...(remote?.payload.googleAlbumUrls ?? []),
+          ...(localTrip?.payload.googleAlbumUrls ?? []),
+          googleAlbumUrl,
+        ].filter(Boolean),
+      ),
+    ];
     const allowUploads = remote?.payload.allowUploads ?? localTrip?.payload.allowUploads ?? true;
     const highlights = remote?.payload.highlights ?? localTrip?.payload.highlights ?? [];
     const dayAlbums = remote?.payload.dayAlbums ?? localTrip?.payload.dayAlbums ?? {};
@@ -1147,7 +1152,11 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   addGoogleAlbumUrl: (url) => {
     const trimmed = url.trim();
     if (!trimmed) return;
-    const urls = get().googleAlbumUrls.includes(trimmed) ? get().googleAlbumUrls : [...get().googleAlbumUrls, trimmed];
+    if (get().googleAlbumUrls.includes(trimmed)) {
+      if (!get().googleAlbumUrl) set({ googleAlbumUrl: trimmed });
+      return;
+    }
+    const urls = [...get().googleAlbumUrls, trimmed];
     set({ googleAlbumUrl: trimmed, googleAlbumUrls: urls, saveStatus: "saving" });
     scheduleRemote(get);
   },
