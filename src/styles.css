@@ -2443,3 +2443,13 @@ body {
   letter-spacing: 0.04em;
   color: var(--color-ink-soft);
 }
+
+.curate-day.is-hidden {
+  opacity: 0.4;
+  filter: grayscale(0.72);
+}
+
+.curate-day.is-hidden .curate-grid,
+.curate-day.is-hidden .album-field {
+  pointer-events: none;
+}

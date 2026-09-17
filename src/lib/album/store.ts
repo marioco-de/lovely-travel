@@ -105,6 +105,7 @@ type AlbumState = {
   createRemote: (password: string) => Promise<{ publicHash: string; editHash: string; editPassword?: string } | null>;
   setGoogleAlbumUrl: (url: string) => void;
   addGoogleAlbumUrl: (url: string) => void;
+  removeGoogleAlbumUrl: (url: string) => void;
   setAllowUploads: (value: boolean) => void;
   placeEditId: string | null;
   setPlaceEditId: (id: string | null) => void;
@@ -1148,6 +1149,15 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     if (!trimmed) return;
     const urls = get().googleAlbumUrls.includes(trimmed) ? get().googleAlbumUrls : [...get().googleAlbumUrls, trimmed];
     set({ googleAlbumUrl: trimmed, googleAlbumUrls: urls, saveStatus: "saving" });
+    scheduleRemote(get);
+  },
+  removeGoogleAlbumUrl: (url) => {
+    const urls = get().googleAlbumUrls.filter((item) => item !== url);
+    set({
+      googleAlbumUrl: urls[0] ?? "",
+      googleAlbumUrls: urls,
+      saveStatus: "saving",
+    });
     scheduleRemote(get);
   },
   setAllowUploads: (value) => {

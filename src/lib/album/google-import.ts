@@ -22,6 +22,7 @@ export type ImportDayDraft = {
   place: string;
   photos: ImportPhoto[];
   selectedIds?: string[];
+  hidden?: boolean;
 };
 
 const UNKNOWN = "Unbekannter Ort";
@@ -85,6 +86,7 @@ const draftSchema = z.object({
       id: z.string(),
       dateKey: z.string(),
       place: z.string().max(160),
+      hidden: z.boolean().optional(),
       photos: z.array(
         z.object({
           id: z.string(),
@@ -183,6 +185,7 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
       sortIndex: index,
       title: day.dateKey,
       placeLabel: day.place,
+      hidden: day.hidden,
       photos: day.photos.map((photo, sort) => ({
         photoId: photo.id,
         inDayAlbum: photo.selected,
@@ -237,6 +240,7 @@ export const loadCuration = createServerFn({ method: "POST" })
       id: day.id,
       dateKey: day.title || "unknown",
       place: day.placeLabel || UNKNOWN,
+      hidden: day.hidden,
       photos: day.photos.map((member) => {
         const photo = photos.get(member.photoId);
         const takenAt = photo?.takenAt ? Date.parse(photo.takenAt) || 0 : 0;
@@ -389,6 +393,7 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
         sortIndex: index,
         title: day.dateKey,
         placeLabel: day.place,
+        hidden: day.hidden,
         photos: day.photos.map((photo, sortIndex) => ({
           photoId: photo.id,
           inDayAlbum: photo.selected,

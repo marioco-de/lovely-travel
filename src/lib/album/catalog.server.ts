@@ -18,6 +18,7 @@ export type CatalogDay = {
   placeLabel: string;
   lat?: number;
   lng?: number;
+  hidden?: boolean;
   photos: { photoId: string; inDayAlbum: boolean; sortIndex: number }[];
 };
 
@@ -54,6 +55,7 @@ export async function ensureCatalog(sql: Sql) {
       lng double precision
     )
   `);
+  await sql.query(`alter table trip_days add column if not exists hidden boolean not null default false`);
   await sql.query(`
     create table if not exists day_photos (
       day_id text not null references trip_days (id) on delete cascade,
@@ -95,8 +97,9 @@ export async function loadCatalog(sql: Sql, tripId: string): Promise<Catalog> {
     place_label: string;
     lat: number | null;
     lng: number | null;
+    hidden: boolean;
   }>`
-    select id, sort_index, title, place_label, lat, lng from trip_days
+    select id, sort_index, title, place_label, lat, lng, hidden from trip_days
     where trip_id = ${tripId} order by sort_index
   `;
   const members = await sql<{
@@ -137,6 +140,7 @@ export async function loadCatalog(sql: Sql, tripId: string): Promise<Catalog> {
       placeLabel: day.place_label,
       lat: day.lat ?? undefined,
       lng: day.lng ?? undefined,
+      hidden: day.hidden,
       photos: (byDay.get(day.id) ?? []).sort((a, b) => a.sortIndex - b.sortIndex),
     })),
     highlights: highlights.map((row) => ({ photoId: row.photo_id, sortIndex: row.sort_index })),
@@ -178,15 +182,16 @@ export async function replaceCatalog(sql: Sql, tripId: string, catalog: Catalog)
   }
   for (const day of catalog.days) {
     await sql.query(
-      `insert into trip_days (id, trip_id, sort_index, title, place_label, lat, lng)
-       values ($1, $2, $3, $4, $5, $6, $7)
+      `insert into trip_days (id, trip_id, sort_index, title, place_label, lat, lng, hidden)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
        on conflict (id) do update set
          sort_index = excluded.sort_index,
          title = excluded.title,
          place_label = excluded.place_label,
          lat = excluded.lat,
-         lng = excluded.lng`,
-      [day.id, tripId, day.sortIndex, day.title, day.placeLabel, day.lat ?? null, day.lng ?? null],
+         lng = excluded.lng,
+         hidden = excluded.hidden`,
+      [day.id, tripId, day.sortIndex, day.title, day.placeLabel, day.lat ?? null, day.lng ?? null, Boolean(day.hidden)],
     );
     for (const member of day.photos) {
       await sql.query(
@@ -246,30 +251,36 @@ export async function mergeCatalog(sql: Sql, tripId: string, catalog: Catalog) {
     if (!match) {
       sort += 1;
       await sql.query(
-        `insert into trip_days (id, trip_id, sort_index, title, place_label, lat, lng)
-         values ($1, $2, $3, $4, $5, $6, $7)
+        `insert into trip_days (id, trip_id, sort_index, title, place_label, lat, lng, hidden)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)
          on conflict (id) do update set
            title = excluded.title,
            place_label = excluded.place_label,
            lat = excluded.lat,
-           lng = excluded.lng`,
-        [dayId, tripId, day.sortIndex || sort, day.title, day.placeLabel, day.lat ?? null, day.lng ?? null],
+           lng = excluded.lng,
+           hidden = excluded.hidden`,
+        [dayId, tripId, day.sortIndex || sort, day.title, day.placeLabel, day.lat ?? null, day.lng ?? null, Boolean(day.hidden)],
       );
     } else {
       await sql.query(
-        `update trip_days set title = $2, place_label = $3, lat = coalesce($4, lat), lng = coalesce($5, lng)
+        `update trip_days set title = $2, place_label = $3, lat = coalesce($4, lat), lng = coalesce($5, lng), hidden = $6
          where id = $1`,
-        [dayId, day.title || match.title, day.placeLabel || match.place_label, day.lat ?? null, day.lng ?? null],
+        [dayId, day.title || match.title, day.placeLabel || match.place_label, day.lat ?? null, day.lng ?? null, Boolean(day.hidden)],
       );
     }
     const offsetRows = await sql<{ n: number }>`select coalesce(max(sort_index), -1) as n from day_photos where day_id = ${dayId}`;
     const offset = match ? (offsetRows[0]?.n ?? -1) + 1 : 0;
+    const existingPhotos = match
+      ? await sql<{ photo_id: string }>`select photo_id from day_photos where day_id = ${dayId}`
+      : [];
+    const knownPhotos = new Set(existingPhotos.map((row) => row.photo_id));
     for (const member of day.photos) {
+      const sortIndex = !match || knownPhotos.has(member.photoId) ? member.sortIndex : offset + member.sortIndex;
       await sql.query(
         `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
          values ($1, $2, $3, $4)
          on conflict (day_id, photo_id) do update set in_day_album = excluded.in_day_album, sort_index = excluded.sort_index`,
-        [dayId, member.photoId, member.inDayAlbum, match ? offset + member.sortIndex : member.sortIndex],
+        [dayId, member.photoId, member.inDayAlbum, sortIndex],
       );
     }
   }

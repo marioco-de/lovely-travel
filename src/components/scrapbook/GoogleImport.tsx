@@ -91,6 +91,7 @@ export function GoogleImport() {
   const albumUrls = useAlbum((s) => s.googleAlbumUrls);
   const allowUploads = useAlbum((s) => s.allowUploads);
   const addGoogleAlbumUrl = useAlbum((s) => s.addGoogleAlbumUrl);
+  const removeGoogleAlbumUrl = useAlbum((s) => s.removeGoogleAlbumUrl);
   const applyGoogleImport = useAlbum((s) => s.applyGoogleImport);
   const syncCuration = useAlbum((s) => s.syncCuration);
   const [url, setUrl] = useState(savedUrl);
@@ -254,6 +255,7 @@ export function GoogleImport() {
           selected: day.selected.has(photo.id),
           place: photo.place || day.place,
         })),
+        hidden: Boolean(day.hidden),
       })),
     };
   }
@@ -408,17 +410,12 @@ export function GoogleImport() {
   }
 
   function hideDate(dateKey: string) {
-    const gone = new Set(
-      days?.filter((day) => day.dateKey === dateKey).flatMap((day) => day.photos.map((photo) => photo.id)) ?? [],
-    );
-    const nextDays = days?.filter((day) => day.dateKey !== dateKey) ?? null;
-    const nextHighlights = gone.size ? highlights.filter((id) => !gone.has(id)) : highlights;
-    setDays(nextDays);
-    if (gone.size) {
-      setHighlights(nextHighlights);
-      setPicked((current) => new Set([...current].filter((id) => !gone.has(id))));
-    }
-    persistFlags(nextDays, nextHighlights);
+    setDays((current) => {
+      const next =
+        current?.map((day) => (day.dateKey === dateKey ? { ...day, hidden: !day.hidden } : day)) ?? null;
+      persistFlags(next);
+      return next;
+    });
   }
 
   function mergePrev(dayId: string) {
@@ -701,8 +698,20 @@ export function GoogleImport() {
       {albumUrls.length ? (
         <ul className="grid gap-1">
           {albumUrls.map((item) => (
-            <li key={item} className="truncate font-typewriter text-kicker tracking-wide text-ink-soft">
-              {item}
+            <li key={item} className="flex min-w-0 items-center gap-1 font-typewriter text-kicker tracking-wide text-ink-soft">
+              <span className="min-w-0 truncate">{item}</span>
+              <button
+                type="button"
+                className="grid h-7 w-7 shrink-0 place-items-center text-lg leading-none"
+                aria-label={t("ui.removeAlbum")}
+                title={t("ui.removeAlbum")}
+                onClick={() => {
+                  removeGoogleAlbumUrl(item);
+                  if (url === item) setUrl("");
+                }}
+              >
+                ×
+              </button>
             </li>
           ))}
         </ul>
@@ -738,7 +747,7 @@ export function GoogleImport() {
               <section
                 key={day.id}
                 data-curate-day={day.id}
-                className={cn("curate-day grid gap-2", dropDay === day.id && "is-drop")}
+                className={cn("curate-day grid gap-2", dropDay === day.id && "is-drop", day.hidden && "is-hidden")}
                 onDragOver={(event) => event.preventDefault()}
                 onPointerUp={() => {
                   /* drop handled on the tile */
@@ -751,11 +760,11 @@ export function GoogleImport() {
                       <button
                         type="button"
                         className="grid h-7 w-7 place-items-center font-typewriter text-lg leading-none text-ink-soft"
-                        aria-label={t("ui.hideDate")}
-                        title={t("ui.hideDate")}
+                        aria-label={day.hidden ? t("ui.showDate") : t("ui.hideDate")}
+                        title={day.hidden ? t("ui.showDate") : t("ui.hideDate")}
                         onClick={() => hideDate(day.dateKey)}
                       >
-                        ×
+                        {day.hidden ? "+" : "×"}
                       </button>
                     ) : null}
                   </p>

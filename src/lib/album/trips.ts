@@ -112,7 +112,7 @@ async function withCatalog(tripId: string, payload: TripPayload): Promise<TripPa
     for (const day of catalog.days) {
       dayAlbums[day.id] = {
         all: day.photos.map((item) => item.photoId),
-        selected: day.photos.filter((item) => item.inDayAlbum).map((item) => item.photoId),
+        selected: day.hidden ? [] : day.photos.filter((item) => item.inDayAlbum).map((item) => item.photoId),
       };
     }
     return {
