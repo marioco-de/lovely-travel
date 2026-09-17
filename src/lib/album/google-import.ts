@@ -45,7 +45,7 @@ export const previewGoogleLink = createServerFn({ method: "POST" })
           thumb: photo.thumb,
           url: photo.url,
           takenAt,
-          dateKey: takenAt ? dayKey(takenAt) : "unknown",
+          dateKey: takenAt ? dayKey(takenAt) : "",
           lat: photo.lat,
           lng: photo.lng,
           place: photo.place?.trim() || UNKNOWN,
@@ -54,6 +54,7 @@ export const previewGoogleLink = createServerFn({ method: "POST" })
     photos.sort((a, b) => (a.takenAt || Number.MAX_SAFE_INTEGER) - (b.takenAt || Number.MAX_SAFE_INTEGER));
     const byDate = new Map<string, ImportPhoto[]>();
     for (const photo of photos) {
+      if (!photo.dateKey) continue;
       const list = byDate.get(photo.dateKey) ?? [];
       list.push(photo);
       byDate.set(photo.dateKey, list);
@@ -110,7 +111,7 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
     const { getSql } = await import("@/lib/db");
     const { uploadAlbumPhoto } = await import("./photo-store");
     const { readExifBytes } = await import("./exif");
-    const { mergeCatalog } = await import("./catalog.server");
+    const { mergeCatalog, repairUnknownCatalog } = await import("./catalog.server");
     const sql = await getSql();
     const trip = await sql<{ id: string }>`select id from trips where edit_hash = ${data.editHash} limit 1`;
     const tripId = trip[0]?.id;
@@ -180,7 +181,9 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
       });
     }
 
-    const catalogDays = data.days.map((day, index) => ({
+    const catalogDays = data.days
+      .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+      .map((day, index) => ({
       id: day.id,
       sortIndex: index,
       title: day.dateKey,
@@ -197,6 +200,7 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
       days: catalogDays,
       highlights: data.highlights.map((photoId, sortIndex) => ({ photoId, sortIndex })),
     });
+    await repairUnknownCatalog(sql, tripId);
     if (data.shareUrl) {
       await sql.query(
         `update trips set payload = jsonb_set(coalesce(payload, '{}'::jsonb), '{googleAlbumUrl}', to_jsonb($1::text), true), updated_at = now() where id = $2`,
@@ -223,11 +227,12 @@ export const loadCuration = createServerFn({ method: "POST" })
     const { requireOwner } = await import("./owner-session.server");
     if (!(await requireOwner(data.editHash))) return { days: [], highlights: [], urls: [], allowUploads: true, total: 0 };
     const { getSql } = await import("@/lib/db");
-    const { loadCatalog } = await import("./catalog.server");
+    const { loadCatalog, repairUnknownCatalog } = await import("./catalog.server");
     const sql = await getSql();
     const trip = await sql<{ id: string; payload: unknown }>`select id, payload from trips where edit_hash = ${data.editHash} limit 1`;
     const row = trip[0];
     if (!row) return { days: [], highlights: [], urls: [], allowUploads: true, total: 0 };
+    await repairUnknownCatalog(sql, row.id);
     const catalog = await loadCatalog(sql, row.id);
     const photos = new Map(catalog.photos.map((photo) => [photo.id, photo]));
     const payload = (row.payload && typeof row.payload === "object" ? row.payload : {}) as {
@@ -236,7 +241,9 @@ export const loadCuration = createServerFn({ method: "POST" })
       allowUploads?: boolean;
     };
     const urls = [...(payload.googleAlbumUrls ?? []), payload.googleAlbumUrl ?? ""].filter(Boolean);
-    const days: ImportDayDraft[] = catalog.days.map((day) => ({
+    const days: ImportDayDraft[] = catalog.days
+      .filter((day) => day.title && day.title.toLowerCase() !== "unknown")
+      .map((day) => ({
       id: day.id,
       dateKey: day.title || "unknown",
       place: day.placeLabel || UNKNOWN,
@@ -251,7 +258,7 @@ export const loadCuration = createServerFn({ method: "POST" })
           thumb: photo?.blobUrl || url,
           url,
           takenAt,
-          dateKey: takenAt ? dayKey(takenAt) : day.title || "unknown",
+          dateKey: takenAt ? dayKey(takenAt) : day.title,
           lat: photo?.lat,
           lng: photo?.lng,
           place: photo?.placeLabel || day.placeLabel || UNKNOWN,
@@ -371,13 +378,15 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
     const { requireOwner } = await import("./owner-session.server");
     if (!(await requireOwner(data.editHash))) return { ok: false as const };
     const { getSql } = await import("@/lib/db");
-    const { mergeCatalog } = await import("./catalog.server");
+    const { mergeCatalog, repairUnknownCatalog } = await import("./catalog.server");
     const sql = await getSql();
     const trip = await sql<{ id: string }>`select id from trips where edit_hash = ${data.editHash} limit 1`;
     const tripId = trip[0]?.id;
     if (!tripId) return { ok: false as const };
-    const catalogPhotos = data.days.flatMap((day) =>
-      day.photos.map((photo) => ({
+    const catalogPhotos = data.days
+      .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+      .flatMap((day) =>
+      day.photos.filter((photo) => photo.takenAt || photo.id.startsWith("upl")).map((photo) => ({
         id: photo.id,
         blobUrl: photo.thumb || photo.url,
         sourceUrl: photo.url,
@@ -386,9 +395,10 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
         placeLabel: photo.place && photo.place !== UNKNOWN ? photo.place : "",
       })),
     );
+    const datedDays = data.days.filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown");
     await mergeCatalog(sql, tripId, {
       photos: catalogPhotos,
-      days: data.days.map((day, index) => ({
+      days: datedDays.map((day, index) => ({
         id: day.id,
         sortIndex: index,
         title: day.dateKey,
@@ -402,5 +412,6 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
       })),
       highlights: data.highlights.map((photoId, sortIndex) => ({ photoId, sortIndex })),
     });
+    await repairUnknownCatalog(sql, tripId);
     return { ok: true as const };
   });

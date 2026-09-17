@@ -326,3 +326,63 @@ export async function setDayAlbumFlags(
     );
   }
 }
+
+function isUnknownTitle(title: string) {
+  return !title || title.toLowerCase() === "unknown";
+}
+
+export async function repairUnknownCatalog(sql: Sql, tripId: string) {
+  await ensureCatalog(sql);
+  const catalog = await loadCatalog(sql, tripId);
+  const photos = new Map(catalog.photos.map((photo) => [photo.id, photo]));
+  const unknownDays = catalog.days.filter((day) => isUnknownTitle(day.title));
+  const datedDays = catalog.days.filter((day) => !isUnknownTitle(day.title));
+  const byKey = new Map(datedDays.map((day) => [`${day.title}|${day.placeLabel}`, day]));
+  let sort = catalog.days.reduce((max, day) => Math.max(max, day.sortIndex), -1);
+
+  for (const day of unknownDays) {
+    for (const member of day.photos) {
+      const photo = photos.get(member.photoId);
+      const taken = photo?.takenAt ? Date.parse(photo.takenAt) : 0;
+      if (!taken) continue;
+      const title = new Date(taken).toISOString().slice(0, 10);
+      const place = photo?.placeLabel || day.placeLabel || "";
+      const key = `${title}|${place}`;
+      let dest = byKey.get(key) ?? datedDays.find((item) => item.title === title);
+      if (!dest) {
+        sort += 1;
+        const id = `day-${title}-${sort}`;
+        await sql.query(
+          `insert into trip_days (id, trip_id, sort_index, title, place_label, hidden)
+           values ($1, $2, $3, $4, $5, false)
+           on conflict (id) do update set title = excluded.title, place_label = excluded.place_label`,
+          [id, tripId, sort, title, place],
+        );
+        dest = { id, sortIndex: sort, title, placeLabel: place, photos: [] };
+        datedDays.push(dest);
+        byKey.set(key, dest);
+      }
+      await sql.query(
+        `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
+         values ($1, $2, $3, $4)
+         on conflict (day_id, photo_id) do update set in_day_album = excluded.in_day_album, sort_index = excluded.sort_index`,
+        [dest.id, member.photoId, member.inDayAlbum, member.sortIndex],
+      );
+    }
+    await sql.query(`delete from day_photos where day_id = $1`, [day.id]);
+    await sql.query(`delete from trip_days where id = $1 and trip_id = $2`, [day.id, tripId]);
+  }
+
+  const undated = await sql<{ id: string }>`
+    select id from photos
+    where trip_id = ${tripId}
+      and taken_at is null
+      and id not like 'upl%'
+  `;
+  for (const row of undated) {
+    await sql.query(`delete from album_highlights where trip_id = $1 and photo_id = $2`, [tripId, row.id]);
+    await sql.query(`delete from day_photos where photo_id = $1`, [row.id]);
+    await sql.query(`delete from photos where id = $1 and trip_id = $2`, [row.id, tripId]);
+  }
+}
+

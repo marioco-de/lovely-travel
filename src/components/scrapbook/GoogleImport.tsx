@@ -45,7 +45,9 @@ function fromLocalInput(value: string) {
 }
 
 function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
-  return days.map((day) => ({
+  return days
+    .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+    .map((day) => ({
     ...day,
     selected: new Set(
       day.selectedIds ?? (capNew ? day.photos.slice(0, DAY_CAP).map((photo) => photo.id) : []),
@@ -55,7 +57,9 @@ function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
 
 function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft[] {
   const hiddenDates = new Set(current.filter((day) => day.hidden).map((day) => day.dateKey));
-  const next: DayDraft[] = current.map((day) => ({
+  const next: DayDraft[] = current
+    .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+    .map((day) => ({
     ...day,
     photos: day.photos.map((photo) => ({ ...photo })),
     selected: new Set(day.selected),
@@ -120,7 +124,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
     day.photos.sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
     if (hiddenDates.has(day.dateKey)) day.hidden = true;
   }
-  return next.filter((day) => day.photos.length > 0);
+  return next.filter((day) => day.photos.length > 0 && day.dateKey && day.dateKey.toLowerCase() !== "unknown");
 }
 
 async function fileToDataUrl(file: File) {
@@ -342,7 +346,9 @@ export function GoogleImport() {
       editHash: editHash!,
       shareUrl: url.trim() || undefined,
       highlights: stars,
-      days: (list ?? []).map((day) => ({
+      days: (list ?? [])
+        .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+        .map((day) => ({
         id: day.id,
         dateKey: day.dateKey,
         place: day.place,
