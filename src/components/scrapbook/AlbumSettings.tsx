@@ -46,43 +46,46 @@ export function AlbumSettings({ editHash }: AlbumSettingsProps) {
     <div className="album-sheet min-h-svh w-full">
       <LocaleHydrator />
       <AlbumMenu />
-      <main className="mx-auto w-full max-w-2xl px-4 py-12 md:px-8 md:py-16">
-        <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.settingsKicker")}</p>
-        <h1 className="mt-2 font-typewriter text-day text-lagoon-deep">{t("ui.settingsTitle")}</h1>
-        <p className="mt-3 max-w-lg font-script text-caption text-ink-soft">{t("ui.settingsHint")}</p>
-        <p className="mt-2 font-display text-kicker tracking-widest text-lagoon-deep uppercase">{t(statusKey)}</p>
-        <a href={albumHref} className="day-full-link mt-5 inline-block">
-          ← {t("ui.settingsBack")}
-        </a>
+      <main className="w-full px-4 py-10 md:px-10 md:py-12 lg:px-14 xl:px-16">
+        <header className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 max-w-xl">
+            <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.settingsKicker")}</p>
+            <h1 className="mt-2 font-typewriter text-day text-lagoon-deep">{t("ui.settingsTitle")}</h1>
+            <p className="mt-3 font-script text-caption text-ink-soft">{t("ui.settingsHint")}</p>
+            <p className="mt-2 font-display text-kicker tracking-widest text-lagoon-deep uppercase">{t(statusKey)}</p>
+            <a href={albumHref} className="day-full-link mt-5 inline-block">
+              ← {t("ui.settingsBack")}
+            </a>
+          </div>
+          <section className="grid w-full gap-4 lg:max-w-md">
+            <h2 className="font-typewriter text-place text-lagoon-deep">{t("ui.albumMeta")}</h2>
+            <label className="block">
+              <span className="mb-1 block font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.title")}</span>
+              <input
+                value={title}
+                className="album-field w-full"
+                onChange={(event) => setTitle(event.target.value)}
+                onBlur={(event) => {
+                  const value = event.target.value.trim();
+                  if (value) {
+                    setText("de", "album.title", value);
+                    setText("en", "album.title", value);
+                  }
+                }}
+                placeholder={t("ui.title")}
+              />
+            </label>
+            <SettingsPassword editHash={editHash} publicHash={publicHash} />
+          </section>
+        </header>
 
-        <section className="caption-strip mt-10 p-5 md:p-6">
+        <section className="caption-strip mt-10 p-5 md:p-6 lg:p-8">
           <h2 className="font-typewriter text-place text-lagoon-deep">{t("ui.googleSection")}</h2>
-          <p className="mt-2 font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</p>
+          <p className="mt-2 max-w-2xl font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</p>
           {ready ? <GoogleStatus editHash={editHash} /> : null}
           <div className="mt-5">
             <GoogleImport />
           </div>
-        </section>
-
-        <section className="mt-10 grid gap-4">
-          <h2 className="font-typewriter text-place text-lagoon-deep">{t("ui.albumMeta")}</h2>
-          <label className="block">
-            <span className="mb-1 block font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.title")}</span>
-            <input
-              value={title}
-              className="album-field w-full"
-              onChange={(event) => setTitle(event.target.value)}
-              onBlur={(event) => {
-                const value = event.target.value.trim();
-                if (value) {
-                  setText("de", "album.title", value);
-                  setText("en", "album.title", value);
-                }
-              }}
-              placeholder={t("ui.title")}
-            />
-          </label>
-          <SettingsPassword editHash={editHash} publicHash={publicHash} />
         </section>
       </main>
     </div>
