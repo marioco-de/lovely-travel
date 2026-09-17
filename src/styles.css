@@ -2414,3 +2414,32 @@ body {
 .curate-review {
   padding-bottom: 8rem;
 }
+
+.curate-upload {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  align-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border: 1px dashed color-mix(in oklab, var(--color-stamp) 40%, transparent);
+  background: color-mix(in oklab, var(--color-mat) 80%, transparent);
+  color: var(--color-lagoon-deep);
+  cursor: pointer;
+  text-align: center;
+}
+
+.curate-upload span {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+.curate-upload em {
+  font-family: var(--font-typewriter);
+  font-size: 0.62rem;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-soft);
+}

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { dayKey } from "@/lib/album/exif";
-import { confirmGoogleLink, previewGoogleLink, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
+import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
+import { newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
@@ -42,12 +43,56 @@ function fromLocalInput(value: string) {
   return Number.isFinite(ms) ? ms : 0;
 }
 
+function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
+  return days.map((day) => ({
+    ...day,
+    selected: new Set(
+      day.selectedIds ?? (capNew ? day.photos.slice(0, DAY_CAP).map((photo) => photo.id) : []),
+    ),
+  }));
+}
+
+async function fileToDataUrl(file: File) {
+  const blob = await compressUpload(file);
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function compressUpload(file: File): Promise<Blob> {
+  if (!file.type.startsWith("image/") || file.size < 380_000) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const max = 1920;
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    bitmap.close();
+    return blob ?? file;
+  } catch {
+    return file;
+  }
+}
+
 export function GoogleImport() {
   const t = useT();
   const editHash = useAlbum((s) => s.editHash);
   const savedUrl = useAlbum((s) => s.googleAlbumUrl);
-  const setGoogleAlbumUrl = useAlbum((s) => s.setGoogleAlbumUrl);
+  const albumUrls = useAlbum((s) => s.googleAlbumUrls);
+  const allowUploads = useAlbum((s) => s.allowUploads);
+  const addGoogleAlbumUrl = useAlbum((s) => s.addGoogleAlbumUrl);
   const applyGoogleImport = useAlbum((s) => s.applyGoogleImport);
+  const syncCuration = useAlbum((s) => s.syncCuration);
   const [url, setUrl] = useState(savedUrl);
   const [days, setDays] = useState<DayDraft[] | null>(null);
   const [highlights, setHighlights] = useState<string[]>([]);
@@ -55,6 +100,7 @@ export function GoogleImport() {
   const [needsAuth, setNeedsAuth] = useState(false);
   const [error, setError] = useState(false);
   const [total, setTotal] = useState(0);
+  const [pendingPreview, setPendingPreview] = useState(false);
   const [density, setDensity] = useState<Density>(0);
   const [wide, setWide] = useState(true);
   const [tool, setTool] = useState<Tool>("select");
@@ -79,6 +125,22 @@ export function GoogleImport() {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    if (!editHash) return;
+    let active = true;
+    void loadCuration({ data: { editHash } }).then((result) => {
+      if (!active || !result.days.length) return;
+      setDays(fromDays(result.days, false));
+      setHighlights(result.highlights);
+      setTotal(result.total);
+      setPendingPreview(false);
+      if (result.urls[0] && !url) setUrl(result.urls[0]);
+    });
+    return () => {
+      active = false;
+    };
+  }, [editHash]);
 
   useEffect(() => {
     try {
@@ -133,23 +195,21 @@ export function GoogleImport() {
       const result = await previewGoogleLink({ data: { url: share } });
       if (result.needsAuth || !result.days.length) {
         setNeedsAuth(true);
-        setDays(null);
-        setTotal(0);
         return;
       }
-      const drafted: DayDraft[] = result.days.map((day) => ({
-        ...day,
-        selected: new Set(day.photos.slice(0, DAY_CAP).map((photo) => photo.id)),
-      }));
-      setDays(drafted);
-      setTotal(result.total ?? drafted.reduce((sum, day) => sum + day.photos.length, 0));
-      setHighlights(
-        drafted
-          .map((day) => [...day.selected][0])
-          .filter((id): id is string => Boolean(id))
-          .slice(0, HIGHLIGHT_SEED),
-      );
-      setGoogleAlbumUrl(share);
+      const drafted = fromDays(result.days, true);
+      setDays((current) => (current?.length ? [...current, ...drafted] : drafted));
+      setTotal((current) => current + drafted.reduce((sum, day) => sum + day.photos.length, 0) || (result.total ?? drafted.reduce((sum, day) => sum + day.photos.length, 0)));
+      if (!days?.length) {
+        setHighlights(
+          drafted
+            .map((day) => [...day.selected][0])
+            .filter((id): id is string => Boolean(id))
+            .slice(0, HIGHLIGHT_SEED),
+        );
+      }
+      addGoogleAlbumUrl(share);
+      setPendingPreview(true);
     } catch {
       setError(true);
     } finally {
@@ -163,42 +223,108 @@ export function GoogleImport() {
     await runGoogleImport(editHash);
   }
 
+  function curationPayload() {
+    return {
+      editHash: editHash!,
+      shareUrl: url.trim() || undefined,
+      highlights,
+      days: (days ?? []).map((day) => ({
+        id: day.id,
+        dateKey: day.dateKey,
+        place: day.place,
+        photos: day.photos.map((photo) => ({
+          id: photo.id,
+          uid: photo.uid,
+          url: photo.url,
+          thumb: photo.thumb,
+          takenAt: photo.takenAt,
+          selected: day.selected.has(photo.id),
+          place: photo.place || day.place,
+        })),
+      })),
+    };
+  }
+
   async function confirm() {
     if (!editHash || !days?.length) return;
     setBusy(true);
     setError(false);
     try {
-      const result = await confirmGoogleLink({
-        data: {
-          editHash,
-          shareUrl: url.trim(),
+      if (pendingPreview) {
+        const result = await confirmGoogleLink({ data: curationPayload() });
+        if (!result.ok) {
+          setError(true);
+          return;
+        }
+        applyGoogleImport({
+          photos: result.photos,
+          highlights: result.highlights,
+          days: result.days,
+        });
+        setPendingPreview(false);
+      } else {
+        const result = await saveCuration({ data: curationPayload() });
+        if (!result.ok) {
+          setError(true);
+          return;
+        }
+        syncCuration({
+          photos: result.photos,
           highlights,
           days: days.map((day) => ({
             id: day.id,
-            dateKey: day.dateKey,
             place: day.place,
-            photos: day.photos.map((photo) => ({
-              id: photo.id,
-              uid: photo.uid,
-              url: photo.url,
-              thumb: photo.thumb,
-              takenAt: photo.takenAt,
-              selected: day.selected.has(photo.id),
-              place: photo.place || day.place,
-            })),
+            selected: [...day.selected],
+            all: day.photos.map((photo) => photo.id),
           })),
+        });
+      }
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadToDay(dayId: string, file: File) {
+    if (!editHash) return;
+    setBusy(true);
+    setError(false);
+    try {
+      const photoId = newId("upl");
+      const dataUrl = await fileToDataUrl(file);
+      const day = days?.find((item) => item.id === dayId);
+      const result = await addCurationPhoto({
+        data: {
+          editHash,
+          dayId,
+          photoId,
+          dataUrl,
+          place: day?.place,
+          takenAt: Date.now(),
         },
       });
-      if (!result.ok) {
+      if (!result.ok || !result.url) {
         setError(true);
         return;
       }
-      applyGoogleImport({
-        photos: result.photos,
-        highlights: result.highlights,
-        days: result.days,
-      });
-      setDays(null);
+      const photo: ImportPhoto = {
+        id: photoId,
+        uid: photoId,
+        thumb: result.url,
+        url: result.url,
+        takenAt: Date.now(),
+        dateKey: day?.dateKey || dayKey(Date.now()),
+        place: day?.place || UNKNOWN,
+      };
+      setDays(
+        (current) =>
+          current?.map((item) =>
+            item.id === dayId
+              ? { ...item, photos: [...item.photos, photo], selected: new Set([...item.selected, photoId]) }
+              : item,
+          ) ?? null,
+      );
     } catch {
       setError(true);
     } finally {
@@ -528,6 +654,15 @@ export function GoogleImport() {
   return (
     <div className="grid gap-3">
       <span className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.googleAlbum")}</span>
+      {albumUrls.length ? (
+        <ul className="grid gap-1">
+          {albumUrls.map((item) => (
+            <li key={item} className="truncate font-typewriter text-kicker tracking-wide text-ink-soft">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <input
           type="url"
@@ -537,7 +672,7 @@ export function GoogleImport() {
           className="album-field min-w-[16rem] flex-1"
         />
         <button type="button" className="album-btn" disabled={busy || !url.trim()} onClick={() => void preview()}>
-          {busy ? t("ui.googleImporting") : t("ui.googleFromLink")}
+          {busy ? t("ui.googleImporting") : days?.length ? t("ui.googleAddAlbum") : t("ui.googleFromLink")}
         </button>
       </div>
       <p className="font-script text-sm text-ink-soft">{t("ui.googleAlbumHint")}</p>
@@ -684,13 +819,30 @@ export function GoogleImport() {
                       </div>
                     );
                   })}
+                  {allowUploads ? (
+                    <label className="curate-upload">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={busy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (file) void uploadToDay(day.id, file);
+                        }}
+                      />
+                      <span>+</span>
+                      <em>{t("ui.uploadToDay")}</em>
+                    </label>
+                  ) : null}
                 </div>
               </section>
             ))}
           </div>
           <p className="mt-3 font-script text-sm text-ink-soft">{t("ui.googleHighlightHint")}</p>
           <button type="button" className="album-btn mt-3" disabled={busy} onClick={() => void confirm()}>
-            {t("ui.googleConfirm")}
+            {pendingPreview ? t("ui.googleConfirm") : t("ui.googleSave")}
           </button>
           <CurateDock
             density={density}

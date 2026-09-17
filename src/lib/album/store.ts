@@ -45,6 +45,8 @@ type AlbumState = {
   texts: AlbumTexts;
   hiddenPins: Record<string, boolean>;
   googleAlbumUrl: string;
+  googleAlbumUrls: string[];
+  allowUploads: boolean;
   highlights: string[];
   dayAlbums: Record<string, { all: string[]; selected: string[] }>;
   layout: AlbumLayout;
@@ -73,6 +75,11 @@ type AlbumState = {
     highlights: string[];
     days: { id: string; place: string; selected: string[]; all: string[] }[];
   }) => void;
+  syncCuration: (input: {
+    photos?: Record<string, string>;
+    highlights: string[];
+    days: { id: string; place: string; selected: string[]; all: string[] }[];
+  }) => void;
   setPhotoUrl: (id: string, url: string) => void;
   toggleHighlight: (id: string) => void;
   removeBlock: (dayId: string, blockId: string) => void;
@@ -97,6 +104,8 @@ type AlbumState = {
   ensureLocale: (locale: Locale) => Promise<void>;
   createRemote: (password: string) => Promise<{ publicHash: string; editHash: string; editPassword?: string } | null>;
   setGoogleAlbumUrl: (url: string) => void;
+  addGoogleAlbumUrl: (url: string) => void;
+  setAllowUploads: (value: boolean) => void;
   placeEditId: string | null;
   setPlaceEditId: (id: string | null) => void;
 };
@@ -342,6 +351,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   texts: emptyTexts(),
   hiddenPins: {},
   googleAlbumUrl: "",
+  googleAlbumUrls: [],
+  allowUploads: true,
   highlights: [],
   dayAlbums: {},
   layout: seedLayout(),
@@ -730,6 +741,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       const showcase = draft.selected.slice(0, COLLAGE_MAX);
       if (showcase.length) {
         layout = mapDays(layout, dayId, (day) => {
+          if (day.blocks.some((block) => block.photoIds.some((id) => showcase.includes(id)))) return day;
           const block = emptyBlock(showcase.length >= COLLAGE_MIN ? "collage" : "photo", place);
           block.photoIds = showcase;
           block.photoNotes = Object.fromEntries(showcase.map((id) => [id, emptyPhotoNote()]));
@@ -739,6 +751,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     }
     if (input.highlights.length) {
       layout = mapDays(layout, COVER_ID, (day) => {
+        if (day.blocks.some((block) => block.photoIds.length)) return day;
         const block = emptyBlock(input.highlights.length >= COLLAGE_MIN ? "collage" : "photo", day.place);
         block.photoIds = input.highlights.slice(0, COLLAGE_MAX);
         block.photoNotes = Object.fromEntries(block.photoIds.map((id) => [id, emptyPhotoNote()]));
@@ -747,6 +760,15 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     }
     set({ photos, highlights: input.highlights, dayAlbums });
     persistLayout(set, get, layout);
+  },
+  syncCuration: (input) => {
+    const photos = { ...get().photos, ...input.photos };
+    const dayAlbums: Record<string, { all: string[]; selected: string[] }> = { ...get().dayAlbums };
+    for (const draft of input.days) {
+      dayAlbums[draft.id] = { all: draft.all, selected: draft.selected };
+    }
+    set({ photos, highlights: input.highlights, dayAlbums, saveStatus: "saving" });
+    scheduleRemote(get);
   },
   setPhotoUrl: (id, url) => {
     set({ photos: { ...get().photos, [id]: url }, saveStatus: "saving" });
@@ -925,6 +947,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         hiddenPins: {},
         photos: {},
         googleAlbumUrl: "",
+        googleAlbumUrls: [],
+        allowUploads: true,
         highlights: [],
         dayAlbums: {},
         saveStatus: "saved",
@@ -1004,6 +1028,11 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
     const googleAlbumUrl = localTrip?.payload.googleAlbumUrl ?? remote?.payload.googleAlbumUrl ?? "";
+    const googleAlbumUrls =
+      remote?.payload.googleAlbumUrls ??
+      localTrip?.payload.googleAlbumUrls ??
+      (googleAlbumUrl ? [googleAlbumUrl] : []);
+    const allowUploads = remote?.payload.allowUploads ?? localTrip?.payload.allowUploads ?? true;
     const highlights = remote?.payload.highlights ?? localTrip?.payload.highlights ?? [];
     const dayAlbums = remote?.payload.dayAlbums ?? localTrip?.payload.dayAlbums ?? {};
 
@@ -1018,6 +1047,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       texts,
       hiddenPins,
       googleAlbumUrl,
+      googleAlbumUrls,
+      allowUploads,
       highlights,
       dayAlbums,
       photos,
@@ -1090,6 +1121,8 @@ export const useAlbum = create<AlbumState>((set, get) => ({
         texts: emptyTexts(),
         hiddenPins: {},
         googleAlbumUrl: "",
+        googleAlbumUrls: [],
+        allowUploads: true,
         highlights: [],
         dayAlbums: {},
         saveStatus: "saved",
@@ -1101,7 +1134,24 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     }
   },
   setGoogleAlbumUrl: (url) => {
-    set({ googleAlbumUrl: url.trim(), saveStatus: "saving" });
+    const trimmed = url.trim();
+    const urls = get().googleAlbumUrls;
+    set({
+      googleAlbumUrl: trimmed,
+      googleAlbumUrls: trimmed && !urls.includes(trimmed) ? [...urls, trimmed] : urls,
+      saveStatus: "saving",
+    });
+    scheduleRemote(get);
+  },
+  addGoogleAlbumUrl: (url) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    const urls = get().googleAlbumUrls.includes(trimmed) ? get().googleAlbumUrls : [...get().googleAlbumUrls, trimmed];
+    set({ googleAlbumUrl: trimmed, googleAlbumUrls: urls, saveStatus: "saving" });
+    scheduleRemote(get);
+  },
+  setAllowUploads: (value) => {
+    set({ allowUploads: value, saveStatus: "saving" });
     scheduleRemote(get);
   },
 }));
@@ -1137,6 +1187,8 @@ function persistLayout(
               hiddenPins: state.hiddenPins,
               photos: storedPhotoMap(state.publicHash, state.photos),
               googleAlbumUrl: state.googleAlbumUrl || undefined,
+              googleAlbumUrls: state.googleAlbumUrls,
+              allowUploads: state.allowUploads,
               highlights: state.highlights,
               dayAlbums: state.dayAlbums,
             },
@@ -1205,6 +1257,8 @@ async function pushRemote(state: AlbumState) {
     hiddenPins: state.hiddenPins,
     photos,
     googleAlbumUrl: state.googleAlbumUrl || undefined,
+    googleAlbumUrls: state.googleAlbumUrls,
+    allowUploads: state.allowUploads,
     highlights: state.highlights,
     dayAlbums: state.dayAlbums,
   };

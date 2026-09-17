@@ -14,6 +14,8 @@ export type TripPayload = {
   photos: Record<string, string>;
   translationMeta?: Record<string, Record<string, string>>;
   googleAlbumUrl?: string;
+  googleAlbumUrls?: string[];
+  allowUploads?: boolean;
   highlights?: string[];
   dayAlbums?: Record<string, { all: string[]; selected: string[] }>;
 };
@@ -47,6 +49,8 @@ const payloadSchema = z.object({
   photos: z.record(z.string(), z.string()).optional(),
   translationMeta: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   googleAlbumUrl: z.string().max(500).optional(),
+  googleAlbumUrls: z.array(z.string().max(500)).optional(),
+  allowUploads: z.boolean().optional(),
   highlights: z.array(z.string()).optional(),
   dayAlbums: z.record(z.string(), z.object({ all: z.array(z.string()), selected: z.array(z.string()) })).optional(),
 });
@@ -85,7 +89,9 @@ function asPayload(raw: unknown): TripPayload {
     hiddenPins: parsed.hiddenPins ?? {},
     photos: parsed.photos ?? {},
     translationMeta: parsed.translationMeta,
-    googleAlbumUrl: parsed.googleAlbumUrl?.trim() || undefined,
+    googleAlbumUrl: parsed.googleAlbumUrl?.trim() || parsed.googleAlbumUrls?.[0] || undefined,
+    googleAlbumUrls: parsed.googleAlbumUrls?.filter(Boolean) ?? (parsed.googleAlbumUrl ? [parsed.googleAlbumUrl] : undefined),
+    allowUploads: parsed.allowUploads,
     highlights: parsed.highlights,
     dayAlbums: parsed.dayAlbums,
   };
