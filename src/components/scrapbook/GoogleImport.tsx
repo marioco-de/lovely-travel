@@ -1,13 +1,30 @@
-import { useState } from "react";
-import { confirmGoogleLink, previewGoogleLink, type ImportDayDraft } from "@/lib/album/google-import";
+import { useEffect, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { createPortal } from "react-dom";
+import { confirmGoogleLink, previewGoogleLink, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 
 const DAY_CAP = 20;
-const HIGHLIGHT_CAP = 5;
+const HIGHLIGHT_CAP = 8;
+const DENSITY_KEY = "lovely-curate-density";
+const DESKTOP_COLS = [8, 6, 4, 2] as const;
+const MOBILE_COLS = [4, 3, 2, 1] as const;
 
+type Density = 0 | 1 | 2 | 3;
+type Tool = "select" | "split" | "star";
 type DayDraft = ImportDayDraft & { selected: Set<string> };
+type DragPhoto = { dayId: string; photoId: string; index: number; thumb: string };
+
+function readDensity(): Density {
+  try {
+    const raw = Number(localStorage.getItem(DENSITY_KEY));
+    if (raw === 0 || raw === 1 || raw === 2 || raw === 3) return raw;
+  } catch {
+    /* ignore */
+  }
+  return 0;
+}
 
 export function GoogleImport() {
   const t = useT();
@@ -22,6 +39,35 @@ export function GoogleImport() {
   const [needsAuth, setNeedsAuth] = useState(false);
   const [error, setError] = useState(false);
   const [total, setTotal] = useState(0);
+  const [density, setDensity] = useState<Density>(0);
+  const [wide, setWide] = useState(true);
+  const [tool, setTool] = useState<Tool>("select");
+  const [fanOpen, setFanOpen] = useState(false);
+  const [dropDay, setDropDay] = useState<string | null>(null);
+  const [lift, setLift] = useState<{ photo: DragPhoto; x: number; y: number } | null>(null);
+  const clickTimer = useRef(0);
+  const dragRef = useRef<DragPhoto | null>(null);
+  const didDrag = useRef(false);
+  const pressRef = useRef<{ photo: DragPhoto; x: number; y: number; pointerId: number; timer: number } | null>(null);
+
+  useEffect(() => {
+    setDensity(readDensity());
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DENSITY_KEY, String(density));
+    } catch {
+      /* ignore */
+    }
+  }, [density]);
+
+  const cols = wide ? DESKTOP_COLS[density] : MOBILE_COLS[density];
 
   async function preview() {
     const share = url.trim();
@@ -164,8 +210,132 @@ export function GoogleImport() {
   function toggleStar(id: string) {
     setHighlights((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id);
-      return [...current, id].slice(0, 8);
+      return [...current, id].slice(0, HIGHLIGHT_CAP);
     });
+  }
+
+  function movePhoto(fromDayId: string, photoId: string, toDayId: string, toIndex: number) {
+    setDays((current) => {
+      if (!current) return current;
+      const source = current.find((day) => day.id === fromDayId);
+      const fromIndex = source?.photos.findIndex((photo) => photo.id === photoId) ?? -1;
+      const photo = source?.photos[fromIndex];
+      if (!source || !photo || fromIndex < 0) return current;
+      const pulled = current.map((day) => {
+        if (day.id !== fromDayId) return { ...day, photos: [...day.photos], selected: new Set(day.selected) };
+        return {
+          ...day,
+          photos: day.photos.filter((item) => item.id !== photoId),
+          selected: new Set([...day.selected].filter((id) => id !== photoId)),
+        };
+      });
+      const destPos = pulled.findIndex((day) => day.id === toDayId);
+      if (destPos < 0) return current;
+      const dest = pulled[destPos]!;
+      let insertAt = Math.max(0, Math.min(toIndex, dest.photos.length));
+      if (fromDayId === toDayId && fromIndex < toIndex) insertAt = Math.max(0, toIndex - 1);
+      const photos = [...dest.photos];
+      photos.splice(insertAt, 0, photo);
+      const selected = new Set(dest.selected);
+      if (source.selected.has(photoId)) selected.add(photoId);
+      pulled[destPos] = { ...dest, photos, selected };
+      return pulled.filter((day) => day.photos.length > 0);
+    });
+  }
+
+  function onTileClick(dayId: string, photo: ImportPhoto, photoIndex: number) {
+    if (didDrag.current) {
+      didDrag.current = false;
+      return;
+    }
+    if (tool === "star") {
+      toggleStar(photo.id);
+      setTool("select");
+      return;
+    }
+    if (tool === "split") {
+      splitFrom(dayId, photoIndex);
+      setTool("select");
+      return;
+    }
+    window.clearTimeout(clickTimer.current);
+    clickTimer.current = window.setTimeout(() => togglePhoto(dayId, photo.id), 260);
+  }
+
+  function onTileDoubleClick(photoId: string) {
+    window.clearTimeout(clickTimer.current);
+    toggleStar(photoId);
+  }
+
+  function onDragStart(event: DragEvent, photo: DragPhoto) {
+    dragRef.current = photo;
+    didDrag.current = true;
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", photo.photoId);
+  }
+
+  function onDragEnd() {
+    window.setTimeout(() => {
+      dragRef.current = null;
+      setDropDay(null);
+    }, 40);
+  }
+
+  function dropOn(dayId: string, index: number) {
+    const drag = dragRef.current;
+    if (!drag) return;
+    movePhoto(drag.dayId, drag.photoId, dayId, index);
+    didDrag.current = true;
+    dragRef.current = null;
+    setDropDay(null);
+    setLift(null);
+  }
+
+  function clearPress() {
+    const press = pressRef.current;
+    if (press) window.clearTimeout(press.timer);
+    pressRef.current = null;
+  }
+
+  function onPointerDown(event: ReactPointerEvent, photo: DragPhoto) {
+    if (event.pointerType === "mouse") return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    clearPress();
+    const pointerId = event.pointerId;
+    const timer = window.setTimeout(() => {
+      const press = pressRef.current;
+      if (!press || press.pointerId !== pointerId) return;
+      dragRef.current = press.photo;
+      setLift({ photo: press.photo, x: press.x, y: press.y });
+    }, 340);
+    pressRef.current = { photo, x: event.clientX, y: event.clientY, pointerId, timer };
+  }
+
+  function onPointerMove(event: ReactPointerEvent) {
+    const press = pressRef.current;
+    if (press && !lift) {
+      const dist = Math.hypot(event.clientX - press.x, event.clientY - press.y);
+      if (dist > 12) clearPress();
+    }
+    if (lift) {
+      setLift((current) => (current ? { ...current, x: event.clientX, y: event.clientY } : current));
+      const node = document.elementFromPoint(event.clientX, event.clientY);
+      const dayId = node?.closest("[data-curate-day]")?.getAttribute("data-curate-day") ?? null;
+      setDropDay(dayId);
+    }
+  }
+
+  function onPointerUp(event: ReactPointerEvent) {
+    if (lift && dragRef.current) {
+      const node = document.elementFromPoint(event.clientX, event.clientY);
+      const cell = node?.closest("[data-curate-index]");
+      const dayNode = node?.closest("[data-curate-day]");
+      const dayId = dayNode?.getAttribute("data-curate-day");
+      const index = cell?.getAttribute("data-curate-index");
+      if (dayId) dropOn(dayId, index != null ? Number(index) : Number.MAX_SAFE_INTEGER);
+    }
+    clearPress();
+    setLift(null);
   }
 
   return (
@@ -191,15 +361,28 @@ export function GoogleImport() {
       {error ? <p className="font-script text-sm text-coral">{t("ui.googleImportError")}</p> : null}
 
       {days ? (
-        <div className="caption-strip confirm-card p-4">
+        <div className="caption-strip confirm-card curate-review p-4">
           <p className="font-typewriter text-place text-lagoon-deep">{t("ui.googleReview")}</p>
           <p className="mt-1 font-typewriter text-kicker tracking-wide text-ink">
             {total} {t("ui.googleTotal")}
           </p>
           <p className="mt-1 font-script text-sm text-ink-soft">{t("ui.googleReviewHint")}</p>
-          <div className="mt-4 grid gap-5">
+          <div className="mt-4 grid gap-6">
             {days.map((day, dayIndex) => (
-              <section key={day.id} className="grid gap-2">
+              <section
+                key={day.id}
+                data-curate-day={day.id}
+                className={cn("curate-day grid gap-2", dropDay === day.id && "is-drop")}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDropDay(day.id);
+                }}
+                onDragLeave={() => setDropDay((current) => (current === day.id ? null : current))}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  dropOn(day.id, day.photos.length);
+                }}
+              >
                 <div className="flex flex-wrap items-end gap-2">
                   <p className="font-display text-kicker tracking-widest text-ink-soft uppercase">{day.dateKey}</p>
                   <input
@@ -223,45 +406,67 @@ export function GoogleImport() {
                     </button>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="curate-grid" data-density={density}>
                   {day.photos.map((photo, photoIndex) => {
                     const on = day.selected.has(photo.id);
                     const star = highlights.includes(photo.id);
+                    const firstCol = photoIndex % cols === 0;
+                    const firstRow = photoIndex < cols;
+                    const dragPhoto: DragPhoto = { dayId: day.id, photoId: photo.id, index: photoIndex, thumb: photo.thumb };
                     return (
-                      <div key={photo.id} className="relative">
+                      <div
+                        key={photo.id}
+                        className="curate-cell"
+                        data-curate-index={photoIndex}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setDropDay(day.id);
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          dropOn(day.id, photoIndex);
+                        }}
+                      >
                         <button
                           type="button"
-                          onClick={() => togglePhoto(day.id, photo.id)}
-                          onContextMenu={(event) => {
-                            event.preventDefault();
-                            toggleStar(photo.id);
+                          draggable
+                          onDragStart={(event) => onDragStart(event, dragPhoto)}
+                          onDragEnd={onDragEnd}
+                          onPointerDown={(event) => onPointerDown(event, dragPhoto)}
+                          onPointerMove={onPointerMove}
+                          onPointerUp={onPointerUp}
+                          onPointerCancel={() => {
+                            clearPress();
+                            setLift(null);
                           }}
-                          className={cn(
-                            "relative h-16 w-16 overflow-hidden border",
-                            on ? "border-lagoon-deep opacity-100" : "border-stamp/30 opacity-40",
-                          )}
+                          onClick={() => onTileClick(day.id, photo, photoIndex)}
+                          onDoubleClick={() => onTileDoubleClick(photo.id)}
+                          className={cn("curate-tile", !on && "is-off", star && "is-star")}
                           title={t("ui.googlePickHint")}
                         >
-                          <img src={photo.thumb} alt="" className="h-full w-full object-cover" />
-                          <span
-                            role="presentation"
-                            className="absolute top-0.5 right-0.5 grid h-5 w-5 place-items-center bg-page/80 font-typewriter text-[0.7rem]"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              toggleStar(photo.id);
-                            }}
-                          >
-                            {star ? "★" : "☆"}
-                          </span>
+                          <img src={photo.thumb} alt="" />
+                          {star ? <span className="curate-star-mark">★</span> : null}
                         </button>
-                        {photoIndex > 0 ? (
+                        {photoIndex > 0 && !firstCol ? (
                           <button
                             type="button"
-                            className="absolute -right-1 bottom-0 z-10 grid h-5 min-w-5 place-items-center bg-page px-0.5 font-typewriter text-[0.6rem] text-ink-soft"
+                            className="curate-gap curate-gap--v"
                             title={t("ui.splitFromHere")}
                             onClick={() => splitFrom(day.id, photoIndex)}
                           >
-                            |
+                            <ScissorsIcon />
+                          </button>
+                        ) : null}
+                        {photoIndex > 0 && !firstRow ? (
+                          <button
+                            type="button"
+                            className="curate-gap curate-gap--h"
+                            title={t("ui.splitFromHere")}
+                            onClick={() => splitFrom(day.id, photoIndex)}
+                          >
+                            <ScissorsIcon />
                           </button>
                         ) : null}
                       </div>
@@ -275,8 +480,160 @@ export function GoogleImport() {
           <button type="button" className="album-btn mt-3" disabled={busy} onClick={() => void confirm()}>
             {t("ui.googleConfirm")}
           </button>
+          <CurateDock
+            density={density}
+            wide={wide}
+            tool={tool}
+            fanOpen={fanOpen}
+            onDensity={(value) => {
+              setDensity(value);
+              setFanOpen(false);
+            }}
+            onFan={() => setFanOpen((open) => !open)}
+            onTool={(value) => setTool((current) => (current === value ? "select" : value))}
+          />
         </div>
       ) : null}
+      {lift
+        ? createPortal(
+            <div className="curate-lift" style={{ left: lift.x, top: lift.y }}>
+              <img src={lift.photo.thumb} alt="" />
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
+  );
+}
+
+function CurateDock({
+  density,
+  wide,
+  tool,
+  fanOpen,
+  onDensity,
+  onFan,
+  onTool,
+}: {
+  density: Density;
+  wide: boolean;
+  tool: Tool;
+  fanOpen: boolean;
+  onDensity: (value: Density) => void;
+  onFan: () => void;
+  onTool: (value: Tool) => void;
+}) {
+  const t = useT();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  const densities: Density[] = [0, 1, 2, 3];
+  return createPortal(
+    <div className="curate-dock">
+      <div className="curate-dock-inner">
+        {wide ? (
+          densities.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={cn("curate-dock-btn", density === value && "is-on")}
+              aria-label={t("ui.curateGrid")}
+              onClick={() => onDensity(value)}
+            >
+              <GridIcon n={value} />
+            </button>
+          ))
+        ) : (
+          <>
+            <button
+              type="button"
+              className={cn("curate-dock-btn", fanOpen && "is-on")}
+              aria-label={t("ui.curateGrid")}
+              aria-expanded={fanOpen}
+              onClick={onFan}
+            >
+              <GridIcon n={density} />
+            </button>
+            {fanOpen ? (
+              <div className="curate-grid-fan" role="menu">
+                {densities.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={cn("curate-dock-btn", density === value && "is-on")}
+                    onClick={() => onDensity(value)}
+                  >
+                    <GridIcon n={value} />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className={cn("curate-dock-btn", tool === "split" && "is-on")}
+              aria-label={t("ui.curateSplit")}
+              aria-pressed={tool === "split"}
+              onClick={() => onTool("split")}
+            >
+              <ScissorsIcon />
+            </button>
+            <button
+              type="button"
+              className={cn("curate-dock-btn", tool === "star" && "is-on")}
+              aria-label={t("ui.curateStar")}
+              aria-pressed={tool === "star"}
+              onClick={() => onTool("star")}
+            >
+              <StarIcon />
+            </button>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function GridIcon({ n }: { n: Density }) {
+  if (n === 3) {
+    return (
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="15" height="15" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      </svg>
+    );
+  }
+  const count = n === 0 ? 4 : n === 1 ? 3 : 2;
+  const step = 16 / (count - 1);
+  const dots = [];
+  for (let y = 0; y < count; y += 1) {
+    for (let x = 0; x < count; x += 1) {
+      dots.push(<circle key={`${x}-${y}`} cx={3 + x * step} cy={3 + y * step} r="1.55" fill="currentColor" />);
+    }
+  }
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+      {dots}
+    </svg>
+  );
+}
+
+function ScissorsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="6" cy="7" r="2.4" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="6" cy="17" r="2.4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 8.2 20 18.5M8 15.8 20 5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 3.4 14.4 9l6.1.5-4.7 3.9 1.5 5.9L12 16.2 6.7 19.3l1.5-5.9L3.5 9.5 9.6 9z"
+      />
+    </svg>
   );
 }
