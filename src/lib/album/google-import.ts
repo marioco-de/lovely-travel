@@ -39,7 +39,7 @@ export const previewGoogleLink = createServerFn({ method: "POST" })
       .map((photo) => {
         const takenAt = photo.takenAt || 0;
         return {
-          id: newId("gph"),
+          id: photo.uid,
           uid: photo.uid,
           thumb: photo.thumb,
           url: photo.url,

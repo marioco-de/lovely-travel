@@ -216,9 +216,6 @@ export async function readPhotoExif(file: File): Promise<PhotoExif> {
 }
 
 export function dayKey(takenAt: number) {
-  const date = new Date(takenAt);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  if (!takenAt) return "unknown";
+  return new Date(takenAt).toISOString().slice(0, 10);
 }

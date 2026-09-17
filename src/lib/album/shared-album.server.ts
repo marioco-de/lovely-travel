@@ -13,7 +13,7 @@ export type SharedAlbumPhoto = {
 const UNKNOWN = "Unbekannter Ort";
 const BATCH_URL = "https://photos.google.com/u/0/_/PhotosUi/data/batchexecute";
 const BATCH_RPC = "snAcKc";
-const MAX_PAGES = 40;
+const MAX_PAGES = 80;
 const BROWSER =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
@@ -142,7 +142,7 @@ async function fetchHtml(url: string) {
   });
 }
 
-async function fetchPage(albumKey: string, authKey: string, pageToken: string) {
+async function fetchPage(albumKey: string, authKey: string, pageToken: string | null) {
   const inner = JSON.stringify([albumKey, pageToken, null, authKey]);
   const envelope = JSON.stringify([[[BATCH_RPC, inner, null, "generic"]]]);
   const endpoint = new URL(BATCH_URL);
@@ -190,26 +190,34 @@ async function lookupPlace(lat: number, lng: number) {
 }
 
 async function enrichFromExif(photos: SharedAlbumPhoto[]) {
-  const byDay = new Map<string, SharedAlbumPhoto[]>();
-  for (const photo of photos) {
-    const key = photo.takenAt ? new Date(photo.takenAt).toISOString().slice(0, 10) : "unknown";
-    const list = byDay.get(key) ?? [];
-    list.push(photo);
-    byDay.set(key, list);
+  if (!photos.length) return;
+  const indexes = new Set<number>();
+  const n = photos.length;
+  const samples = Math.min(80, n);
+  const step = Math.max(1, Math.floor(n / samples));
+  for (let i = 0; i < n; i += step) indexes.add(i);
+  indexes.add(0);
+  indexes.add(n - 1);
+  for (let i = 0; i < n; i += 1) {
+    if (!photos[i]?.takenAt) indexes.add(i);
   }
+  const targets = [...indexes]
+    .filter((i) => i >= 0 && i < n)
+    .sort((a, b) => a - b)
+    .slice(0, 80)
+    .map((i) => photos[i]!);
+
   const placeCache = new Map<string, string>();
-  const jobs: SharedAlbumPhoto[][] = [...byDay.values()];
-  const queue = jobs.slice();
+  const queue = [...targets];
   async function worker() {
     while (queue.length) {
-      const list = queue.shift();
-      if (!list) return;
-      const sample = list.slice(0, 2);
-      for (const photo of sample) {
+      const photo = queue.shift();
+      if (!photo) return;
+      const urls = [`${cleanUrl(photo.url)}=d`, photo.url];
+      for (const original of urls) {
         try {
-          const original = `${cleanUrl(photo.url)}=d`;
           const response = await fetch(original, {
-            headers: { Range: "bytes=0-262143", "User-Agent": BROWSER },
+            headers: { Range: "bytes=0-393215", "User-Agent": BROWSER },
           });
           if (!response.ok) continue;
           const buffer = Buffer.from(await response.arrayBuffer());
@@ -218,28 +226,54 @@ async function enrichFromExif(photos: SharedAlbumPhoto[]) {
             buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
             photo.takenAt,
           );
-          if (exif.lat == null || exif.lng == null) continue;
+          if (exif.takenAt) photo.takenAt = exif.takenAt;
+          if (exif.lat == null || exif.lng == null) break;
+          photo.lat = exif.lat;
+          photo.lng = exif.lng;
           const bucket = `${exif.lat.toFixed(3)},${exif.lng.toFixed(3)}`;
           let place = placeCache.get(bucket);
           if (place == null) {
             place = (await lookupPlace(exif.lat, exif.lng)) || "";
             placeCache.set(bucket, place);
           }
-          for (const item of list) {
-            if (!item.lat) {
-              item.lat = exif.lat;
-              item.lng = exif.lng;
-            }
-            if (place && !item.place) item.place = place;
-          }
-          if (place) break;
+          if (place) photo.place = place;
+          break;
         } catch {
-          /* next sample */
+          /* try next url */
         }
       }
     }
   }
-  await Promise.all([worker(), worker(), worker(), worker()]);
+  await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
+
+  const ordered = [...photos].sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
+  let last: SharedAlbumPhoto | undefined;
+  for (const photo of ordered) {
+    if (photo.lat != null && photo.lng != null) {
+      last = photo;
+      continue;
+    }
+    if (!last || last.lat == null || last.lng == null) continue;
+    const dt = Math.abs((photo.takenAt || 0) - (last.takenAt || 0));
+    if (dt > 6 * 60 * 60 * 1000) continue;
+    photo.lat = last.lat;
+    photo.lng = last.lng;
+    if (last.place && !photo.place) photo.place = last.place;
+  }
+  last = undefined;
+  for (let i = ordered.length - 1; i >= 0; i -= 1) {
+    const photo = ordered[i]!;
+    if (photo.lat != null && photo.lng != null) {
+      last = photo;
+      continue;
+    }
+    if (!last || last.lat == null || last.lng == null) continue;
+    const dt = Math.abs((photo.takenAt || 0) - (last.takenAt || 0));
+    if (dt > 6 * 60 * 60 * 1000) continue;
+    photo.lat = last.lat;
+    photo.lng = last.lng;
+    if (last.place && !photo.place) photo.place = last.place;
+  }
 }
 
 export async function fetchSharedAlbum(
@@ -269,7 +303,16 @@ export async function fetchSharedAlbum(
   const request = extractAlbumRequest(html, response.url);
   let token = firstPage.nextPageToken;
   const seen = new Set<string>();
-  if (request && token) {
+  if (request) {
+    if (!token) {
+      const firstRpc = await fetchPage(request.albumKey, request.authKey, null);
+      if (firstRpc) {
+        for (const photo of firstRpc.photos) {
+          if (!byUid.has(photo.uid)) byUid.set(photo.uid, photo);
+        }
+        token = firstRpc.nextPageToken;
+      }
+    }
     for (let page = 2; page <= MAX_PAGES && token; page += 1) {
       if (seen.has(token)) break;
       seen.add(token);

@@ -116,6 +116,7 @@ export function GoogleImport() {
   const dragRef = useRef<DragPhoto | null>(null);
   const didDrag = useRef(false);
   const pressRef = useRef<{ photo: DragPhoto; x: number; y: number; pointerId: number; timer: number } | null>(null);
+  const previewLock = useRef(false);
 
   useEffect(() => {
     setDensity(readDensity());
@@ -130,12 +131,12 @@ export function GoogleImport() {
     if (!editHash) return;
     let active = true;
     void loadCuration({ data: { editHash } }).then((result) => {
-      if (!active || !result.days.length) return;
+      if (!active || previewLock.current || !result.days.length) return;
       setDays(fromDays(result.days, false));
       setHighlights(result.highlights);
       setTotal(result.total);
       setPendingPreview(false);
-      if (result.urls[0] && !url) setUrl(result.urls[0]);
+      if (result.urls[0]) setUrl((current) => current || result.urls[0]!);
     });
     return () => {
       active = false;
@@ -198,15 +199,21 @@ export function GoogleImport() {
         return;
       }
       const drafted = fromDays(result.days, true);
-      setDays((current) => (current?.length ? [...current, ...drafted] : drafted));
-      setTotal((current) => current + drafted.reduce((sum, day) => sum + day.photos.length, 0) || (result.total ?? drafted.reduce((sum, day) => sum + day.photos.length, 0)));
-      if (!days?.length) {
+      previewLock.current = true;
+      const known = albumUrls.includes(share) || share === savedUrl;
+      const replace = !days?.length || known;
+      if (replace) {
+        setDays(drafted);
+        setTotal(result.total ?? drafted.reduce((sum, day) => sum + day.photos.length, 0));
         setHighlights(
           drafted
             .map((day) => [...day.selected][0])
             .filter((id): id is string => Boolean(id))
             .slice(0, HIGHLIGHT_SEED),
         );
+      } else {
+        setDays((current) => (current?.length ? [...current, ...drafted] : drafted));
+        setTotal((current) => current + drafted.reduce((sum, day) => sum + day.photos.length, 0));
       }
       addGoogleAlbumUrl(share);
       setPendingPreview(true);
