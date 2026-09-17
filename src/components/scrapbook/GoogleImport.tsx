@@ -588,7 +588,61 @@ export function GoogleImport() {
       const dest = next[destIndex]!;
       dest.photos = [...dest.photos, found].sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
       if (wasSelected) dest.selected.add(photoId);
-      return next.filter((day) => day.photos.length > 0);
+      const cleaned = next.filter((day) => day.photos.length > 0);
+      persistFlags(cleaned);
+      return cleaned;
+    });
+  }
+
+  function applyPicked(patch: Partial<Pick<ImportPhoto, "takenAt" | "place">>) {
+    setDays((current) => {
+      if (!current || !picked.size) return current;
+      const moving: { photo: ImportPhoto; selected: boolean }[] = [];
+      const stripped = current.map((day) => {
+        const selected = new Set(day.selected);
+        const photos: ImportPhoto[] = [];
+        for (const photo of day.photos) {
+          if (!picked.has(photo.id)) {
+            photos.push(photo);
+            continue;
+          }
+          const next = { ...photo };
+          if (patch.takenAt != null) {
+            next.takenAt = patch.takenAt;
+            next.dateKey = patch.takenAt ? dayKey(patch.takenAt) : "unknown";
+          }
+          if (patch.place != null) next.place = patch.place.trim() || UNKNOWN;
+          moving.push({ photo: next, selected: day.selected.has(photo.id) });
+          selected.delete(photo.id);
+        }
+        return { ...day, photos, selected };
+      });
+      let next = stripped.map((day) => ({ ...day, photos: [...day.photos], selected: new Set(day.selected) }));
+      for (const item of moving) {
+        let destIndex = next.findIndex((day) => day.dateKey === item.photo.dateKey && day.place === item.photo.place);
+        if (destIndex < 0) {
+          const dest: DayDraft = {
+            id: `imp-${Date.now().toString(36)}-${item.photo.id.slice(-6)}`,
+            dateKey: item.photo.dateKey,
+            place: item.photo.place,
+            photos: [],
+            selected: new Set(),
+          };
+          destIndex = next.findIndex((day) => day.dateKey > item.photo.dateKey);
+          if (destIndex < 0) {
+            next = [...next, dest];
+            destIndex = next.length - 1;
+          } else {
+            next = [...next.slice(0, destIndex), dest, ...next.slice(destIndex)];
+          }
+        }
+        const dest = next[destIndex]!;
+        dest.photos = [...dest.photos, item.photo].sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
+        if (item.selected) dest.selected.add(item.photo.id);
+      }
+      const cleaned = next.filter((day) => day.photos.length > 0);
+      persistFlags(cleaned);
+      return cleaned;
     });
   }
 
@@ -1019,6 +1073,26 @@ export function GoogleImport() {
             onBulkStar={starPicked}
             onBulkShow={() => setPickedInDay(true)}
             onBulkHide={() => setPickedInDay(false)}
+            onBulkDate={(value) => applyPicked({ takenAt: value })}
+            onBulkPlace={(value) => applyPicked({ place: value })}
+            seedDate={(() => {
+              const id = [...picked][0];
+              if (!id || !days) return 0;
+              for (const day of days) {
+                const photo = day.photos.find((item) => item.id === id);
+                if (photo) return photo.takenAt;
+              }
+              return 0;
+            })()}
+            seedPlace={(() => {
+              const id = [...picked][0];
+              if (!id || !days) return "";
+              for (const day of days) {
+                const photo = day.photos.find((item) => item.id === id);
+                if (photo) return photo.place || day.place;
+              }
+              return "";
+            })()}
           />
         </div>
       ) : null}
@@ -1156,6 +1230,10 @@ function CurateDock({
   onBulkStar,
   onBulkShow,
   onBulkHide,
+  onBulkDate,
+  onBulkPlace,
+  seedDate,
+  seedPlace,
 }: {
   density: Density;
   wide: boolean;
@@ -1168,10 +1246,24 @@ function CurateDock({
   onBulkStar: () => void;
   onBulkShow: () => void;
   onBulkHide: () => void;
+  onBulkDate: (value: number) => void;
+  onBulkPlace: (value: string) => void;
+  seedDate: number;
+  seedPlace: string;
 }) {
   const t = useT();
   const [mounted, setMounted] = useState(false);
+  const [bulkEdit, setBulkEdit] = useState<null | "date" | "place">(null);
+  const [dateValue, setDateValue] = useState("");
+  const [placeValue, setPlaceValue] = useState("");
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (pickedCount === 0) setBulkEdit(null);
+  }, [pickedCount]);
+  useEffect(() => {
+    setDateValue(toLocalInput(seedDate));
+    setPlaceValue(seedPlace);
+  }, [seedDate, seedPlace]);
   if (!mounted) return null;
   const densities: Density[] = [0, 1, 2, 3];
   return createPortal(
@@ -1188,6 +1280,48 @@ function CurateDock({
             <button type="button" className="album-btn album-btn--tiny" onClick={onBulkHide}>
               {t("ui.curateBulkHide")}
             </button>
+            <button
+              type="button"
+              className={cn("album-btn album-btn--tiny", bulkEdit === "date" && "is-on")}
+              onClick={() => setBulkEdit((value) => (value === "date" ? null : "date"))}
+            >
+              {t("ui.curateEditDate")}
+            </button>
+            <button
+              type="button"
+              className={cn("album-btn album-btn--tiny", bulkEdit === "place" && "is-on")}
+              onClick={() => setBulkEdit((value) => (value === "place" ? null : "place"))}
+            >
+              {t("ui.curateEditPlace")}
+            </button>
+            {bulkEdit === "date" ? (
+              <input
+                type="datetime-local"
+                className="album-field curate-bulk-field"
+                value={dateValue}
+                onChange={(event) => setDateValue(event.target.value)}
+                onBlur={() => {
+                  const ms = fromLocalInput(dateValue);
+                  if (ms) onBulkDate(ms);
+                }}
+              />
+            ) : null}
+            {bulkEdit === "place" ? (
+              <input
+                type="text"
+                className="album-field curate-bulk-field"
+                value={placeValue}
+                onChange={(event) => setPlaceValue(event.target.value)}
+                onBlur={() => onBulkPlace(placeValue)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    onBulkPlace(placeValue);
+                  }
+                }}
+                placeholder={t("ui.place")}
+              />
+            ) : null}
           </div>
         ) : null}
         <div className="curate-dock-inner">

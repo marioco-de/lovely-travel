@@ -2453,3 +2453,8 @@ body {
 .curate-day.is-hidden .album-field {
   pointer-events: none;
 }
+
+.curate-bulk-field {
+  min-width: min(16rem, calc(100vw - 2rem));
+  min-height: 2.4rem;
+}
