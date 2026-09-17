@@ -79,6 +79,7 @@ export async function draftsFromPhotos(photos: BulkPhoto[], unknown: string): Pr
   const byDay = new Map<string, BulkPhoto[]>();
   for (const photo of photos) {
     const key = dayKey(photo.takenAt);
+    if (!key) continue;
     const list = byDay.get(key) ?? [];
     list.push(photo);
     byDay.set(key, list);

@@ -44,6 +44,36 @@ function parseTime(value: unknown) {
   return 0;
 }
 
+function timeFromRow(row: unknown[]) {
+  const direct = parseTime(row[2]);
+  if (direct) return direct;
+  for (const value of row) {
+    const time = parseTime(value);
+    if (time) return time;
+    if (!Array.isArray(value)) continue;
+    for (const inner of value.slice(0, 8)) {
+      const nested = parseTime(inner);
+      if (nested) return nested;
+    }
+  }
+  return 0;
+}
+
+function fillMissingTimes(photos: SharedAlbumPhoto[]) {
+  let last = 0;
+  for (const photo of photos) {
+    if (photo.takenAt) last = photo.takenAt;
+    else if (last) photo.takenAt = last;
+  }
+  last = 0;
+  for (let i = photos.length - 1; i >= 0; i -= 1) {
+    const photo = photos[i];
+    if (!photo) continue;
+    if (photo.takenAt) last = photo.takenAt;
+    else if (last) photo.takenAt = last;
+  }
+}
+
 function readArray(text: string, from: number) {
   const start = text.indexOf("[", from);
   if (start < 0) return null;
@@ -73,7 +103,7 @@ function parseAlbumItems(data: unknown): { photos: SharedAlbumPhoto[]; nextPageT
     const width = typeof detail[1] === "number" ? detail[1] : 0;
     const height = typeof detail[2] === "number" ? detail[2] : 0;
     if (!isAlbumMediaUrl(rawUrl) || Math.min(width, height) < 80) continue;
-    const takenAt = parseTime(row[2]);
+    const takenAt = timeFromRow(row);
     photos.push({
       uid,
       url: sized(rawUrl, "w1600"),
@@ -326,6 +356,8 @@ export async function fetchSharedAlbum(
   }
 
   const photos = [...byUid.values()];
+  fillMissingTimes(photos);
   if (photos.length) await enrichFromExif(photos);
+  fillMissingTimes(photos);
   return { photos, needsAuth: locked && photos.length === 0, title };
 }

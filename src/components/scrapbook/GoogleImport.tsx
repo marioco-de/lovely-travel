@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
-import { dayKey } from "@/lib/album/exif";
+import { dayKey, isDayKey } from "@/lib/album/exif";
 import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
 import { newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
@@ -46,7 +46,7 @@ function fromLocalInput(value: string) {
 
 function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
   return days
-    .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+    .filter((day) => isDayKey(day.dateKey))
     .map((day) => ({
     ...day,
     selected: new Set(
@@ -58,7 +58,7 @@ function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
 function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft[] {
   const hiddenDates = new Set(current.filter((day) => day.hidden).map((day) => day.dateKey));
   const next: DayDraft[] = current
-    .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+    .filter((day) => isDayKey(day.dateKey))
     .map((day) => ({
     ...day,
     photos: day.photos.map((photo) => ({ ...photo })),
@@ -124,7 +124,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
     day.photos.sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
     if (hiddenDates.has(day.dateKey)) day.hidden = true;
   }
-  return next.filter((day) => day.photos.length > 0 && day.dateKey && day.dateKey.toLowerCase() !== "unknown");
+  return next.filter((day) => day.photos.length > 0 && isDayKey(day.dateKey));
 }
 
 async function fileToDataUrl(file: File) {
@@ -347,7 +347,7 @@ export function GoogleImport() {
       shareUrl: url.trim() || undefined,
       highlights: stars,
       days: (list ?? [])
-        .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+        .filter((day) => isDayKey(day.dateKey))
         .map((day) => ({
         id: day.id,
         dateKey: day.dateKey,
@@ -564,8 +564,10 @@ export function GoogleImport() {
       }
       if (!found) return current;
       if (patch.takenAt != null) {
+        const key = dayKey(patch.takenAt);
+        if (!key) return current;
         found.takenAt = patch.takenAt;
-        found.dateKey = patch.takenAt ? dayKey(patch.takenAt) : "unknown";
+        found.dateKey = key;
       }
       if (patch.place != null) found.place = patch.place.trim() || UNKNOWN;
       const stripped = current.map((day) => ({
@@ -614,8 +616,10 @@ export function GoogleImport() {
           }
           const next = { ...photo };
           if (patch.takenAt != null) {
+            const key = dayKey(patch.takenAt);
+            if (!key) continue;
             next.takenAt = patch.takenAt;
-            next.dateKey = patch.takenAt ? dayKey(patch.takenAt) : "unknown";
+            next.dateKey = key;
           }
           if (patch.place != null) next.place = patch.place.trim() || UNKNOWN;
           moving.push({ photo: next, selected: day.selected.has(photo.id) });

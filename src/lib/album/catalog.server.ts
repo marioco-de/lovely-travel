@@ -181,6 +181,7 @@ export async function replaceCatalog(sql: Sql, tripId: string, catalog: Catalog)
     );
   }
   for (const day of catalog.days) {
+    if (!isDayTitle(day.title)) continue;
     await sql.query(
       `insert into trip_days (id, trip_id, sort_index, title, place_label, lat, lng, hidden)
        values ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -209,6 +210,7 @@ export async function replaceCatalog(sql: Sql, tripId: string, catalog: Catalog)
       [tripId, highlight.photoId, highlight.sortIndex],
     );
   }
+  await dropInvalidDays(sql, tripId);
 }
 
 
@@ -245,6 +247,7 @@ export async function mergeCatalog(sql: Sql, tripId: string, catalog: Catalog) {
   const byKey = new Map(existing.map((row) => [`${row.title}|${row.place_label}`, row]));
   let sort = existing.reduce((max, row) => Math.max(max, row.sort_index), -1);
   for (const day of catalog.days) {
+    if (!isDayTitle(day.title)) continue;
     const key = `${day.title}|${day.placeLabel}`;
     const match = existing.find((row) => row.id === day.id) ?? byKey.get(key);
     const dayId = match?.id ?? day.id;
@@ -292,6 +295,7 @@ export async function mergeCatalog(sql: Sql, tripId: string, catalog: Catalog) {
       [tripId, highlight.photoId, highlight.sortIndex],
     );
   }
+  await repairUnknownCatalog(sql, tripId);
 }
 
 export async function setDayAlbumFlags(
@@ -327,16 +331,28 @@ export async function setDayAlbumFlags(
   }
 }
 
-function isUnknownTitle(title: string) {
-  return !title || title.toLowerCase() === "unknown";
+function isDayTitle(title: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(title);
+}
+
+async function dropInvalidDays(sql: Sql, tripId: string) {
+  await sql.query(
+    `delete from day_photos
+     where day_id in (select id from trip_days where trip_id = $1 and title !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')`,
+    [tripId],
+  );
+  await sql.query(
+    `delete from trip_days where trip_id = $1 and title !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
+    [tripId],
+  );
 }
 
 export async function repairUnknownCatalog(sql: Sql, tripId: string) {
   await ensureCatalog(sql);
   const catalog = await loadCatalog(sql, tripId);
   const photos = new Map(catalog.photos.map((photo) => [photo.id, photo]));
-  const unknownDays = catalog.days.filter((day) => isUnknownTitle(day.title));
-  const datedDays = catalog.days.filter((day) => !isUnknownTitle(day.title));
+  const unknownDays = catalog.days.filter((day) => !isDayTitle(day.title));
+  const datedDays = catalog.days.filter((day) => isDayTitle(day.title));
   const byKey = new Map(datedDays.map((day) => [`${day.title}|${day.placeLabel}`, day]));
   let sort = catalog.days.reduce((max, day) => Math.max(max, day.sortIndex), -1);
 
@@ -384,5 +400,6 @@ export async function repairUnknownCatalog(sql: Sql, tripId: string) {
     await sql.query(`delete from day_photos where photo_id = $1`, [row.id]);
     await sql.query(`delete from photos where id = $1 and trip_id = $2`, [row.id, tripId]);
   }
+  await dropInvalidDays(sql, tripId);
 }
 

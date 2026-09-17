@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { dayKey } from "./exif";
+import { dayKey, isDayKey } from "./exif";
 import { newId } from "./layout";
 import { clusterByPlace } from "./place-split";
 
@@ -111,7 +111,7 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
     const { getSql } = await import("@/lib/db");
     const { uploadAlbumPhoto } = await import("./photo-store");
     const { readExifBytes } = await import("./exif");
-    const { mergeCatalog, repairUnknownCatalog } = await import("./catalog.server");
+    const { mergeCatalog } = await import("./catalog.server");
     const sql = await getSql();
     const trip = await sql<{ id: string }>`select id from trips where edit_hash = ${data.editHash} limit 1`;
     const tripId = trip[0]?.id;
@@ -182,7 +182,7 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
     }
 
     const catalogDays = data.days
-      .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+      .filter((day) => isDayKey(day.dateKey))
       .map((day, index) => ({
       id: day.id,
       sortIndex: index,
@@ -200,7 +200,6 @@ export const confirmGoogleLink = createServerFn({ method: "POST" })
       days: catalogDays,
       highlights: data.highlights.map((photoId, sortIndex) => ({ photoId, sortIndex })),
     });
-    await repairUnknownCatalog(sql, tripId);
     if (data.shareUrl) {
       await sql.query(
         `update trips set payload = jsonb_set(coalesce(payload, '{}'::jsonb), '{googleAlbumUrl}', to_jsonb($1::text), true), updated_at = now() where id = $2`,
@@ -242,10 +241,10 @@ export const loadCuration = createServerFn({ method: "POST" })
     };
     const urls = [...(payload.googleAlbumUrls ?? []), payload.googleAlbumUrl ?? ""].filter(Boolean);
     const days: ImportDayDraft[] = catalog.days
-      .filter((day) => day.title && day.title.toLowerCase() !== "unknown")
+      .filter((day) => isDayKey(day.title))
       .map((day) => ({
       id: day.id,
-      dateKey: day.title || "unknown",
+      dateKey: day.title,
       place: day.placeLabel || UNKNOWN,
       hidden: day.hidden,
       photos: day.photos.map((member) => {
@@ -378,13 +377,13 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
     const { requireOwner } = await import("./owner-session.server");
     if (!(await requireOwner(data.editHash))) return { ok: false as const };
     const { getSql } = await import("@/lib/db");
-    const { mergeCatalog, repairUnknownCatalog } = await import("./catalog.server");
+    const { mergeCatalog } = await import("./catalog.server");
     const sql = await getSql();
     const trip = await sql<{ id: string }>`select id from trips where edit_hash = ${data.editHash} limit 1`;
     const tripId = trip[0]?.id;
     if (!tripId) return { ok: false as const };
     const catalogPhotos = data.days
-      .filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown")
+      .filter((day) => isDayKey(day.dateKey))
       .flatMap((day) =>
       day.photos.filter((photo) => photo.takenAt || photo.id.startsWith("upl")).map((photo) => ({
         id: photo.id,
@@ -395,7 +394,7 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
         placeLabel: photo.place && photo.place !== UNKNOWN ? photo.place : "",
       })),
     );
-    const datedDays = data.days.filter((day) => day.dateKey && day.dateKey.toLowerCase() !== "unknown");
+    const datedDays = data.days.filter((day) => isDayKey(day.dateKey));
     await mergeCatalog(sql, tripId, {
       photos: catalogPhotos,
       days: datedDays.map((day, index) => ({
@@ -412,6 +411,5 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
       })),
       highlights: data.highlights.map((photoId, sortIndex) => ({ photoId, sortIndex })),
     });
-    await repairUnknownCatalog(sql, tripId);
     return { ok: true as const };
   });

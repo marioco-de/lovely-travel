@@ -216,6 +216,12 @@ export async function readPhotoExif(file: File): Promise<PhotoExif> {
 }
 
 export function dayKey(takenAt: number) {
-  if (!takenAt) return "unknown";
-  return new Date(takenAt).toISOString().slice(0, 10);
+  if (!takenAt || !Number.isFinite(takenAt)) return "";
+  const date = new Date(takenAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+export function isDayKey(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
