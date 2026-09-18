@@ -370,7 +370,7 @@ export const addCurationPhoto = createServerFn({ method: "POST" })
       editHash: z.string().min(8).max(64),
       dayId: z.string().min(3).max(64),
       photoId: z.string().min(3).max(80),
-      dataUrl: z.string().min(24).max(2_400_000),
+      dataUrl: z.string().min(24).max(3_200_000),
       place: z.string().max(160).optional(),
       takenAt: z.number().optional(),
     }),

@@ -278,20 +278,35 @@ function mergePhotoMaps(...maps: Array<Record<string, string> | undefined>) {
 }
 
 async function prepareImage(file: File): Promise<Blob> {
-  if (!file.type.startsWith("image/") || file.size < 380_000) return file;
+  if (file.type.startsWith("video/") || (!file.type.startsWith("image/") && file.size < 380_000)) return file;
   try {
     const bitmap = await createImageBitmap(file);
-    const max = 1920;
-    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    let width = bitmap.width;
+    let height = bitmap.height;
+    const max = 1600;
+    const scale = Math.min(1, max / Math.max(width, height));
+    width = Math.max(1, Math.round(width * scale));
+    height = Math.max(1, Math.round(height * scale));
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, width, height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    let quality = 0.82;
+    let blob: Blob | null = null;
+    for (let step = 0; step < 5; step += 1) {
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (!blob || blob.size <= 1_200_000) break;
+      quality = Math.max(0.52, quality - 0.12);
+      if (blob.size > 1_200_000 && quality <= 0.56) {
+        width = Math.max(1, Math.round(width * 0.82));
+        height = Math.max(1, Math.round(height * 0.82));
+      }
+    }
     bitmap.close();
     return blob ?? file;
   } catch {
@@ -375,7 +390,7 @@ function fillCoverHighlights(layout: AlbumLayout, highlights: string[], photos: 
 
 function ensureCurationDay(
   layout: AlbumLayout,
-  draft: { id: string; place: string; selected: string[] },
+  draft: { id: string; place: string; selected: string[]; all?: string[]; highlights?: string[] },
 ): AlbumLayout {
   const place: I18nPair = { en: draft.place, de: draft.place };
   const exists = layout.days.some((day) => day.id === draft.id);
@@ -395,10 +410,12 @@ function ensureCurationDay(
       label: day.label.en || day.label.de ? day.label : place,
     }));
   }
-  const showcase = draft.selected.slice(0, COLLAGE_MAX);
+  const pool = new Set([...(draft.all ?? []), ...draft.selected]);
+  const stars = (draft.highlights ?? []).filter((id) => pool.has(id) || draft.selected.includes(id));
+  const showcase = (stars.length ? stars : draft.selected).slice(0, COLLAGE_MAX);
   if (!showcase.length) return layout;
   return mapDays(layout, draft.id, (day) => {
-    if (day.blocks.some((block) => block.photoIds.some((id) => showcase.includes(id)))) return day;
+    if (day.blocks.some((block) => block.photoIds.length)) return day;
     const block = emptyBlock(showcase.length >= COLLAGE_MIN ? "collage" : "photo", place);
     block.photoIds = showcase;
     block.photoNotes = Object.fromEntries(showcase.map((id) => [id, emptyPhotoNote()]));
@@ -841,7 +858,13 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       ...get().dayAlbums,
       [input.id]: { all: input.all, selected: input.selected },
     };
-    let layout = ensureCurationDay(get().layout, input);
+    let layout = ensureCurationDay(get().layout, {
+      id: input.id,
+      place: input.place,
+      selected: input.selected,
+      all: input.all,
+      highlights: input.highlights,
+    });
     layout = fillCoverHighlights(layout, input.highlights, photos);
     layout = markVideoNotes(layout, input.videoIds ?? []);
     set({ photos, highlights: input.highlights, dayAlbums });
@@ -1331,7 +1354,8 @@ function storedPhotoMap(publicHash: string | undefined, photos: Record<string, s
   const out: Record<string, string> = {};
   for (const [id, url] of Object.entries(photos)) {
     if (!url || url === CLEARED_PHOTO) continue;
-    if (isStoredPhotoUrl(url) || url.startsWith("data:")) out[id] = url;
+    if (url.startsWith("data:") || url.startsWith("blob:")) continue;
+    if (isStoredPhotoUrl(url)) out[id] = url;
     else if (publicHash) out[id] = mediaUrl(publicHash, id);
   }
   return out;
@@ -1342,12 +1366,23 @@ async function pushPendingUploads(state: AlbumState) {
   if (!state.editHash || !state.publicHash) return storedPhotoMap(state.publicHash, next);
   for (const [id, url] of Object.entries(next)) {
     if (!url || url === CLEARED_PHOTO || isStoredPhotoUrl(url)) continue;
-    const blob = url.startsWith("data:") ? null : await idbGet<Blob>(PHOTO_STORE, id);
-    const dataUrl = url.startsWith("data:") ? url : blob && blob.size > 0 ? await blobToDataUrl(blob) : "";
-    if (!dataUrl) continue;
-    const uploaded = await uploadAlbumPhoto({ data: { editHash: state.editHash, photoId: id, data: dataUrl } });
-    if (uploaded && "url" in uploaded && uploaded.url) next[id] = uploaded.url;
+    try {
+      const blob = url.startsWith("data:") ? null : await idbGet<Blob>(PHOTO_STORE, id);
+      let dataUrl = url.startsWith("data:") ? url : blob && blob.size > 0 ? await blobToDataUrl(blob) : "";
+      if (!dataUrl) continue;
+      if (dataUrl.length > 1_800_000 && blob) {
+        const compressed = await prepareImage(new File([blob], `${id}.jpg`, { type: blob.type || "image/jpeg" }));
+        dataUrl = compressed.size ? await blobToDataUrl(compressed) : dataUrl;
+      }
+      if (dataUrl.length > 2_200_000) continue;
+      const uploaded = await uploadAlbumPhoto({ data: { editHash: state.editHash, photoId: id, data: dataUrl } });
+      if (uploaded && "url" in uploaded && uploaded.url) next[id] = uploaded.url;
+    } catch {
+      /* keep local copy; remote save still continues */
+    }
   }
+  const changed = Object.keys(next).some((id) => next[id] !== state.photos[id]);
+  if (changed) useAlbum.setState({ photos: { ...state.photos, ...next } });
   return storedPhotoMap(state.publicHash, next);
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { Check } from "lucide-react";
 import { alignTakenAt, dayKey, isDayKey } from "@/lib/album/exif";
 import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
 import { COVER_ID, newId } from "@/lib/album/layout";
@@ -221,20 +222,35 @@ async function fileToDataUrl(file: File) {
 }
 
 async function compressUpload(file: File): Promise<Blob> {
-  if (!file.type.startsWith("image/") || file.size < 380_000) return file;
+  if (!file.type.startsWith("image/")) return file;
   try {
     const bitmap = await createImageBitmap(file);
-    const max = 1920;
-    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    let width = bitmap.width;
+    let height = bitmap.height;
+    const max = 1600;
+    const scale = Math.min(1, max / Math.max(width, height));
+    width = Math.max(1, Math.round(width * scale));
+    height = Math.max(1, Math.round(height * scale));
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, width, height);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    let quality = 0.82;
+    let blob: Blob | null = null;
+    for (let step = 0; step < 5; step += 1) {
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (!blob || blob.size <= 1_200_000) break;
+      quality = Math.max(0.52, quality - 0.12);
+      if (blob.size > 1_200_000 && quality <= 0.56) {
+        width = Math.max(1, Math.round(width * 0.82));
+        height = Math.max(1, Math.round(height * 0.82));
+      }
+    }
     bitmap.close();
     return blob ?? file;
   } catch {
@@ -1034,7 +1050,7 @@ export function GoogleImport() {
             {newestFirst ? t("ui.curateFirstTop") : t("ui.curateLastTop")}
           </button>
           <div className="mt-4 grid gap-6">
-            {(days ? viewDays(days, newestFirst) : []).map((day, dayIndex, shown) => (
+            {(days ? viewDays(days, newestFirst) : []).map((day, dayIndex) => (
               <section
                 key={day.id}
                 data-curate-day={day.id}
@@ -1045,24 +1061,17 @@ export function GoogleImport() {
                 }}
               >
                 <div className="flex flex-wrap items-end gap-2">
-                  <DayMark
-                    index={sortDays(days ?? []).findIndex((item) => item.id === day.id)}
-                    size="sm"
-                    rotation={dayIndex % 2 === 0 ? -10 : 8}
-                  />
+                  {layoutDays.some((item) => item.id === day.id && item.id !== COVER_ID) ? (
+                    <DayMark
+                      index={sortDays(days ?? [])
+                        .filter((item) => layoutDays.some((layout) => layout.id === item.id && layout.id !== COVER_ID))
+                        .findIndex((item) => item.id === day.id)}
+                      size="sm"
+                      rotation={dayIndex % 2 === 0 ? -10 : 8}
+                    />
+                  ) : null}
                   <p className="flex items-center gap-0.5 font-typewriter text-place font-bold text-ink">
                     {formatDay(day.dateKey)}
-                    {dayIndex === 0 || shown[dayIndex - 1]?.dateKey !== day.dateKey ? (
-                      <button
-                        type="button"
-                        className="grid h-7 w-7 place-items-center font-typewriter text-lg leading-none text-ink-soft"
-                        aria-label={day.hidden ? t("ui.showDate") : t("ui.hideDate")}
-                        title={day.hidden ? t("ui.showDate") : t("ui.hideDate")}
-                        onClick={() => hideDate(day.dateKey)}
-                      >
-                        {day.hidden ? "+" : "×"}
-                      </button>
-                    ) : null}
                   </p>
                   <input
                     value={day.place}
@@ -1076,54 +1085,54 @@ export function GoogleImport() {
                     className="album-field max-w-xs"
                     aria-label={t("ui.place")}
                   />
-                  <span className="relative flex items-center gap-1 font-typewriter text-[0.7rem] tracking-wide text-ink-soft" data-pick-menu={day.id}>
+                  <span className="font-typewriter text-[0.7rem] tracking-wide text-ink-soft">
                     {day.selected.size}/{day.photos.length}
-                    <button
-                      type="button"
-                      className={cn(
-                        "grid h-8 w-8 place-items-center text-stamp",
-                        (pickMenu === day.id || day.photos.some((photo) => picked.has(photo.id))) && "bg-tape/50",
-                      )}
-                      aria-label={t("ui.curateSelect")}
-                      aria-expanded={pickMenu === day.id}
-                      onClick={() => {
-                        setPicking(true);
-                        setPickMenu((current) => (current === day.id ? null : day.id));
-                      }}
-                    >
-                      <SelectIcon />
-                    </button>
-                    {pickMenu === day.id ? (
-                      <div className="caption-strip curate-select-fan" role="menu">
-                        <button type="button" className="menu-link px-3 py-2" onClick={() => pickAll(day.id)}>
-                          {t("ui.curateSelectAll")}
-                        </button>
-                        <button type="button" className="menu-link px-3 py-2" onClick={() => pickNone(day.id)}>
-                          {t("ui.curateSelectNone")}
-                        </button>
-                      </div>
-                    ) : null}
                   </span>
-                  {dayIndex > 0 ? (
-                    <button type="button" className="album-btn album-btn--ghost" onClick={() => mergePrev(day.id)}>
-                      {t("ui.mergePlace")}
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    className="edit-gear"
+                    title={t("ui.publishDay")}
+                    aria-label={t("ui.publishDay")}
+                    disabled={busy}
+                    onClick={() => void publishDay(day)}
+                  >
+                    <Check size={20} strokeWidth={2.4} />
+                  </button>
                   <EditGear label={t("ui.daySettings")}>
                     {(close) => (
                       <>
-                        {day.hidden ? null : layoutDays.some((item) => item.id === day.id) ? (
-                          <GearAction href={`/e/${editHash}#day-${day.id}`}>{t("ui.editDay")}</GearAction>
-                        ) : (
-                          <GearAction
-                            onClick={() => {
-                              close();
-                              void publishDay(day);
-                            }}
-                          >
-                            {busy ? t("ui.googleImporting") : t("ui.createDay")}
-                          </GearAction>
-                        )}
+                        <GearAction
+                          onClick={() => {
+                            hideDate(day.dateKey);
+                            close();
+                          }}
+                        >
+                          {day.hidden ? t("ui.showDate") : t("ui.hideDate")}
+                        </GearAction>
+                        <GearAction
+                          onClick={() => {
+                            setPicking(true);
+                            close();
+                          }}
+                        >
+                          {t("ui.curateSelect")}
+                        </GearAction>
+                        <GearAction
+                          onClick={() => {
+                            pickAll(day.id);
+                            close();
+                          }}
+                        >
+                          {t("ui.curateSelectAll")}
+                        </GearAction>
+                        <GearAction
+                          onClick={() => {
+                            pickNone(day.id);
+                            close();
+                          }}
+                        >
+                          {t("ui.curateSelectNone")}
+                        </GearAction>
                         {dayIndex > 0 ? (
                           <GearAction
                             onClick={() => {
@@ -1133,6 +1142,9 @@ export function GoogleImport() {
                           >
                             {t("ui.mergePlace")}
                           </GearAction>
+                        ) : null}
+                        {layoutDays.some((item) => item.id === day.id) ? (
+                          <GearAction href={`/e/${editHash}#day-${day.id}`}>{t("ui.editDay")}</GearAction>
                         ) : null}
                       </>
                     )}

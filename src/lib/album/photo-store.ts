@@ -58,7 +58,7 @@ export const uploadAlbumPhoto = createServerFn({ method: "POST" })
     z.object({
       editHash: z.string().min(8).max(64),
       photoId: z.string().min(1).max(80),
-      data: z.string().min(24).max(2_400_000),
+      data: z.string().min(24).max(3_200_000),
     }),
   )
   .handler(async ({ data }): Promise<{ url: string } | { error: string }> => {
@@ -71,7 +71,7 @@ export const uploadAlbumPhoto = createServerFn({ method: "POST" })
     const hash = trip[0]?.public_hash;
     if (!hash) return { error: "album not found" };
     const parsed = parseDataUrl(data.data);
-    if (parsed.bytes.length < 32 || parsed.bytes.length > 1_600_000) return { error: "photo too large" };
+    if (parsed.bytes.length < 32 || parsed.bytes.length > 2_200_000) return { error: "photo too large" };
     const { putPublicBlob } = await import("./blob-store");
     const blobUrl = await putPublicBlob(`albums/${hash}/${data.photoId}.jpg`, parsed.bytes, parsed.mime);
     if (blobUrl) {
