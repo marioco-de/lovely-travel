@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
-import { dayKey, isDayKey } from "@/lib/album/exif";
+import { alignTakenAt, dayKey, isDayKey } from "@/lib/album/exif";
 import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
 import { COVER_ID, newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
@@ -118,14 +118,16 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
       if (hit) {
         hit.photo.thumb = fresh.thumb || hit.photo.thumb;
         hit.photo.url = fresh.url || hit.photo.url;
-        if (fresh.takenAt) {
+        if (!hit.photo.takenAt && fresh.takenAt) {
           hit.photo.takenAt = fresh.takenAt;
-          hit.photo.dateKey = fresh.dateKey;
+          if (!hit.photo.dateKey) hit.photo.dateKey = fresh.dateKey;
         }
-        if (fresh.place && fresh.place !== UNKNOWN) hit.photo.place = fresh.place;
+        if ((!hit.photo.place || hit.photo.place === UNKNOWN) && fresh.place && fresh.place !== UNKNOWN) {
+          hit.photo.place = fresh.place;
+        }
         if (fresh.kind) hit.photo.kind = fresh.kind;
-        if (fresh.lat != null) hit.photo.lat = fresh.lat;
-        if (fresh.lng != null) hit.photo.lng = fresh.lng;
+        if (fresh.lat != null && hit.photo.lat == null) hit.photo.lat = fresh.lat;
+        if (fresh.lng != null && hit.photo.lng == null) hit.photo.lng = fresh.lng;
         const destKey = hit.photo.dateKey || draft.dateKey;
         if (destKey !== hit.day.dateKey) {
           const wasSelected = hit.day.selected.has(hit.photo.id);
@@ -570,11 +572,15 @@ export function GoogleImport() {
       if (index < 1) return current;
       const prev = current[index - 1]!;
       const day = current[index]!;
-      if (prev.dateKey !== day.dateKey) return current;
-      const photos = [...prev.photos, ...day.photos];
+      const photos = [...prev.photos, ...day.photos].map((photo) => ({
+        ...photo,
+        dateKey: prev.dateKey,
+        takenAt: alignTakenAt(photo.takenAt, prev.dateKey),
+      }));
       const selected = new Set([...prev.selected, ...day.selected]);
       const copy = [...current];
       copy.splice(index - 1, 2, { ...prev, photos, selected });
+      persistFlags(copy);
       return copy;
     });
   }
@@ -1028,7 +1034,7 @@ export function GoogleImport() {
                       </div>
                     ) : null}
                   </span>
-                  {dayIndex > 0 && days[dayIndex - 1]?.dateKey === day.dateKey ? (
+                  {dayIndex > 0 ? (
                     <button type="button" className="album-btn album-btn--ghost" onClick={() => mergePrev(day.id)}>
                       {t("ui.mergePlace")}
                     </button>

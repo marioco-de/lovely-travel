@@ -225,3 +225,12 @@ export function dayKey(takenAt: number) {
 export function isDayKey(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
+
+export function alignTakenAt(takenAt: number, dateKey: string) {
+  if (!isDayKey(dateKey)) return takenAt;
+  const stamp = takenAt && Number.isFinite(takenAt) ? new Date(takenAt) : new Date(`${dateKey}T12:00:00.000Z`);
+  if (Number.isNaN(stamp.getTime())) return Date.parse(`${dateKey}T12:00:00.000Z`) || 0;
+  const [year, month, day] = dateKey.split("-").map(Number);
+  stamp.setUTCFullYear(year!, (month ?? 1) - 1, day ?? 1);
+  return stamp.getTime();
+}
