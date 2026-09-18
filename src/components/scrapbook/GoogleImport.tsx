@@ -268,7 +268,6 @@ export function GoogleImport() {
   const addGoogleAlbumUrl = useAlbum((s) => s.addGoogleAlbumUrl);
   const removeGoogleAlbumUrl = useAlbum((s) => s.removeGoogleAlbumUrl);
   const publishCurationDay = useAlbum((s) => s.publishCurationDay);
-  const syncCuration = useAlbum((s) => s.syncCuration);
   const layoutDays = useAlbum((s) => s.layout.days);
   const [url, setUrl] = useState(savedUrl);
   const [days, setDays] = useState<DayDraft[] | null>(null);
@@ -301,6 +300,8 @@ export function GoogleImport() {
   const daysRef = useRef<DayDraft[] | null>(null);
   const highlightsRef = useRef<string[]>([]);
   const flagTimer = useRef(0);
+  const flagBusy = useRef(false);
+  const flagAgain = useRef(false);
 
   daysRef.current = days;
   highlightsRef.current = highlights;
@@ -466,8 +467,8 @@ export function GoogleImport() {
         photos: day.photos.map((photo) => ({
           id: photo.id,
           uid: photo.uid,
-          url: photo.url,
-          thumb: photo.thumb,
+          url: photo.url.startsWith("data:") || photo.url.startsWith("blob:") ? "" : photo.url,
+          thumb: photo.thumb.startsWith("data:") || photo.thumb.startsWith("blob:") ? "" : photo.thumb,
           takenAt: photo.takenAt,
           selected: day.selected.has(photo.id),
           place: photo.place || day.place,
@@ -483,19 +484,30 @@ export function GoogleImport() {
     if (nextDays !== undefined) daysRef.current = list;
     if (nextHighlights) highlightsRef.current = nextHighlights;
     if (!editHash || !list?.length) return;
-    syncCuration({
-      highlights: stars,
-      days: list.map((day) => ({
-        id: day.id,
-        place: day.place,
-        selected: [...day.selected],
-        all: day.photos.map((photo) => photo.id),
-      })),
-    });
     window.clearTimeout(flagTimer.current);
     flagTimer.current = window.setTimeout(() => {
-      void saveCurationFlags({ data: curationPayload(list, stars) }).catch(() => setError(true));
-    }, 400);
+      void flushFlags();
+    }, 500);
+  }
+
+  async function flushFlags() {
+    if (!editHash) return;
+    if (flagBusy.current) {
+      flagAgain.current = true;
+      return;
+    }
+    flagBusy.current = true;
+    try {
+      await saveCurationFlags({ data: curationPayload() });
+    } catch {
+      setError(true);
+    } finally {
+      flagBusy.current = false;
+      if (flagAgain.current) {
+        flagAgain.current = false;
+        void flushFlags();
+      }
+    }
   }
 
   async function publishDay(day: DayDraft) {

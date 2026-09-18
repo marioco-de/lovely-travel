@@ -310,6 +310,87 @@ export async function mergeCatalog(sql: Sql, tripId: string, catalog: Catalog) {
   await enforceExclusiveDayPhotos(sql, tripId);
 }
 
+export async function syncCurationCatalog(sql: Sql, tripId: string, catalog: Catalog) {
+  await ensureCatalog(sql);
+  const days = catalog.days.filter((day) => isDayTitle(day.title));
+  if (catalog.photos.length) {
+    await sql.query(
+      `insert into photos (id, trip_id, blob_url, source_url, google_id, taken_at, place_label)
+       select id, $1, blob, src, gid, nullif(taken, '')::timestamptz, place
+       from unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[])
+         as t(id, blob, src, gid, taken, place)
+       on conflict (id) do update set
+         blob_url = case when excluded.blob_url <> '' then excluded.blob_url else photos.blob_url end,
+         source_url = coalesce(nullif(excluded.source_url, ''), photos.source_url),
+         google_id = coalesce(nullif(excluded.google_id, ''), photos.google_id),
+         taken_at = coalesce(excluded.taken_at, photos.taken_at),
+         place_label = case when excluded.place_label <> '' then excluded.place_label else photos.place_label end`,
+      [
+        tripId,
+        catalog.photos.map((photo) => photo.id),
+        catalog.photos.map((photo) => photo.blobUrl || ""),
+        catalog.photos.map((photo) => photo.sourceUrl || ""),
+        catalog.photos.map((photo) => photo.googleId || ""),
+        catalog.photos.map((photo) => photo.takenAt || ""),
+        catalog.photos.map((photo) => photo.placeLabel || ""),
+      ],
+    );
+  }
+  if (days.length) {
+    await sql.query(
+      `insert into trip_days (id, trip_id, sort_index, title, place_label, hidden)
+       select id, $1, sort, title, place, hidden
+       from unnest($2::text[], $3::int[], $4::text[], $5::text[], $6::bool[])
+         as t(id, sort, title, place, hidden)
+       on conflict (id) do update set
+         sort_index = excluded.sort_index,
+         title = excluded.title,
+         place_label = excluded.place_label,
+         hidden = excluded.hidden`,
+      [
+        tripId,
+        days.map((day) => day.id),
+        days.map((day) => day.sortIndex),
+        days.map((day) => day.title),
+        days.map((day) => day.placeLabel),
+        days.map((day) => Boolean(day.hidden)),
+      ],
+    );
+    const dayIds = days.map((day) => day.id);
+    await sql.query(`delete from day_photos where day_id = any($1::text[])`, [dayIds]);
+    const members = days.flatMap((day) =>
+      day.photos.map((photo) => ({ dayId: day.id, photoId: photo.photoId, on: photo.inDayAlbum, sort: photo.sortIndex })),
+    );
+    if (members.length) {
+      await sql.query(
+        `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
+         select day_id, photo_id, chosen, sort_i
+         from unnest($1::text[], $2::text[], $3::bool[], $4::int[])
+           as t(day_id, photo_id, chosen, sort_i)
+         on conflict (day_id, photo_id) do update set
+           in_day_album = excluded.in_day_album,
+           sort_index = excluded.sort_index`,
+        [
+          members.map((item) => item.dayId),
+          members.map((item) => item.photoId),
+          members.map((item) => item.on),
+          members.map((item) => item.sort),
+        ],
+      );
+    }
+  }
+  await sql.query(`delete from album_highlights where trip_id = $1`, [tripId]);
+  if (catalog.highlights.length) {
+    await sql.query(
+      `insert into album_highlights (trip_id, photo_id, sort_index)
+       select $1, photo_id, sort
+       from unnest($2::text[], $3::int[]) as t(photo_id, sort)
+       on conflict (trip_id, photo_id) do update set sort_index = excluded.sort_index`,
+      [tripId, catalog.highlights.map((item) => item.photoId), catalog.highlights.map((item) => item.sortIndex)],
+    );
+  }
+}
+
 export async function setDayAlbumFlags(
   sql: Sql,
   tripId: string,

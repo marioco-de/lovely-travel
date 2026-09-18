@@ -37,6 +37,11 @@ function photoKey(photo: { id: string; uid?: string; url?: string; thumb?: strin
   return `id:${photo.id}`;
 }
 
+function slimUrl(url: string) {
+  if (!url || url.startsWith("data:") || url.startsWith("blob:")) return "";
+  return url;
+}
+
 function uniqueDayPhotos(photos: ImportPhoto[]) {
   const seen = new Set<string>();
   const out: ImportPhoto[] = [];
@@ -412,25 +417,23 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
     const { requireOwner } = await import("./owner-session.server");
     if (!(await requireOwner(data.editHash))) return { ok: false as const };
     const { getSql } = await import("@/lib/db");
-    const { mergeCatalog } = await import("./catalog.server");
+    const { syncCurationCatalog } = await import("./catalog.server");
     const sql = await getSql();
     const trip = await sql<{ id: string }>`select id from trips where edit_hash = ${data.editHash} limit 1`;
     const tripId = trip[0]?.id;
     if (!tripId) return { ok: false as const };
-    const catalogPhotos = data.days
-      .filter((day) => isDayKey(day.dateKey))
-      .flatMap((day) =>
-      day.photos.filter((photo) => photo.takenAt || photo.id.startsWith("upl")).map((photo) => ({
+    const datedDays = data.days.filter((day) => isDayKey(day.dateKey));
+    const catalogPhotos = datedDays.flatMap((day) =>
+      day.photos.map((photo) => ({
         id: photo.id,
-        blobUrl: photo.thumb || photo.url,
-        sourceUrl: photo.url,
+        blobUrl: slimUrl(photo.thumb || photo.url),
+        sourceUrl: slimUrl(photo.url),
         googleId: photo.uid,
         takenAt: photo.takenAt ? new Date(photo.takenAt).toISOString() : undefined,
         placeLabel: photo.place && photo.place !== UNKNOWN ? photo.place : "",
       })),
     );
-    const datedDays = data.days.filter((day) => isDayKey(day.dateKey));
-    await mergeCatalog(sql, tripId, {
+    await syncCurationCatalog(sql, tripId, {
       photos: catalogPhotos,
       days: datedDays.map((day, index) => ({
         id: day.id,
