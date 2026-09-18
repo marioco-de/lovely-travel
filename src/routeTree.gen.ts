@@ -15,6 +15,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PortugalMitMichaelRouteImport } from './routes/portugal-mit-michael'
 import { Route as PortugalUrlaubRouteImport } from './routes/portugal-urlaub'
 import { Route as EHashRouteImport } from './routes/e.$hash'
+import { Route as PortugalMitMichaelEditRouteImport } from './routes/portugal-mit-michael.edit'
+import { Route as PortugalUrlaubEditRouteImport } from './routes/portugal-urlaub.edit'
 import { Route as SHashRouteImport } from './routes/s.$hash'
 import { Route as THashRouteImport } from './routes/t.$hash'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -22,6 +24,10 @@ import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callb
 import { Route as ApiGoogleStartRouteImport } from './routes/api/google/start'
 import { Route as DHashDayIdRouteImport } from './routes/d.$hash.$dayId'
 import { Route as MediaHashIdRouteImport } from './routes/media.$hash.$id'
+import { Route as PortugalMitMichaelEditSettingsRouteImport } from './routes/portugal-mit-michael.edit.settings'
+import { Route as PortugalUrlaubEditSettingsRouteImport } from './routes/portugal-urlaub.edit.settings'
+import { Route as THashEditRouteImport } from './routes/t.$hash.edit'
+import { Route as THashEditSettingsRouteImport } from './routes/t.$hash.edit.settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +58,16 @@ const EHashRoute = EHashRouteImport.update({
   id: '/e/$hash',
   path: '/e/$hash',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortugalMitMichaelEditRoute = PortugalMitMichaelEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => PortugalMitMichaelRoute,
+} as any)
+const PortugalUrlaubEditRoute = PortugalUrlaubEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => PortugalUrlaubRoute,
 } as any)
 const SHashRoute = SHashRouteImport.update({
   id: '/s/$hash',
@@ -88,52 +104,92 @@ const MediaHashIdRoute = MediaHashIdRouteImport.update({
   path: '/media/$hash/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortugalMitMichaelEditSettingsRoute =
+  PortugalMitMichaelEditSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => PortugalMitMichaelEditRoute,
+  } as any)
+const PortugalUrlaubEditSettingsRoute =
+  PortugalUrlaubEditSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => PortugalUrlaubEditRoute,
+  } as any)
+const THashEditRoute = THashEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => THashRoute,
+} as any)
+const THashEditSettingsRoute = THashEditSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => THashEditRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
-  '/portugal-mit-michael': typeof PortugalMitMichaelRoute
-  '/portugal-urlaub': typeof PortugalUrlaubRoute
+  '/portugal-mit-michael': typeof PortugalMitMichaelRouteWithChildren
+  '/portugal-urlaub': typeof PortugalUrlaubRouteWithChildren
   '/e/$hash': typeof EHashRoute
+  '/portugal-mit-michael/edit': typeof PortugalMitMichaelEditRouteWithChildren
+  '/portugal-urlaub/edit': typeof PortugalUrlaubEditRouteWithChildren
   '/s/$hash': typeof SHashRoute
-  '/t/$hash': typeof THashRoute
+  '/t/$hash': typeof THashRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/google/start': typeof ApiGoogleStartRoute
   '/d/$hash/$dayId': typeof DHashDayIdRoute
   '/media/$hash/$id': typeof MediaHashIdRoute
+  '/portugal-mit-michael/edit/settings': typeof PortugalMitMichaelEditSettingsRoute
+  '/portugal-urlaub/edit/settings': typeof PortugalUrlaubEditSettingsRoute
+  '/t/$hash/edit': typeof THashEditRouteWithChildren
+  '/t/$hash/edit/settings': typeof THashEditSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
-  '/portugal-mit-michael': typeof PortugalMitMichaelRoute
-  '/portugal-urlaub': typeof PortugalUrlaubRoute
+  '/portugal-mit-michael': typeof PortugalMitMichaelRouteWithChildren
+  '/portugal-urlaub': typeof PortugalUrlaubRouteWithChildren
   '/e/$hash': typeof EHashRoute
+  '/portugal-mit-michael/edit': typeof PortugalMitMichaelEditRouteWithChildren
+  '/portugal-urlaub/edit': typeof PortugalUrlaubEditRouteWithChildren
   '/s/$hash': typeof SHashRoute
-  '/t/$hash': typeof THashRoute
+  '/t/$hash': typeof THashRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/google/start': typeof ApiGoogleStartRoute
   '/d/$hash/$dayId': typeof DHashDayIdRoute
   '/media/$hash/$id': typeof MediaHashIdRoute
+  '/portugal-mit-michael/edit/settings': typeof PortugalMitMichaelEditSettingsRoute
+  '/portugal-urlaub/edit/settings': typeof PortugalUrlaubEditSettingsRoute
+  '/t/$hash/edit': typeof THashEditRouteWithChildren
+  '/t/$hash/edit/settings': typeof THashEditSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
-  '/portugal-mit-michael': typeof PortugalMitMichaelRoute
-  '/portugal-urlaub': typeof PortugalUrlaubRoute
+  '/portugal-mit-michael': typeof PortugalMitMichaelRouteWithChildren
+  '/portugal-urlaub': typeof PortugalUrlaubRouteWithChildren
   '/e/$hash': typeof EHashRoute
+  '/portugal-mit-michael/edit': typeof PortugalMitMichaelEditRouteWithChildren
+  '/portugal-urlaub/edit': typeof PortugalUrlaubEditRouteWithChildren
   '/s/$hash': typeof SHashRoute
-  '/t/$hash': typeof THashRoute
+  '/t/$hash': typeof THashRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/google/start': typeof ApiGoogleStartRoute
   '/d/$hash/$dayId': typeof DHashDayIdRoute
   '/media/$hash/$id': typeof MediaHashIdRoute
+  '/portugal-mit-michael/edit/settings': typeof PortugalMitMichaelEditSettingsRoute
+  '/portugal-urlaub/edit/settings': typeof PortugalUrlaubEditSettingsRoute
+  '/t/$hash/edit': typeof THashEditRouteWithChildren
+  '/t/$hash/edit/settings': typeof THashEditSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -144,6 +200,8 @@ export interface FileRouteTypes {
     | '/portugal-mit-michael'
     | '/portugal-urlaub'
     | '/e/$hash'
+    | '/portugal-mit-michael/edit'
+    | '/portugal-urlaub/edit'
     | '/s/$hash'
     | '/t/$hash'
     | '/api/auth/$'
@@ -151,6 +209,10 @@ export interface FileRouteTypes {
     | '/api/google/start'
     | '/d/$hash/$dayId'
     | '/media/$hash/$id'
+    | '/portugal-mit-michael/edit/settings'
+    | '/portugal-urlaub/edit/settings'
+    | '/t/$hash/edit'
+    | '/t/$hash/edit/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -159,6 +221,8 @@ export interface FileRouteTypes {
     | '/portugal-mit-michael'
     | '/portugal-urlaub'
     | '/e/$hash'
+    | '/portugal-mit-michael/edit'
+    | '/portugal-urlaub/edit'
     | '/s/$hash'
     | '/t/$hash'
     | '/api/auth/$'
@@ -166,6 +230,10 @@ export interface FileRouteTypes {
     | '/api/google/start'
     | '/d/$hash/$dayId'
     | '/media/$hash/$id'
+    | '/portugal-mit-michael/edit/settings'
+    | '/portugal-urlaub/edit/settings'
+    | '/t/$hash/edit'
+    | '/t/$hash/edit/settings'
   id:
     | '__root__'
     | '/'
@@ -174,6 +242,8 @@ export interface FileRouteTypes {
     | '/portugal-mit-michael'
     | '/portugal-urlaub'
     | '/e/$hash'
+    | '/portugal-mit-michael/edit'
+    | '/portugal-urlaub/edit'
     | '/s/$hash'
     | '/t/$hash'
     | '/api/auth/$'
@@ -181,17 +251,21 @@ export interface FileRouteTypes {
     | '/api/google/start'
     | '/d/$hash/$dayId'
     | '/media/$hash/$id'
+    | '/portugal-mit-michael/edit/settings'
+    | '/portugal-urlaub/edit/settings'
+    | '/t/$hash/edit'
+    | '/t/$hash/edit/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
-  PortugalMitMichaelRoute: typeof PortugalMitMichaelRoute
-  PortugalUrlaubRoute: typeof PortugalUrlaubRoute
+  PortugalMitMichaelRoute: typeof PortugalMitMichaelRouteWithChildren
+  PortugalUrlaubRoute: typeof PortugalUrlaubRouteWithChildren
   EHashRoute: typeof EHashRoute
   SHashRoute: typeof SHashRoute
-  THashRoute: typeof THashRoute
+  THashRoute: typeof THashRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
   ApiGoogleStartRoute: typeof ApiGoogleStartRoute
@@ -243,6 +317,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EHashRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portugal-mit-michael/edit': {
+      id: '/portugal-mit-michael/edit'
+      path: '/edit'
+      fullPath: '/portugal-mit-michael/edit'
+      preLoaderRoute: typeof PortugalMitMichaelEditRouteImport
+      parentRoute: typeof PortugalMitMichaelRoute
+    }
+    '/portugal-urlaub/edit': {
+      id: '/portugal-urlaub/edit'
+      path: '/edit'
+      fullPath: '/portugal-urlaub/edit'
+      preLoaderRoute: typeof PortugalUrlaubEditRouteImport
+      parentRoute: typeof PortugalUrlaubRoute
+    }
     '/s/$hash': {
       id: '/s/$hash'
       path: '/s/$hash'
@@ -292,18 +380,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MediaHashIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portugal-mit-michael/edit/settings': {
+      id: '/portugal-mit-michael/edit/settings'
+      path: '/settings'
+      fullPath: '/portugal-mit-michael/edit/settings'
+      preLoaderRoute: typeof PortugalMitMichaelEditSettingsRouteImport
+      parentRoute: typeof PortugalMitMichaelEditRoute
+    }
+    '/portugal-urlaub/edit/settings': {
+      id: '/portugal-urlaub/edit/settings'
+      path: '/settings'
+      fullPath: '/portugal-urlaub/edit/settings'
+      preLoaderRoute: typeof PortugalUrlaubEditSettingsRouteImport
+      parentRoute: typeof PortugalUrlaubEditRoute
+    }
+    '/t/$hash/edit': {
+      id: '/t/$hash/edit'
+      path: '/edit'
+      fullPath: '/t/$hash/edit'
+      preLoaderRoute: typeof THashEditRouteImport
+      parentRoute: typeof THashRoute
+    }
+    '/t/$hash/edit/settings': {
+      id: '/t/$hash/edit/settings'
+      path: '/settings'
+      fullPath: '/t/$hash/edit/settings'
+      preLoaderRoute: typeof THashEditSettingsRouteImport
+      parentRoute: typeof THashEditRoute
+    }
   }
 }
+
+interface PortugalMitMichaelEditRouteChildren {
+  PortugalMitMichaelEditSettingsRoute: typeof PortugalMitMichaelEditSettingsRoute
+}
+
+const PortugalMitMichaelEditRouteChildren: PortugalMitMichaelEditRouteChildren =
+  {
+    PortugalMitMichaelEditSettingsRoute: PortugalMitMichaelEditSettingsRoute,
+  }
+
+const PortugalMitMichaelEditRouteWithChildren =
+  PortugalMitMichaelEditRoute._addFileChildren(
+    PortugalMitMichaelEditRouteChildren,
+  )
+
+interface PortugalMitMichaelRouteChildren {
+  PortugalMitMichaelEditRoute: typeof PortugalMitMichaelEditRouteWithChildren
+}
+
+const PortugalMitMichaelRouteChildren: PortugalMitMichaelRouteChildren = {
+  PortugalMitMichaelEditRoute: PortugalMitMichaelEditRouteWithChildren,
+}
+
+const PortugalMitMichaelRouteWithChildren =
+  PortugalMitMichaelRoute._addFileChildren(PortugalMitMichaelRouteChildren)
+
+interface PortugalUrlaubEditRouteChildren {
+  PortugalUrlaubEditSettingsRoute: typeof PortugalUrlaubEditSettingsRoute
+}
+
+const PortugalUrlaubEditRouteChildren: PortugalUrlaubEditRouteChildren = {
+  PortugalUrlaubEditSettingsRoute: PortugalUrlaubEditSettingsRoute,
+}
+
+const PortugalUrlaubEditRouteWithChildren =
+  PortugalUrlaubEditRoute._addFileChildren(PortugalUrlaubEditRouteChildren)
+
+interface PortugalUrlaubRouteChildren {
+  PortugalUrlaubEditRoute: typeof PortugalUrlaubEditRouteWithChildren
+}
+
+const PortugalUrlaubRouteChildren: PortugalUrlaubRouteChildren = {
+  PortugalUrlaubEditRoute: PortugalUrlaubEditRouteWithChildren,
+}
+
+const PortugalUrlaubRouteWithChildren = PortugalUrlaubRoute._addFileChildren(
+  PortugalUrlaubRouteChildren,
+)
+
+interface THashEditRouteChildren {
+  THashEditSettingsRoute: typeof THashEditSettingsRoute
+}
+
+const THashEditRouteChildren: THashEditRouteChildren = {
+  THashEditSettingsRoute: THashEditSettingsRoute,
+}
+
+const THashEditRouteWithChildren = THashEditRoute._addFileChildren(
+  THashEditRouteChildren,
+)
+
+interface THashRouteChildren {
+  THashEditRoute: typeof THashEditRouteWithChildren
+}
+
+const THashRouteChildren: THashRouteChildren = {
+  THashEditRoute: THashEditRouteWithChildren,
+}
+
+const THashRouteWithChildren = THashRoute._addFileChildren(THashRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
-  PortugalMitMichaelRoute: PortugalMitMichaelRoute,
-  PortugalUrlaubRoute: PortugalUrlaubRoute,
+  PortugalMitMichaelRoute: PortugalMitMichaelRouteWithChildren,
+  PortugalUrlaubRoute: PortugalUrlaubRouteWithChildren,
   EHashRoute: EHashRoute,
   SHashRoute: SHashRoute,
-  THashRoute: THashRoute,
+  THashRoute: THashRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
   ApiGoogleStartRoute: ApiGoogleStartRoute,

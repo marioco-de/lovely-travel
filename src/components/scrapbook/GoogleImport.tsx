@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { alignTakenAt, dayKey, isDayKey } from "@/lib/album/exif";
-import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
+import { addCurationPhoto, loadCuration, previewGoogleLink, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
+import { albumEditHref } from "@/lib/album/featured";
 import { COVER_ID, newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useFormatDay, useT } from "@/lib/i18n/locale";
@@ -272,6 +273,7 @@ export function GoogleImport() {
   const removeGoogleAlbumUrl = useAlbum((s) => s.removeGoogleAlbumUrl);
   const publishCurationDay = useAlbum((s) => s.publishCurationDay);
   const layoutDays = useAlbum((s) => s.layout.days);
+  const publicHash = useAlbum((s) => s.publicHash);
   const [url, setUrl] = useState(savedUrl);
   const [days, setDays] = useState<DayDraft[] | null>(null);
   const [highlights, setHighlights] = useState<string[]>([]);
@@ -472,7 +474,7 @@ export function GoogleImport() {
         place: day.place,
         lat: day.lat,
         lng: day.lng,
-        status: day.hidden ? 0 : layoutDays.some((item) => item.id === day.id && item.id !== COVER_ID) ? 2 : 1,
+        status: day.hidden ? 0 : day.status === 2 || layoutDays.some((item) => item.id === day.id && item.id !== COVER_ID) ? 2 : 1,
         photos: day.photos.map((photo) => ({
           id: photo.id,
           uid: photo.uid,
@@ -524,36 +526,35 @@ export function GoogleImport() {
     setBusy(true);
     setError(false);
     try {
-      const payload = curationPayload();
-      const uploaded = pendingPreview
-        ? await confirmGoogleLink({ data: payload })
-        : await saveCuration({ data: payload });
-      if (!uploaded.ok) {
-        setError(true);
-        return;
-      }
-      const photos: Record<string, string> = { ...uploaded.photos };
+      const photos: Record<string, string> = {};
       for (const photo of day.photos) {
-        if (!photos[photo.id]) photos[photo.id] = photo.url || photo.thumb;
+        const url = photo.url || photo.thumb;
+        if (url && !url.startsWith("data:") && !url.startsWith("blob:")) photos[photo.id] = url;
       }
       for (const star of highlights) {
         if (photos[star]) continue;
         const hit = days?.flatMap((item) => item.photos).find((item) => item.id === star);
-        if (hit) photos[star] = hit.url || hit.thumb;
+        const url = hit ? hit.url || hit.thumb : "";
+        if (url && !url.startsWith("data:") && !url.startsWith("blob:")) photos[star] = url;
       }
       publishCurationDay({
         id: day.id,
+        name: day.name,
         place: day.place,
+        lat: day.lat,
+        lng: day.lng,
         selected: [...day.selected],
         all: day.photos.map((photo) => photo.id),
         photos,
-        highlights,
-        videoIds: (days ?? [])
-          .flatMap((item) => item.photos)
-          .filter((photo) => photo.kind === "video")
-          .map((photo) => photo.id),
+        highlights: highlights.filter((id) => day.photos.some((photo) => photo.id === id) || day.selected.has(id)),
+        videoIds: day.photos.filter((photo) => photo.kind === "video").map((photo) => photo.id),
       });
-      setPendingPreview(false);
+      setDays((current) => {
+        const next =
+          current?.map((item) => (item.id === day.id ? { ...item, status: 2 as const } : item)) ?? current;
+        persistFlags(next);
+        return next;
+      });
     } catch {
       setError(true);
     } finally {
@@ -1084,9 +1085,7 @@ export function GoogleImport() {
                 <div className="flex flex-wrap items-end gap-2">
                   {layoutDays.some((item) => item.id === day.id && item.id !== COVER_ID) ? (
                     <DayMark
-                      index={sortDays(days ?? [])
-                        .filter((item) => layoutDays.some((layout) => layout.id === item.id && layout.id !== COVER_ID))
-                        .findIndex((item) => item.id === day.id)}
+                      index={layoutDays.filter((item) => item.id !== COVER_ID).findIndex((item) => item.id === day.id)}
                       size="sm"
                       rotation={dayIndex % 2 === 0 ? -10 : 8}
                     />
@@ -1114,9 +1113,13 @@ export function GoogleImport() {
                   </span>
                   <button
                     type="button"
-                    className="edit-gear"
+                    className={cn(
+                      "edit-gear",
+                      layoutDays.some((item) => item.id === day.id && item.id !== COVER_ID) && "is-published",
+                    )}
                     title={t("ui.publishDay")}
                     aria-label={t("ui.publishDay")}
+                    aria-pressed={layoutDays.some((item) => item.id === day.id && item.id !== COVER_ID)}
                     disabled={busy}
                     onClick={() => void publishDay(day)}
                   >
@@ -1168,7 +1171,7 @@ export function GoogleImport() {
                           </GearAction>
                         ) : null}
                         {layoutDays.some((item) => item.id === day.id) ? (
-                          <GearAction href={`/e/${editHash}#day-${day.id}`}>{t("ui.editDay")}</GearAction>
+                          <GearAction href={`${albumEditHref(publicHash, editHash)}#day-${day.id}`}>{t("ui.editDay")}</GearAction>
                         ) : null}
                       </>
                     )}

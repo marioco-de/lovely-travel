@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG } from "@/lib/album/featured";
+import { albumEditHref, albumPublicHref, albumSettingsHref } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { peekOwnerSession } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -49,14 +49,8 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   }, [open]);
 
   async function share() {
-    const url =
-      publicHash === FEATURED_SLUG || (!publicHash && variant === "home")
-        ? `${window.location.origin}/portugal-urlaub`
-        : publicHash === PRIVATE_SLUG
-          ? `${window.location.origin}/portugal-mit-michael`
-          : publicHash
-            ? `${window.location.origin}/t/${publicHash}`
-            : window.location.href;
+    const path = albumPublicHref(publicHash);
+    const url = path === "/" && variant !== "home" ? window.location.href : `${window.location.origin}${path === "/" ? "/portugal-urlaub" : path}`;
     try {
       if (navigator.share) {
         await navigator.share({ title: t("album.title"), url });
@@ -75,7 +69,8 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   }
 
   async function onEditClick() {
-    if (canEdit) {
+    const href = albumEditHref(publicHash, editHash);
+    if (canEdit && href && window.location.pathname.startsWith(href)) {
       onEdit?.();
       setOpen(false);
       return;
@@ -85,6 +80,10 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
       const session = await peekOwnerSession({ data: { hash: key } }).catch(() => null);
       if (session?.editHash) {
         becomeOwner(session.editHash);
+        if (href) {
+          window.location.href = href;
+          return;
+        }
         onEdit?.();
         setOpen(false);
         return;
@@ -95,10 +94,7 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   }
 
   function settingsHref() {
-    if (editHash) return `/s/${editHash}`;
-    if (publicHash === FEATURED_SLUG) return `/s/${FEATURED_EDIT_HASH}`;
-    if (publicHash === PRIVATE_SLUG) return `/s/${PRIVATE_EDIT_HASH}`;
-    return "";
+    return albumSettingsHref(publicHash, editHash);
   }
 
   function onSettingsClick() {

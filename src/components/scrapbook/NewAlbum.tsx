@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { albumSettingsHref } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { getStorageHealth } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -29,7 +30,7 @@ export function NewAlbum() {
     setError(false);
     const created = await createRemote(secret);
     if (created?.editHash) {
-      window.location.href = `/s/${created.editHash}`;
+      window.location.href = albumSettingsHref(created.publicHash, created.editHash) || `/s/${created.editHash}`;
       return;
     }
     setError(true);

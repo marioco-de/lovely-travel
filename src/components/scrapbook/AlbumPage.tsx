@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { COVER_ID } from "@/lib/album/layout";
-import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG } from "@/lib/album/featured";
+import { albumSettingsHref } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
@@ -24,6 +24,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }
   const days = useAlbum((s) => s.layout.days).filter((day) => day.id !== COVER_ID);
   const canEdit = useAlbum((s) => s.canEdit);
   const editHash = useAlbum((s) => s.editHash) ?? routeEditHash;
+  const storePublicHash = useAlbum((s) => s.publicHash);
   const googleAlbumUrl = useAlbum((s) => s.googleAlbumUrl);
   const bindTrip = useAlbum((s) => s.bindTrip);
   const addDay = useAlbum((s) => s.addDay);
@@ -83,10 +84,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }
   }
 
   function settingsHref() {
-    if (editHash) return `/s/${editHash}`;
-    if (publicHash === FEATURED_SLUG) return `/s/${FEATURED_EDIT_HASH}`;
-    if (publicHash === PRIVATE_SLUG) return `/s/${PRIVATE_EDIT_HASH}`;
-    return "";
+    return albumSettingsHref(publicHash || storePublicHash, editHash);
   }
 
   return (

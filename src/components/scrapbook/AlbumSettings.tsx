@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FEATURED_SLUG, PRIVATE_SLUG } from "@/lib/album/featured";
+import { albumEditHref, albumPublicHref } from "@/lib/album/featured";
 import { googleStatus } from "@/lib/album/google-photos";
 import { useAlbum } from "@/lib/album/store";
 import { setTripPassword } from "@/lib/album/trips";
@@ -45,7 +45,7 @@ export function AlbumSettings({ editHash }: AlbumSettingsProps) {
     void import("@/lib/album/google-client").then(({ runGoogleImport }) => runGoogleImport(editHash));
   }, [editHash]);
 
-  const albumHref = publicLink(publicHash);
+  const albumHref = albumPublicHref(publicHash);
   const statusKey =
     saveStatus === "saving" ? "ui.storageSaving" : saveStatus === "error" ? "ui.storageError" : "ui.storageSaved";
 
@@ -153,12 +153,12 @@ function SettingsPassword({ editHash, publicHash }: { editHash: string; publicHa
       <span className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.editPassword")}</span>
       {publicHash ? (
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-typewriter text-kicker tracking-wide text-ink-soft">{publicLink(publicHash)}</p>
+          <p className="font-typewriter text-kicker tracking-wide text-ink-soft">{albumPublicHref(publicHash)}</p>
           <EditGear label={t("ui.albumSettings")}>
             {() => (
               <>
-                <GearAction href={publicLink(publicHash)}>{t("ui.viewPublic")}</GearAction>
-                <GearAction href={`/e/${editHash}`}>{t("ui.edit")}</GearAction>
+                <GearAction href={albumPublicHref(publicHash)}>{t("ui.viewPublic")}</GearAction>
+                <GearAction href={albumEditHref(publicHash, editHash)}>{t("ui.edit")}</GearAction>
               </>
             )}
           </EditGear>
@@ -186,7 +186,5 @@ function SettingsPassword({ editHash, publicHash }: { editHash: string; publicHa
 }
 
 function publicLink(hash?: string) {
-  if (hash === FEATURED_SLUG) return "/portugal-urlaub";
-  if (hash === PRIVATE_SLUG) return "/portugal-mit-michael";
-  return hash ? `/t/${hash}` : "/";
+  return albumPublicHref(hash);
 }

@@ -81,7 +81,10 @@ type AlbumState = {
   }) => void;
   publishCurationDay: (input: {
     id: string;
+    name?: string;
     place: string;
+    lat?: number;
+    lng?: number;
     selected: string[];
     all: string[];
     photos: Record<string, string>;
@@ -394,9 +397,23 @@ function fillCoverHighlights(layout: AlbumLayout, highlights: string[], photos: 
 
 function ensureCurationDay(
   layout: AlbumLayout,
-  draft: { id: string; place: string; selected: string[]; all?: string[]; highlights?: string[] },
+  draft: {
+    id: string;
+    name?: string;
+    place: string;
+    lat?: number;
+    lng?: number;
+    selected: string[];
+    all?: string[];
+    highlights?: string[];
+    photos?: Record<string, string>;
+  },
 ): AlbumLayout {
+  const titleText = (draft.name || "").trim();
+  const label: I18nPair = { en: titleText, de: titleText };
   const place: I18nPair = { en: draft.place, de: draft.place };
+  const geo =
+    draft.lat != null && draft.lng != null ? { lat: draft.lat, lng: draft.lng, address: draft.place } : undefined;
   const exists = layout.days.some((day) => day.id === draft.id);
   if (!exists) {
     const day = emptyDay(layout.days.filter((item) => item.id !== COVER_ID).length);
@@ -404,26 +421,32 @@ function ensureCurationDay(
     day.builtIn = false;
     day.place = place;
     day.places = [place];
-    day.label = place;
+    day.label = label;
+    if (geo) day.geo = geo;
     layout = { ...layout, days: [...layout.days, day] };
   } else {
     layout = mapDays(layout, draft.id, (day) => ({
       ...day,
-      place: day.place.en || day.place.de ? day.place : place,
-      places: day.places?.length ? day.places : [place],
-      label: day.label.en || day.label.de ? day.label : place,
+      place: place.en || place.de ? place : day.place,
+      places: [place],
+      label: titleText ? label : day.label,
+      geo: geo ?? day.geo,
     }));
   }
   const pool = new Set([...(draft.all ?? []), ...draft.selected]);
   const stars = (draft.highlights ?? []).filter((id) => pool.has(id) || draft.selected.includes(id));
   const showcase = (stars.length ? stars : draft.selected).slice(0, COLLAGE_MAX);
   if (!showcase.length) return layout;
+  const photos = draft.photos ?? {};
   return mapDays(layout, draft.id, (day) => {
-    if (day.blocks.some((block) => block.photoIds.length)) return day;
+    const hasReal = day.blocks.some((block) =>
+      block.photoIds.some((id) => !isCoverPlaceholder(id, photos)),
+    );
+    if (hasReal) return day;
     const block = emptyBlock(showcase.length >= COLLAGE_MIN ? "collage" : "photo", place);
     block.photoIds = showcase;
     block.photoNotes = Object.fromEntries(showcase.map((id) => [id, emptyPhotoNote()]));
-    return { ...day, blocks: [...day.blocks, block] };
+    return { ...day, blocks: [block, ...day.blocks.filter((item) => !item.photoIds.length)] };
   });
 }
 
@@ -867,10 +890,14 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     };
     let layout = ensureCurationDay(get().layout, {
       id: input.id,
+      name: input.name,
       place: input.place,
+      lat: input.lat,
+      lng: input.lng,
       selected: input.selected,
       all: input.all,
       highlights: input.highlights,
+      photos,
     });
     layout = fillCoverHighlights(layout, input.highlights, photos);
     layout = markVideoNotes(layout, input.videoIds ?? []);
