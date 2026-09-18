@@ -14,6 +14,7 @@ const DAY_CAP = 20;
 const HIGHLIGHT_CAP = 12;
 const HIGHLIGHT_SEED = 5;
 const DENSITY_KEY = "lovely-curate-density";
+const SORT_KEY = "lovely-curate-newest";
 const UNKNOWN = "Unbekannter Ort";
 const DESKTOP_COLS = [8, 6, 4, 2] as const;
 const MOBILE_COLS = [4, 3, 2, 1] as const;
@@ -65,18 +66,44 @@ function uniquePhotos(photos: ImportPhoto[]) {
   return out;
 }
 
+function readNewestFirst() {
+  try {
+    return localStorage.getItem(SORT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function sortDays(days: DayDraft[]) {
+  return [...days].sort((a, b) => {
+    const date = a.dateKey.localeCompare(b.dateKey);
+    if (date) return date;
+    const at = Math.min(...a.photos.map((photo) => photo.takenAt || Number.MAX_SAFE_INTEGER));
+    const bt = Math.min(...b.photos.map((photo) => photo.takenAt || Number.MAX_SAFE_INTEGER));
+    if (at !== bt) return at - bt;
+    return a.place.localeCompare(b.place, "de");
+  });
+}
+
+function viewDays(days: DayDraft[], newestFirst: boolean) {
+  const sorted = sortDays(days);
+  return newestFirst ? sorted.reverse() : sorted;
+}
+
 function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
-  return days
-    .filter((day) => isDayKey(day.dateKey))
-    .map((day) => {
-      const photos = uniquePhotos(day.photos);
-      const selectedIds = new Set(day.selectedIds ?? (capNew ? photos.slice(0, DAY_CAP).map((photo) => photo.id) : []));
-      return {
-        ...day,
-        photos,
-        selected: new Set(photos.filter((photo) => selectedIds.has(photo.id)).map((photo) => photo.id)),
-      };
-    });
+  return sortDays(
+    days
+      .filter((day) => isDayKey(day.dateKey))
+      .map((day) => {
+        const photos = uniquePhotos(day.photos).sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
+        const selectedIds = new Set(day.selectedIds ?? (capNew ? photos.slice(0, DAY_CAP).map((photo) => photo.id) : []));
+        return {
+          ...day,
+          photos,
+          selected: new Set(photos.filter((photo) => selectedIds.has(photo.id)).map((photo) => photo.id)),
+        };
+      }),
+  );
 }
 
 function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft[] {
@@ -153,7 +180,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
     day.selected = new Set([...day.selected].filter((id) => day.photos.some((photo) => photo.id === id)));
     if (hiddenDates.has(day.dateKey)) day.hidden = true;
   }
-  return next.filter((day) => day.photos.length > 0 && isDayKey(day.dateKey));
+  return sortDays(next.filter((day) => day.photos.length > 0 && isDayKey(day.dateKey)));
 }
 
 async function fileToDataUrl(file: File) {
@@ -209,6 +236,7 @@ export function GoogleImport() {
   const [total, setTotal] = useState(0);
   const [pendingPreview, setPendingPreview] = useState(false);
   const [density, setDensity] = useState<Density>(0);
+  const [newestFirst, setNewestFirst] = useState(false);
   const [wide, setWide] = useState(true);
   const [tool, setTool] = useState<Tool>("select");
   const [fanOpen, setFanOpen] = useState(false);
@@ -236,6 +264,7 @@ export function GoogleImport() {
 
   useEffect(() => {
     setDensity(readDensity());
+    setNewestFirst(readNewestFirst());
     const mq = window.matchMedia("(min-width: 768px)");
     const sync = () => setWide(mq.matches);
     sync();
@@ -387,9 +416,7 @@ export function GoogleImport() {
       editHash: editHash!,
       shareUrl: url.trim() || undefined,
       highlights: stars,
-      days: (list ?? [])
-        .filter((day) => isDayKey(day.dateKey))
-        .map((day) => ({
+      days: sortDays((list ?? []).filter((day) => isDayKey(day.dateKey))).map((day) => ({
         id: day.id,
         dateKey: day.dateKey,
         place: day.place,
@@ -569,20 +596,21 @@ export function GoogleImport() {
   function mergePrev(dayId: string) {
     setDays((current) => {
       if (!current) return current;
-      const index = current.findIndex((day) => day.id === dayId);
+      const shown = viewDays(current, newestFirst);
+      const index = shown.findIndex((day) => day.id === dayId);
       if (index < 1) return current;
-      const prev = current[index - 1]!;
-      const day = current[index]!;
+      const prev = shown[index - 1]!;
+      const day = shown[index]!;
       const photos = [...prev.photos, ...day.photos].map((photo) => ({
         ...photo,
         dateKey: prev.dateKey,
         takenAt: alignTakenAt(photo.takenAt, prev.dateKey),
       }));
       const selected = new Set([...prev.selected, ...day.selected]);
-      const copy = [...current];
-      copy.splice(index - 1, 2, { ...prev, photos, selected });
-      persistFlags(copy);
-      return copy;
+      const copy = current.filter((item) => item.id !== day.id).map((item) => (item.id === prev.id ? { ...prev, photos, selected } : item));
+      const sorted = sortDays(copy);
+      persistFlags(sorted);
+      return sorted;
     });
   }
 
@@ -642,7 +670,7 @@ export function GoogleImport() {
       const dest = next[destIndex]!;
       dest.photos = [...dest.photos, found].sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
       if (wasSelected) dest.selected.add(photoId);
-      const cleaned = next.filter((day) => day.photos.length > 0);
+      const cleaned = sortDays(next.filter((day) => day.photos.length > 0));
       persistFlags(cleaned);
       return cleaned;
     });
@@ -696,7 +724,7 @@ export function GoogleImport() {
         dest.photos = [...dest.photos, item.photo].sort((a, b) => (a.takenAt || 0) - (b.takenAt || 0));
         if (item.selected) dest.selected.add(item.photo.id);
       }
-      const cleaned = next.filter((day) => day.photos.length > 0);
+      const cleaned = sortDays(next.filter((day) => day.photos.length > 0));
       persistFlags(cleaned);
       return cleaned;
     });
@@ -960,8 +988,25 @@ export function GoogleImport() {
             {total} {t("ui.googleTotal")}
           </p>
           <p className="mt-1 font-script text-sm text-ink-soft">{t("ui.googleReviewHint")}</p>
+          <button
+            type="button"
+            className="album-btn album-btn--ghost mt-3 w-fit"
+            onClick={() => {
+              setNewestFirst((value) => {
+                const next = !value;
+                try {
+                  localStorage.setItem(SORT_KEY, next ? "1" : "0");
+                } catch {
+                  /* ignore */
+                }
+                return next;
+              });
+            }}
+          >
+            {newestFirst ? t("ui.curateFirstTop") : t("ui.curateLastTop")}
+          </button>
           <div className="mt-4 grid gap-6">
-            {days.map((day, dayIndex) => (
+            {(days ? viewDays(days, newestFirst) : []).map((day, dayIndex, shown) => (
               <section
                 key={day.id}
                 data-curate-day={day.id}
@@ -983,7 +1028,7 @@ export function GoogleImport() {
                   />
                   <p className="flex items-center gap-0.5 font-typewriter text-place font-bold text-ink">
                     {formatDay(day.dateKey)}
-                    {dayIndex === 0 || days[dayIndex - 1]?.dateKey !== day.dateKey ? (
+                    {dayIndex === 0 || shown[dayIndex - 1]?.dateKey !== day.dateKey ? (
                       <button
                         type="button"
                         className="grid h-7 w-7 place-items-center font-typewriter text-lg leading-none text-ink-soft"
