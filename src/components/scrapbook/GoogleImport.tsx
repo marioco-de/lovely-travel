@@ -90,8 +90,35 @@ function viewDays(days: DayDraft[], newestFirst: boolean) {
   return newestFirst ? sorted.reverse() : sorted;
 }
 
+function exclusiveDays(days: DayDraft[]) {
+  const owner = new Map<string, string>();
+  const sorted = sortDays(days);
+  for (const day of sorted) {
+    for (const photo of day.photos) {
+      const key = photoMatchKey(photo);
+      if (!owner.has(key)) owner.set(key, day.id);
+    }
+  }
+  for (const day of sorted) {
+    for (const photo of day.photos) {
+      if (day.selected.has(photo.id)) owner.set(photoMatchKey(photo), day.id);
+    }
+  }
+  return sorted
+    .map((day) => {
+      const photos = uniquePhotos(day.photos.filter((photo) => owner.get(photoMatchKey(photo)) === day.id));
+      const ids = new Set(photos.map((photo) => photo.id));
+      return {
+        ...day,
+        photos,
+        selected: new Set([...day.selected].filter((id) => ids.has(id))),
+      };
+    })
+    .filter((day) => day.photos.length > 0);
+}
+
 function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
-  return sortDays(
+  return exclusiveDays(
     days
       .filter((day) => isDayKey(day.dateKey))
       .map((day) => {
@@ -180,7 +207,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
     day.selected = new Set([...day.selected].filter((id) => day.photos.some((photo) => photo.id === id)));
     if (hiddenDates.has(day.dateKey)) day.hidden = true;
   }
-  return sortDays(next.filter((day) => day.photos.length > 0 && isDayKey(day.dateKey)));
+  return exclusiveDays(next.filter((day) => day.photos.length > 0 && isDayKey(day.dateKey)));
 }
 
 async function fileToDataUrl(file: File) {
@@ -416,7 +443,7 @@ export function GoogleImport() {
       editHash: editHash!,
       shareUrl: url.trim() || undefined,
       highlights: stars,
-      days: sortDays((list ?? []).filter((day) => isDayKey(day.dateKey))).map((day) => ({
+      days: exclusiveDays((list ?? []).filter((day) => isDayKey(day.dateKey))).map((day) => ({
         id: day.id,
         dateKey: day.dateKey,
         place: day.place,
@@ -435,9 +462,9 @@ export function GoogleImport() {
   }
 
   function persistFlags(nextDays?: DayDraft[] | null, nextHighlights?: string[]) {
-    const list = nextDays ?? daysRef.current;
+    const list = nextDays ? exclusiveDays(nextDays) : daysRef.current;
     const stars = nextHighlights ?? highlightsRef.current;
-    if (nextDays !== undefined) daysRef.current = nextDays;
+    if (nextDays !== undefined) daysRef.current = list;
     if (nextHighlights) highlightsRef.current = nextHighlights;
     if (!editHash || !list?.length) return;
     syncCuration({
@@ -545,14 +572,15 @@ export function GoogleImport() {
 
   function togglePhoto(dayId: string, photoId: string) {
     setDays((current) => {
-      const next =
+      const next = exclusiveDays(
         current?.map((day) => {
           if (day.id !== dayId) return day;
           const selected = new Set(day.selected);
           if (selected.has(photoId)) selected.delete(photoId);
           else selected.add(photoId);
           return { ...day, selected };
-        }) ?? null;
+        }) ?? [],
+      );
       persistFlags(next);
       return next;
     });
@@ -1018,11 +1046,7 @@ export function GoogleImport() {
               >
                 <div className="flex flex-wrap items-end gap-2">
                   <DayMark
-                    index={
-                      layoutDays.some((item) => item.id === day.id)
-                        ? layoutDays.filter((item) => item.id !== COVER_ID).findIndex((item) => item.id === day.id)
-                        : layoutDays.filter((item) => item.id !== COVER_ID).length
-                    }
+                    index={sortDays(days ?? []).findIndex((item) => item.id === day.id)}
                     size="sm"
                     rotation={dayIndex % 2 === 0 ? -10 : 8}
                   />

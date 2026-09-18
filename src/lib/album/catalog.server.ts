@@ -279,12 +279,23 @@ export async function mergeCatalog(sql: Sql, tripId: string, catalog: Catalog) {
     const knownPhotos = new Set(existingPhotos.map((row) => row.photo_id));
     for (const member of day.photos) {
       const sortIndex = !match || knownPhotos.has(member.photoId) ? member.sortIndex : offset + member.sortIndex;
+      await sql.query(`delete from day_photos where photo_id = $1 and day_id <> $2 and day_id in (select id from trip_days where trip_id = $3)`, [
+        member.photoId,
+        dayId,
+        tripId,
+      ]);
       await sql.query(
         `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
          values ($1, $2, $3, $4)
          on conflict (day_id, photo_id) do update set in_day_album = excluded.in_day_album, sort_index = excluded.sort_index`,
         [dayId, member.photoId, member.inDayAlbum, sortIndex],
       );
+    }
+    const keepIds = day.photos.map((member) => member.photoId);
+    if (keepIds.length) {
+      await sql.query(`delete from day_photos where day_id = $1 and not (photo_id = any($2::text[]))`, [dayId, keepIds]);
+    } else {
+      await sql.query(`delete from day_photos where day_id = $1`, [dayId]);
     }
   }
   await sql.query(`delete from album_highlights where trip_id = $1`, [tripId]);
@@ -296,6 +307,7 @@ export async function mergeCatalog(sql: Sql, tripId: string, catalog: Catalog) {
     );
   }
   await repairUnknownCatalog(sql, tripId);
+  await enforceExclusiveDayPhotos(sql, tripId);
 }
 
 export async function setDayAlbumFlags(
@@ -313,6 +325,11 @@ export async function setDayAlbumFlags(
       );
     }
     for (const member of day.photos) {
+      await sql.query(`delete from day_photos where photo_id = $1 and day_id <> $2 and day_id in (select id from trip_days where trip_id = $3)`, [
+        member.photoId,
+        day.id,
+        tripId,
+      ]);
       await sql.query(
         `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
          values ($1, $2, $3, $4)
@@ -321,6 +338,7 @@ export async function setDayAlbumFlags(
       );
     }
   }
+  await enforceExclusiveDayPhotos(sql, tripId);
   await sql.query(`delete from album_highlights where trip_id = $1`, [tripId]);
   for (const highlight of highlights) {
     await sql.query(
@@ -333,6 +351,26 @@ export async function setDayAlbumFlags(
 
 function isDayTitle(title: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(title);
+}
+
+export async function enforceExclusiveDayPhotos(sql: Sql, tripId: string) {
+  const rows = await sql<{ day_id: string; photo_id: string; in_day_album: boolean; sort_index: number }>`
+    select dp.day_id, dp.photo_id, dp.in_day_album, d.sort_index
+    from day_photos dp
+    join trip_days d on d.id = dp.day_id
+    where d.trip_id = ${tripId}
+    order by dp.in_day_album desc, d.sort_index, dp.sort_index
+  `;
+  const keep = new Map<string, string>();
+  for (const row of rows) {
+    const owner = keep.get(row.photo_id);
+    if (!owner) {
+      keep.set(row.photo_id, row.day_id);
+      continue;
+    }
+    if (owner === row.day_id) continue;
+    await sql.query(`delete from day_photos where day_id = $1 and photo_id = $2`, [row.day_id, row.photo_id]);
+  }
 }
 
 async function dropInvalidDays(sql: Sql, tripId: string) {
@@ -402,6 +440,7 @@ export async function repairUnknownCatalog(sql: Sql, tripId: string) {
   }
   await dropInvalidDays(sql, tripId);
   await dedupeCatalogPhotos(sql, tripId);
+  await enforceExclusiveDayPhotos(sql, tripId);
 }
 
 function photoDedupeKey(photo: CatalogPhoto) {
@@ -468,5 +507,6 @@ export async function dedupeCatalogPhotos(sql: Sql, tripId: string) {
     await sql.query(`delete from day_photos where day_id = $1`, [day.id]);
     await sql.query(`delete from trip_days where id = $1 and trip_id = $2`, [day.id, tripId]);
   }
+  await enforceExclusiveDayPhotos(sql, tripId);
 }
 
