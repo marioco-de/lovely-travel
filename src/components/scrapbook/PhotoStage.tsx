@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useTapOpen } from "@/hooks/use-tap-open";
 import { clampCrop, emptyCrop, type PhotoCrop } from "@/lib/album/layout";
 import { DevelopingImage } from "./DevelopingImage";
+import type { PhotoPlay } from "@/lib/album/media";
 
 type PhotoStageProps = {
   src: string;
@@ -13,9 +14,11 @@ type PhotoStageProps = {
   priority?: boolean;
   onCrop?: (crop: PhotoCrop) => void;
   onOpen?: () => void;
+  media?: "photo" | "video";
+  play?: PhotoPlay;
 };
 
-export function PhotoStage({ src, alt, crop, editable, oval, priority, onCrop, onOpen }: PhotoStageProps) {
+export function PhotoStage({ src, alt, crop, editable, oval, priority, onCrop, onOpen, media, play }: PhotoStageProps) {
   const incoming = clampCrop(crop ?? emptyCrop());
   const [live, setLive] = useState(incoming);
   const value = live;
@@ -125,7 +128,7 @@ export function PhotoStage({ src, alt, crop, editable, oval, priority, onCrop, o
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
     >
-      <DevelopingImage src={src} alt={alt} priority={priority} className="photo-stage-img" />
+      <DevelopingImage src={src} alt={alt} priority={priority} className="photo-stage-img" media={media} play={play} />
       {editable ? (
         <div
           className="photo-crop-bar"

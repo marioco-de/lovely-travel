@@ -14,6 +14,7 @@ export type ImportPhoto = {
   lat?: number;
   lng?: number;
   place: string;
+  kind?: "photo" | "video";
 };
 
 export type ImportDayDraft = {
@@ -70,6 +71,7 @@ export const previewGoogleLink = createServerFn({ method: "POST" })
           lat: photo.lat,
           lng: photo.lng,
           place: photo.place?.trim() || UNKNOWN,
+          kind: photo.kind === "video" ? "video" : "photo",
         };
       });
     photos.sort((a, b) => (a.takenAt || Number.MAX_SAFE_INTEGER) - (b.takenAt || Number.MAX_SAFE_INTEGER));

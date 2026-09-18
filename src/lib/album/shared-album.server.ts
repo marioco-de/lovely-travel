@@ -8,6 +8,7 @@ export type SharedAlbumPhoto = {
   lat?: number;
   lng?: number;
   place?: string;
+  kind?: "photo" | "video";
 };
 
 const UNKNOWN = "Unbekannter Ort";
@@ -33,6 +34,15 @@ function isAlbumMediaUrl(url: string) {
 
 function isAlbumUid(uid: string) {
   return uid.startsWith("AF1Qip") && uid.length > 20;
+}
+
+function looksLikeVideo(row: unknown[], detail: unknown[]) {
+  const blob = JSON.stringify([detail, row.slice(3, 14)]);
+  if (/video\/|\.mp4|\.mov|\.m4v|\.webm|video-downloads/i.test(blob)) return true;
+  for (const value of detail.slice(3, 10)) {
+    if (typeof value === "number" && value >= 400 && value <= 1_800_000) return true;
+  }
+  return false;
 }
 
 function parseTime(value: unknown) {
@@ -104,11 +114,13 @@ function parseAlbumItems(data: unknown): { photos: SharedAlbumPhoto[]; nextPageT
     const height = typeof detail[2] === "number" ? detail[2] : 0;
     if (!isAlbumMediaUrl(rawUrl) || Math.min(width, height) < 80) continue;
     const takenAt = timeFromRow(row);
+    const video = looksLikeVideo(row, detail);
     photos.push({
       uid,
-      url: sized(rawUrl, "w1600"),
+      url: sized(rawUrl, video ? "w1600" : "w1600"),
       thumb: sized(rawUrl, "w280"),
       takenAt,
+      kind: video ? "video" : "photo",
     });
   }
   const token = data[2];

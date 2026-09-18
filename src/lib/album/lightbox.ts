@@ -5,7 +5,7 @@ import { catalogSrc, noteForPhoto, type LayoutDay } from "./layout";
 import { CLEARED_PHOTO, pairText, useAlbum } from "./store";
 
 export type LightboxSlide =
-  | { kind: "photo"; key: string; src: string; alt: string; place: string; caption: string }
+  | { kind: "photo"; key: string; src: string; alt: string; place: string; caption: string; media?: "photo" | "video"; play?: "loop" | "boomerang" }
   | { kind: "note"; key: string; body: string; paper: string }
   | { kind: "poi"; key: string; name: string; category: string; rating?: number; photoUrl?: string; caption: string; skin: string; size: number }
   | { kind: "place"; key: string; place: string; caption: string };
@@ -71,6 +71,8 @@ export function slidesForDay(
         alt: caption || title,
         place: title,
         caption,
+        media: note.media,
+        play: note.play,
       });
     }
   }

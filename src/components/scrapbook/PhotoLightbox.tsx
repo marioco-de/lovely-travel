@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useLightbox, type LightboxSlide } from "@/lib/album/lightbox";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { useT } from "@/lib/i18n/locale";
+import { isVideoSrc, posterSrc, videoSrc } from "@/lib/album/media";
 import { Stamp } from "./Stamp";
 import { Tape } from "./Tape";
 
@@ -21,10 +22,15 @@ function PoiStars({ rating }: { rating?: number }) {
 
 function SlideBody({ slide }: { slide: LightboxSlide }) {
   if (slide.kind === "photo") {
+    const video = isVideoSrc(slide.src, slide.media);
     return (
       <>
         <div className="lightbox-print">
-          <img src={slide.src} alt={slide.alt} />
+          {video ? (
+            <video src={videoSrc(slide.src)} poster={posterSrc(slide.src)} controls playsInline muted autoPlay loop={slide.play !== "boomerang"} />
+          ) : (
+            <img src={slide.src} alt={slide.alt} />
+          )}
         </div>
         <figcaption className="lightbox-caption">
           {slide.place ? <p className="place-type font-typewriter text-place text-lagoon-deep">— {slide.place} —</p> : null}

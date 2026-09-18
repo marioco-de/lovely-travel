@@ -123,6 +123,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
           hit.photo.dateKey = fresh.dateKey;
         }
         if (fresh.place && fresh.place !== UNKNOWN) hit.photo.place = fresh.place;
+        if (fresh.kind) hit.photo.kind = fresh.kind;
         if (fresh.lat != null) hit.photo.lat = fresh.lat;
         if (fresh.lng != null) hit.photo.lng = fresh.lng;
         const destKey = hit.photo.dateKey || draft.dateKey;
@@ -453,6 +454,10 @@ export function GoogleImport() {
         all: day.photos.map((photo) => photo.id),
         photos,
         highlights,
+        videoIds: (days ?? [])
+          .flatMap((item) => item.photos)
+          .filter((photo) => photo.kind === "video")
+          .map((photo) => photo.id),
       });
       setPendingPreview(false);
     } catch {
@@ -1075,6 +1080,7 @@ export function GoogleImport() {
                           {star ? <span className="curate-star-mark">★</span> : null}
                           {marked ? <span className="curate-pick-mark">✓</span> : null}
                           {isNew ? <span className="curate-new-tag">{t("ui.curateNew")}</span> : null}
+                          {photo.kind === "video" ? <span className="curate-video-mark">▶</span> : null}
                         </button>
                         {photoIndex > 0 && !firstCol ? (
                           <button

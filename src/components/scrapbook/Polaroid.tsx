@@ -5,6 +5,7 @@ import { useLocale, useT } from "@/lib/i18n/locale";
 import { useAlbum, usePhotoSrc } from "@/lib/album/store";
 import type { AlbumPhoto, CornerSet, RotateDir } from "@/lib/album/data";
 import { nextFrame, nextFormat, type PhotoFormat, type PrintPhoto } from "@/lib/album/layout";
+import { isVideoSrc, nextPlay } from "@/lib/album/media";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoCorners } from "./PhotoCorners";
 import { PhotoEditTools } from "./PhotoEditTools";
@@ -52,6 +53,9 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
   const cornerSet: CornerSet = "cornerSet" in photo && photo.cornerSet ? photo.cornerSet : "all";
   const format: PhotoFormat = "format" in photo && photo.format ? photo.format : "original";
   const crop = "crop" in photo ? photo.crop : undefined;
+  const media = "media" in photo ? photo.media : undefined;
+  const play = "play" in photo ? photo.play : undefined;
+  const video = isVideoSrc(src, media);
   const oval = format === "oval";
   const aspect = oval
     ? "aspect-[3/4]"
@@ -83,6 +87,9 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
   function cycleFormat() {
     if (dayId && blockId) setPhotoMeta(dayId, blockId, photo.id, { format: nextFormat(format) });
   }
+  function cyclePlay() {
+    if (dayId && blockId) setPhotoMeta(dayId, blockId, photo.id, { play: nextPlay(play) });
+  }
   function writeCrop(next: { x: number; y: number; z: number }) {
     if (dayId && blockId) setPhotoMeta(dayId, blockId, photo.id, { crop: next });
   }
@@ -103,12 +110,14 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
                   editable={canEdit}
                   onCrop={writeCrop}
                   onOpen={() => openDay(dayId, `photo:${photo.id}`, { src, alt, place, caption })}
+                  media={media}
+                  play={play}
                 />
               ) : canEdit ? (
                 <label className="photo-add grid h-full cursor-pointer place-items-center">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     className="sr-only"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
@@ -143,6 +152,8 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
               title={place}
               caption={caption}
               format={format}
+              play={play}
+              video={video}
               open={captionOpen}
               onOpenChange={setCaptionOpen}
               onFile={(file) => void setPhoto(photo.id, file)}
@@ -151,6 +162,7 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
               onClear={clearNote}
               onCycleFrame={cycleFrame}
               onCycleFormat={cycleFormat}
+              onCyclePlay={cyclePlay}
               onRemove={() => {
                 void clearPhoto(photo.id);
                 if (dayId && blockId) removePhotoSlot(dayId, blockId, photo.id);

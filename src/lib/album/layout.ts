@@ -52,6 +52,7 @@ export function emptyPoi(): PoiData {
 }
 
 export type PhotoCrop = { x: number; y: number; z: number };
+export type PhotoPlay = "loop" | "boomerang";
 
 export function emptyCrop(): PhotoCrop {
   return { x: 0, y: 0, z: 1 };
@@ -73,6 +74,8 @@ export type PhotoNote = {
   frame?: CornerStyle;
   format?: PhotoFormat;
   crop?: PhotoCrop;
+  media?: "photo" | "video";
+  play?: PhotoPlay;
 };
 
 export type LayoutBlock = {
@@ -122,6 +125,8 @@ export type PrintPhoto = {
   cornerSet?: CornerSet;
   format?: PhotoFormat;
   crop?: PhotoCrop;
+  media?: "photo" | "video";
+  play?: PhotoPlay;
 };
 
 const emptyPair = (): I18nPair => ({ en: "", de: "" });

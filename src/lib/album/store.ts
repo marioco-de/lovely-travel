@@ -83,6 +83,7 @@ type AlbumState = {
     all: string[];
     photos: Record<string, string>;
     highlights: string[];
+    videoIds?: string[];
   }) => void;
   syncCuration: (input: {
     photos?: Record<string, string>;
@@ -94,7 +95,7 @@ type AlbumState = {
   removeBlock: (dayId: string, blockId: string) => void;
   moveBlock: (dayId: string, blockId: string, dir: -1 | 1) => void;
   patchBlock: (dayId: string, blockId: string, patch: Partial<Pick<LayoutBlock, "place" | "caption" | "body" | "writingPaper" | "poi">>) => void;
-  setPhotoMeta: (dayId: string, blockId: string, photoId: string, patch: Partial<Pick<PhotoNote, "frame" | "format" | "crop">>) => void;
+  setPhotoMeta: (dayId: string, blockId: string, photoId: string, patch: Partial<Pick<PhotoNote, "frame" | "format" | "crop" | "play" | "media">>) => void;
   setPhotoNote: (dayId: string, blockId: string, photoId: string, field: "title" | "caption", locale: Locale, value: string) => void;
   clearPhotoNote: (dayId: string, blockId: string, photoId: string) => void;
   addPhotoSlot: (dayId: string, blockId: string) => void;
@@ -313,6 +314,29 @@ function isCoverPlaceholder(id: string, photos: Record<string, string>) {
   if (isStoredPhotoUrl(photos[id] || "")) return false;
   if (catalogPhoto(id)) return true;
   return !photos[id];
+}
+
+function markVideoNotes(layout: AlbumLayout, videoIds: string[]): AlbumLayout {
+  if (!videoIds.length) return layout;
+  const videos = new Set(videoIds);
+  return {
+    ...layout,
+    days: layout.days.map((day) => ({
+      ...day,
+      blocks: day.blocks.map((block) => {
+        let changed = false;
+        const photoNotes = { ...block.photoNotes };
+        for (const id of block.photoIds) {
+          if (!videos.has(id)) continue;
+          const current = photoNotes[id] ?? emptyPhotoNote();
+          if (current.media === "video") continue;
+          photoNotes[id] = { ...current, media: "video", play: current.play ?? "loop" };
+          changed = true;
+        }
+        return changed ? { ...block, photoNotes } : block;
+      }),
+    })),
+  };
 }
 
 function fillCoverHighlights(layout: AlbumLayout, highlights: string[], photos: Record<string, string>): AlbumLayout {
@@ -819,6 +843,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     };
     let layout = ensureCurationDay(get().layout, input);
     layout = fillCoverHighlights(layout, input.highlights, photos);
+    layout = markVideoNotes(layout, input.videoIds ?? []);
     set({ photos, highlights: input.highlights, dayAlbums });
     persistLayout(set, get, layout);
   },

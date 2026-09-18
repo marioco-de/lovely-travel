@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Recycle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatLabel, type PhotoFormat } from "@/lib/album/layout";
+import { formatLabel, type PhotoFormat, type PhotoPlay } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -11,6 +11,8 @@ type PhotoEditToolsProps = {
   title: string;
   caption: string;
   format?: PhotoFormat;
+  play?: PhotoPlay;
+  video?: boolean;
   onFile: (file: File) => void;
   onTitle: (value: string) => void;
   onCaption: (value: string) => void;
@@ -18,6 +20,7 @@ type PhotoEditToolsProps = {
   onRemove: () => void;
   onCycleFrame: () => void;
   onCycleFormat: () => void;
+  onCyclePlay?: () => void;
   photoId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,6 +31,8 @@ export function PhotoEditTools({
   title,
   caption,
   format,
+  play,
+  video,
   onFile,
   onTitle,
   onCaption,
@@ -35,6 +40,7 @@ export function PhotoEditTools({
   onRemove,
   onCycleFrame,
   onCycleFormat,
+  onCyclePlay,
   photoId,
   open,
   onOpenChange,
@@ -147,7 +153,7 @@ export function PhotoEditTools({
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   className="photo-file-input"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -209,6 +215,17 @@ export function PhotoEditTools({
         <button type="button" className="photo-tab photo-tab--format" aria-label={t("ui.photoFormat")} onClick={onCycleFormat}>
           <span>{formatLabel(format)}</span>
         </button>
+        {video && onCyclePlay ? (
+          <button
+            type="button"
+            className="photo-tab photo-tab--play"
+            aria-label={play === "boomerang" ? t("ui.videoBoomerang") : t("ui.videoLoop")}
+            title={play === "boomerang" ? t("ui.videoBoomerang") : t("ui.videoLoop")}
+            onClick={onCyclePlay}
+          >
+            <span>{play === "boomerang" ? "⇄" : "∞"}</span>
+          </button>
+        ) : null}
         <button type="button" className="photo-tab photo-tab--cycle" aria-label={t("ui.cycleFrame")} onClick={onCycleFrame}>
           <Recycle size={14} strokeWidth={2.4} />
         </button>

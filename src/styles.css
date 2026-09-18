@@ -572,10 +572,16 @@ body {
   filter: hue-rotate(175deg) saturate(1.7) contrast(1.28) brightness(1.08);
 }
 
-.develop-cast {
+.develop-video {
   position: absolute;
   inset: 0;
   z-index: 1;
+}
+
+.develop-cast {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   pointer-events: none;
   background: #2ad4c8;
   mix-blend-mode: color;
@@ -585,7 +591,7 @@ body {
 .develop-veil {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 3;
   pointer-events: none;
   background: #8e8f89;
   opacity: 1;
@@ -1125,6 +1131,7 @@ body {
 }
 
 .photo-tab--format {
+  min-width: 2.1rem;
   width: 2.35rem;
   background: #efe4cc;
   color: #3d2a1c;
@@ -1132,6 +1139,18 @@ body {
   font-size: 0.62rem;
   letter-spacing: 0.04em;
   transform: rotate(-2deg);
+  border-radius: 2px 2px 6px 6px;
+}
+
+.photo-tab--play {
+  min-width: 2.1rem;
+  width: 2.35rem;
+  background: #d7efe8;
+  color: #155e55;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  transform: rotate(3deg);
   border-radius: 2px 2px 6px 6px;
 }
 
@@ -2439,6 +2458,21 @@ body {
   color: var(--color-pearl);
   font-size: 0.62rem;
   line-height: 1;
+  pointer-events: none;
+}
+
+.curate-video-mark {
+  position: absolute;
+  right: 0.28rem;
+  top: 0.28rem;
+  z-index: 2;
+  display: grid;
+  width: 1.1rem;
+  height: 1.1rem;
+  place-items: center;
+  background: rgb(21 94 85 / 0.78);
+  color: #fffdf8;
+  font-size: 0.5rem;
   pointer-events: none;
 }
 

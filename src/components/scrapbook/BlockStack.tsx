@@ -24,7 +24,7 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
   const patchBlock = useAlbum((s) => s.patchBlock);
   const placeName = pairText(day.place, locale);
 
-  function toPrint(photoId: string, i: number, title: string, caption: string, frame?: PrintPhoto["corners"], format?: PrintPhoto["format"], crop?: PrintPhoto["crop"]): PrintPhoto {
+  function toPrint(photoId: string, i: number, title: string, caption: string, frame?: PrintPhoto["corners"], format?: PrintPhoto["format"], crop?: PrintPhoto["crop"], media?: PrintPhoto["media"], play?: PrintPhoto["play"]): PrintPhoto {
     const mount = cornersFor(photoId, i);
     return {
       id: photoId,
@@ -38,6 +38,8 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
       cornerSet: mount.cornerSet,
       format,
       crop,
+      media,
+      play,
     };
   }
 
@@ -60,7 +62,7 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
 
         function printOf(id: string, i: number) {
           const note = noteForPhoto(block, id, i);
-          return toPrint(id, blockIndex + i, pairText(note.title, locale), pairText(note.caption, locale), note.frame, note.format, note.crop);
+          return toPrint(id, blockIndex + i, pairText(note.title, locale), pairText(note.caption, locale), note.frame, note.format, note.crop, note.media, note.play);
         }
 
         let inner = null;
