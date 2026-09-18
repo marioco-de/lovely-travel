@@ -180,11 +180,14 @@ body {
 }
 
 .album-chrome-layer {
-  display: contents;
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  pointer-events: none;
 }
 
 .album-chrome-fixed {
-  position: fixed;
+  position: absolute;
   top: 0.7rem;
   right: 0.7rem;
   z-index: 100000;
@@ -201,11 +204,14 @@ body {
 }
 
 .album-menu-panel {
-  position: fixed;
+  position: absolute;
   top: 3.35rem;
   right: 0.7rem;
   z-index: 100001;
+  pointer-events: auto;
   max-width: min(18rem, calc(100vw - 1.5rem));
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
 }
 
 .slide-piece {

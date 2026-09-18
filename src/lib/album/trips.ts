@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import type { Locale } from "@/lib/i18n/messages";
 import { FEATURED_EDIT_HASH, FEATURED_PASSWORD, FEATURED_SLUG, FEATURED_TITLE, PRIVATE_EDIT_HASH, PRIVATE_SLUG, PRIVATE_TITLE } from "./featured";
-import { seedLayout, type AlbumLayout } from "./layout";
+import { emptyAlbumLayout, seedLayout, stripPlaceholderDays, type AlbumLayout } from "./layout";
 import type { AlbumTexts } from "./store";
 
 export type TripPayload = {
@@ -132,6 +132,24 @@ async function withCatalog(tripId: string, payload: TripPayload): Promise<TripPa
   }
 }
 
+function payloadNeedsScrub(publicHash: string, payload: TripPayload) {
+  if (publicHash === FEATURED_SLUG) return false;
+  const layout = payload.layout;
+  if (!layout?.days) return true;
+  const cleaned = stripPlaceholderDays(layout, payload.photos);
+  return JSON.stringify(layout.days.map((day) => [day.id, day.blocks.map((block) => block.photoIds)])) !==
+    JSON.stringify(cleaned.days.map((day) => [day.id, day.blocks.map((block) => block.photoIds)]));
+}
+
+async function scrubTripPayload(sql: { query: (text: string, params?: unknown[]) => Promise<unknown> } & ((strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>), tripId: string, publicHash: string, payload: TripPayload) {
+  if (publicHash === FEATURED_SLUG) return payload;
+  const layout = stripPlaceholderDays(payload.layout, payload.photos);
+  const next = { ...payload, layout };
+  if (!payloadNeedsScrub(publicHash, payload)) return next;
+  await sql`update trips set payload = ${JSON.stringify(next)}::jsonb where id = ${tripId}`;
+  return next;
+}
+
 export const createTrip = createServerFn({ method: "POST" })
   .validator(
     z.object({
@@ -201,12 +219,13 @@ export const getPublicTrip = createServerFn({ method: "GET" })
     `;
     const row = rows[0];
     if (!row) return null;
+    const payload = await scrubTripPayload(sql, row.id, row.public_hash, await withCatalog(row.id, asPayload(row.payload)));
     return {
       id: row.id,
       publicHash: row.public_hash,
       title: row.title,
       sourceLocale: row.source_locale as Locale,
-      payload: await withCatalog(row.id, asPayload(row.payload)),
+      payload,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -232,13 +251,14 @@ export const getEditTrip = createServerFn({ method: "GET" })
     `;
     const row = rows[0];
     if (!row) return null;
+    const payload = await scrubTripPayload(sql, row.id, row.public_hash, await withCatalog(row.id, asPayload(row.payload)));
     return {
       id: row.id,
       publicHash: row.public_hash,
       editHash: row.edit_hash,
       title: row.title,
       sourceLocale: row.source_locale as Locale,
-      payload: await withCatalog(row.id, asPayload(row.payload)),
+      payload,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -401,7 +421,7 @@ export const ensurePrivateTrip = createServerFn({ method: "POST" }).handler(
     }
     const id = newId();
     const payload = JSON.stringify({
-      layout: seedLayout(),
+      layout: emptyAlbumLayout(),
       texts: {
         en: { "album.title": PRIVATE_TITLE },
         de: { "album.title": PRIVATE_TITLE },

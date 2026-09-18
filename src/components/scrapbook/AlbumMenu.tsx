@@ -26,11 +26,31 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   const [unlock, setUnlock] = useState(false);
   const [unlockTo, setUnlockTo] = useState<"edit" | "settings">("edit");
   const [mounted, setMounted] = useState(false);
+  const [ownerOk, setOwnerOk] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const key = publicHash || editHash;
+    if (!key) {
+      setOwnerOk(false);
+      return;
+    }
+    let live = true;
+    void peekOwnerSession({ data: { hash: key } })
+      .then((session) => {
+        if (live) setOwnerOk(Boolean(session?.editHash));
+      })
+      .catch(() => {
+        if (live) setOwnerOk(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [publicHash, editHash, canEdit]);
 
   useEffect(() => {
     if (!open) return;
@@ -152,36 +172,34 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
           </button>
           {variant === "album" ? (
             <div>
+              {ownerOk || canEdit ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="menu-link flex min-h-11 w-full items-center"
+                  onClick={onSettingsClick}
+                >
+                  — {t("ui.settings")}
+                </button>
+              ) : null}
               {canEdit ? (
-                <>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="menu-link flex min-h-11 w-full items-center"
-                    onClick={onSettingsClick}
-                  >
-                    — {t("ui.settings")}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="menu-link flex min-h-11 w-full items-center"
-                    onClick={onSaveClick}
-                  >
-                    — {t("ui.save")}
-                  </button>
-                </>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="menu-link flex min-h-11 w-full items-center"
+                  onClick={onSaveClick}
+                >
+                  — {t("ui.save")}
+                </button>
               ) : (
-                <>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="menu-link flex min-h-11 w-full items-center"
-                    onClick={onEditClick}
-                  >
-                    — {t("ui.edit")}
-                  </button>
-                </>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="menu-link flex min-h-11 w-full items-center"
+                  onClick={onEditClick}
+                >
+                  — {t("ui.edit")}
+                </button>
               )}
               {unlock && !canEdit && publicHash ? (
                 <div className="mt-2">

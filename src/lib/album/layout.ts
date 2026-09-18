@@ -356,6 +356,68 @@ export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
   };
 }
 
+export function emptyCoverDay(): LayoutDay {
+  return {
+    id: COVER_ID,
+    builtIn: false,
+    place: emptyPair(),
+    places: [],
+    label: pairFrom("album.title"),
+    pin: { x: 48, y: 18, label: "left" },
+    paper: "azulejos",
+    blocks: [],
+  };
+}
+
+export function emptyAlbumLayout(): AlbumLayout {
+  return { version: 1, days: [emptyCoverDay()] };
+}
+
+export const SEED_DAY_IDS = new Set(days.map((day) => day.id));
+export const SEED_PHOTO_IDS = new Set<string>([
+  ...Object.keys(heroPhotos),
+  ...days.flatMap((day) => day.photos.map((photo) => photo.id)),
+]);
+
+function isRemotePhotoUrl(url?: string) {
+  return Boolean(url && url !== "cleared" && !url.startsWith("/photos/") && !url.startsWith("data:") && !url.startsWith("blob:"));
+}
+
+function dayHasRealPhotos(day: LayoutDay, photos?: Record<string, string>) {
+  return day.blocks.some((block) =>
+    block.photoIds.some((id) => {
+      const url = photos?.[id];
+      if (isRemotePhotoUrl(url)) return true;
+      if (SEED_PHOTO_IDS.has(id) || id.startsWith("pic-")) return false;
+      return true;
+    }),
+  );
+}
+
+export function stripPlaceholderDays(layout: AlbumLayout | undefined, photos?: Record<string, string>): AlbumLayout {
+  const next = (layout?.days ?? []).flatMap((day) => {
+    if (day.id === COVER_ID) {
+      const blocks = day.blocks
+        .map((block) => ({
+          ...block,
+          photoIds: block.photoIds.filter((id) => {
+            const url = photos?.[id];
+            if (isRemotePhotoUrl(url)) return true;
+            if (SEED_PHOTO_IDS.has(id)) return false;
+            if (id.startsWith("pic-")) return false;
+            return Boolean(url);
+          }),
+        }))
+        .filter((block) => block.kind === "note" || block.kind === "place" || block.kind === "poi" || block.photoIds.length);
+      return [{ ...day, builtIn: false, blocks }];
+    }
+    if (SEED_DAY_IDS.has(day.id) && !dayHasRealPhotos(day, photos)) return [];
+    return [{ ...day, builtIn: false }];
+  });
+  if (!next.some((day) => day.id === COVER_ID)) next.unshift(emptyCoverDay());
+  return { version: 1, days: next };
+}
+
 export function emptyDay(index: number, first?: BlockKind): LayoutDay {
   const place: I18nPair = { en: "New stop", de: "Neue Station" };
   return {

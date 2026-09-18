@@ -13,10 +13,12 @@ import {
   COLLAGE_MAX,
   COLLAGE_MIN,
   COVER_ID,
+  emptyAlbumLayout,
   emptyBlock,
   emptyDay,
   emptyPhotoNote,
   seedLayout,
+  stripPlaceholderDays,
   unifyLayouts,
   type AlbumLayout,
   type BlockKind,
@@ -511,7 +513,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   albumLng: undefined,
   highlights: [],
   dayAlbums: {},
-  layout: seedLayout(),
+  layout: emptyAlbumLayout(),
   canEdit: false,
   placeEditId: null,
   setPlaceEditId: (id) => set({ placeEditId: id }),
@@ -1057,11 +1059,12 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   },
   reset: async () => {
     for (const url of Object.values(get().photos)) URL.revokeObjectURL(url);
+    const featured = get().publicHash === FEATURED_SLUG || get().editHash === FEATURED_EDIT_HASH;
     set({
       photos: {},
       texts: emptyTexts(),
       hiddenPins: {},
-      layout: seedLayout(),
+      layout: featured ? seedLayout() : emptyAlbumLayout(),
       saveStatus: "saving",
     });
     writeHiddenPins({});
@@ -1157,17 +1160,26 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     const remoteAt = remote?.updatedAt ? Date.parse(remote.updatedAt) : 0;
     const localAt = localTrip?.updatedAt ? Date.parse(localTrip.updatedAt) : 0;
     const localIsNewer = Boolean(localTripLayout?.days?.length) && localAt > remoteAt;
-    const layout = localIsNewer
-      ? unifyLayouts(localTripLayout, remoteLayout, ...idbLayouts)
-      : remoteLayout
-        ? unifyLayouts(remoteLayout, localTripLayout, ...idbLayouts)
-        : unifyLayouts(localTripLayout, ...idbLayouts);
+    const skipSeed =
+      publicHash === PRIVATE_SLUG ||
+      editHash === PRIVATE_EDIT_HASH ||
+      Boolean(publicHash && publicHash !== FEATURED_SLUG && !isFeatured);
     const remotePhotos = remote?.payload.photos ?? {};
-    const photos = localIsNewer
-      ? mergePhotoMaps(remotePhotos, localTrip?.payload.photos, idbPhotos)
-      : Object.keys(remotePhotos).length
+    const photos =
+      skipSeed && Object.keys(remotePhotos).length
         ? mergePhotoMaps(idbPhotos, localTrip?.payload.photos, remotePhotos)
-        : mergePhotoMaps(localTrip?.payload.photos, idbPhotos);
+        : localIsNewer
+          ? mergePhotoMaps(remotePhotos, localTrip?.payload.photos, idbPhotos)
+          : Object.keys(remotePhotos).length
+            ? mergePhotoMaps(idbPhotos, localTrip?.payload.photos, remotePhotos)
+            : mergePhotoMaps(localTrip?.payload.photos, idbPhotos);
+    const layout = skipSeed
+      ? stripPlaceholderDays(remoteLayout ?? localTripLayout, photos)
+      : localIsNewer
+        ? unifyLayouts(localTripLayout, remoteLayout, ...idbLayouts)
+        : remoteLayout
+          ? unifyLayouts(remoteLayout, localTripLayout, ...idbLayouts)
+          : unifyLayouts(localTripLayout, ...idbLayouts);
     const texts = localTrip?.payload.texts ?? remote?.payload.texts ?? { en: en ?? {}, de: de ?? {} };
     const hiddenPins = localTrip?.payload.hiddenPins ?? remote?.payload.hiddenPins ?? readHiddenPins();
     const googleAlbumUrl = localTrip?.payload.googleAlbumUrl ?? remote?.payload.googleAlbumUrl ?? "";

@@ -22,6 +22,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }
   const t = useT();
   const reduced = usePrefersReducedMotion();
   const days = useAlbum((s) => s.layout.days).filter((day) => day.id !== COVER_ID);
+  const ready = useAlbum((s) => s.ready);
   const canEdit = useAlbum((s) => s.canEdit);
   const editHash = useAlbum((s) => s.editHash) ?? routeEditHash;
   const storePublicHash = useAlbum((s) => s.publicHash);
@@ -138,15 +139,17 @@ export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }
 
       <section className="w-full overflow-visible">
         <div className="days-rail">
-          {days.map((day, index) => (
-            <DayBlock
-              key={day.id}
-              day={day}
-              index={index}
-              active={activeId === day.id}
-              onSelect={openDay}
-            />
-          ))}
+          {ready
+            ? days.map((day, index) => (
+                <DayBlock
+                  key={day.id}
+                  day={day}
+                  index={index}
+                  active={activeId === day.id}
+                  onSelect={openDay}
+                />
+              ))
+            : null}
         </div>
       </section>
 
