@@ -214,6 +214,8 @@ export function GoogleImport() {
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [picking, setPicking] = useState(false);
   const [pickMenu, setPickMenu] = useState<string | null>(null);
+  const [hideOff, setHideOff] = useState(false);
+  const [freshIds, setFreshIds] = useState<Set<string>>(() => new Set());
   const [removeUrl, setRemoveUrl] = useState<string | null>(null);
   const clickTimer = useRef(0);
   const lastTap = useRef<{ id: string; time: number } | null>(null);
@@ -328,8 +330,10 @@ export function GoogleImport() {
             .slice(0, HIGHLIGHT_SEED),
         );
       } else {
+        const added = drafted.flatMap((day) => day.photos.map((photo) => photo.id));
         setDays((current) => (current?.length ? [...current, ...drafted] : drafted));
         setTotal((current) => current + drafted.reduce((sum, day) => sum + day.photos.length, 0));
+        setFreshIds(new Set(added));
       }
       addGoogleAlbumUrl(share);
       setPendingPreview(true);
@@ -352,8 +356,11 @@ export function GoogleImport() {
         return;
       }
       previewLock.current = true;
+      const known = new Set((daysRef.current ?? []).flatMap((day) => day.photos.map((photo) => photoMatchKey(photo))));
       const merged = mergeRefresh(daysRef.current ?? [], result.days);
+      const added = merged.flatMap((day) => day.photos).filter((photo) => !known.has(photoMatchKey(photo))).map((photo) => photo.id);
       setDays(merged);
+      setFreshIds(new Set(added));
       setTotal(result.total ?? merged.reduce((sum, day) => sum + day.photos.length, 0));
       addGoogleAlbumUrl(share);
       setPendingPreview(true);
@@ -1032,12 +1039,14 @@ export function GoogleImport() {
                   )}
                 </div>
                 <div className="curate-grid" data-density={density}>
-                  {day.photos.map((photo, photoIndex) => {
+                  {(hideOff ? day.photos.filter((photo) => day.selected.has(photo.id)) : day.photos).map((photo) => {
+                    const photoIndex = day.photos.findIndex((item) => item.id === photo.id);
                     const on = day.selected.has(photo.id);
                     const star = highlights.includes(photo.id);
                     const firstCol = photoIndex % cols === 0;
                     const firstRow = photoIndex < cols;
                     const marked = picked.has(photo.id);
+                    const isNew = freshIds.has(photo.id);
                     const dragPhoto: DragPhoto = { dayId: day.id, photoId: photo.id, index: photoIndex, thumb: photo.thumb };
                     return (
                       <div key={photo.id} className="curate-cell" data-curate-index={photoIndex}>
@@ -1059,12 +1068,13 @@ export function GoogleImport() {
                             const y = Math.min(event.clientY, window.innerHeight - 320);
                             setMenu({ dayId: day.id, photoId: photo.id, index: photoIndex, x, y });
                           }}
-                          className={cn("curate-tile", !on && "is-off", star && "is-star", marked && "is-picked")}
+                          className={cn("curate-tile", !on && "is-off", star && "is-star", marked && "is-picked", isNew && "is-new")}
                           title={t("ui.googlePickHint")}
                         >
                           <img src={photo.thumb} alt="" />
                           {star ? <span className="curate-star-mark">★</span> : null}
                           {marked ? <span className="curate-pick-mark">✓</span> : null}
+                          {isNew ? <span className="curate-new-tag">{t("ui.curateNew")}</span> : null}
                         </button>
                         {photoIndex > 0 && !firstCol ? (
                           <button
@@ -1089,6 +1099,16 @@ export function GoogleImport() {
                       </div>
                     );
                   })}
+                  {hideOff && day.photos.length - day.selected.size > 0 ? (
+                    <button
+                      type="button"
+                      className="curate-upload curate-hidden-tile"
+                      onClick={() => setHideOff(false)}
+                    >
+                      <span>{day.photos.length - day.selected.size}</span>
+                      <em>{t("ui.curateHidden")}</em>
+                    </button>
+                  ) : null}
                   {allowUploads ? (
                     <label className="curate-upload">
                       <input
@@ -1117,6 +1137,8 @@ export function GoogleImport() {
             tool={tool}
             fanOpen={fanOpen}
             pickedCount={picked.size}
+            hideOff={hideOff}
+            onHideOff={() => setHideOff((value) => !value)}
             onDensity={(value) => {
               setDensity(value);
               setFanOpen(false);
@@ -1277,6 +1299,8 @@ function CurateDock({
   tool,
   fanOpen,
   pickedCount,
+  hideOff,
+  onHideOff,
   onDensity,
   onFan,
   onTool,
@@ -1293,6 +1317,8 @@ function CurateDock({
   tool: Tool;
   fanOpen: boolean;
   pickedCount: number;
+  hideOff: boolean;
+  onHideOff: () => void;
   onDensity: (value: Density) => void;
   onFan: () => void;
   onTool: (value: Tool) => void;
@@ -1378,6 +1404,16 @@ function CurateDock({
           </div>
         ) : null}
         <div className="curate-dock-inner">
+        <button
+          type="button"
+          className={cn("curate-dock-btn", hideOff && "is-on")}
+          aria-label={hideOff ? t("ui.curateShowOff") : t("ui.curateHideOff")}
+          aria-pressed={hideOff}
+          onClick={onHideOff}
+        >
+          {hideOff ? <EyeOffIcon /> : <EyeIcon />}
+        </button>
+        <span className="curate-dock-rule" aria-hidden="true" />
         {wide ? (
           densities.map((value) => (
             <button
@@ -1479,6 +1515,25 @@ function RefreshIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M20 12a8 8 0 1 1-2.2-5.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       <path d="M20 5v5h-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M2.8 12S6.2 6.8 12 6.8 21.2 12 21.2 12 17.8 17.2 12 17.2 2.8 12 2.8 12Z" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M2.8 12S6.2 6.8 12 6.8 21.2 12 21.2 12 17.8 17.2 12 17.2 2.8 12 2.8 12Z" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M5 19.2 19 4.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
