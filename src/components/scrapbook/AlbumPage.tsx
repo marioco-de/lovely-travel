@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { COVER_ID } from "@/lib/album/layout";
+import { FEATURED_EDIT_HASH, FEATURED_SLUG, PRIVATE_EDIT_HASH, PRIVATE_SLUG } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { AlbumEditor } from "./AlbumEditor";
 import { AlbumMenu } from "./AlbumMenu";
-import { BulkImportButton, BulkImportRoot } from "./BulkImport";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { DayBlock } from "./DayBlock";
+import { EditGear, GearAction } from "./EditGear";
 import { HeroCollage } from "./HeroCollage";
 import { MapInsert } from "./MapInsert";
 import { PhotoLightbox } from "./PhotoLightbox";
@@ -17,28 +18,31 @@ type AlbumPageProps = {
   editHash?: string;
 };
 
-export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProps) {
+export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }: AlbumPageProps) {
   const t = useT();
   const reduced = usePrefersReducedMotion();
   const days = useAlbum((s) => s.layout.days).filter((day) => day.id !== COVER_ID);
   const canEdit = useAlbum((s) => s.canEdit);
+  const editHash = useAlbum((s) => s.editHash) ?? routeEditHash;
   const googleAlbumUrl = useAlbum((s) => s.googleAlbumUrl);
   const bindTrip = useAlbum((s) => s.bindTrip);
+  const addDay = useAlbum((s) => s.addDay);
+  const reset = useAlbum((s) => s.reset);
   const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
   const [activeId, setActiveId] = useState<string | null>(days[0]?.id ?? null);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
-    void bindTrip({ mode, publicHash, editHash });
-  }, [bindTrip, mode, publicHash, editHash]);
+    void bindTrip({ mode, publicHash, editHash: routeEditHash });
+  }, [bindTrip, mode, publicHash, routeEditHash]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const flag = new URLSearchParams(window.location.search).get("google");
-    if (flag !== "1" || !editHash) return;
+    if (flag !== "1" || !routeEditHash) return;
     window.history.replaceState({}, "", window.location.pathname);
-    void import("@/lib/album/google-client").then(({ runGoogleImport }) => runGoogleImport(editHash));
-  }, [editHash]);
+    void import("@/lib/album/google-client").then(({ runGoogleImport }) => runGoogleImport(routeEditHash));
+  }, [routeEditHash]);
 
   useEffect(() => {
     document.title = t("meta.title");
@@ -78,23 +82,59 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
     el?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
   }
 
+  function settingsHref() {
+    if (editHash) return `/s/${editHash}`;
+    if (publicHash === FEATURED_SLUG) return `/s/${FEATURED_EDIT_HASH}`;
+    if (publicHash === PRIVATE_SLUG) return `/s/${PRIVATE_EDIT_HASH}`;
+    return "";
+  }
+
   return (
-    <BulkImportRoot>
     <div className="album-sheet min-h-svh w-full overflow-visible">
       <LocaleHydrator />
       <a href="#route-map" className="skip-link font-display text-sm">
         {t("ui.skipToMap")}
       </a>
 
-      <AlbumMenu onEdit={() => setEditorOpen(true)} onSave={() => setEditorOpen(false)} />
+      <AlbumMenu />
 
       <HeroCollage />
-      {googleAlbumUrl ? (
-        <p className="mx-auto w-full max-w-7xl px-4 pb-2 md:px-10 lg:px-16">
-          <a href={googleAlbumUrl} className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline" target="_blank" rel="noreferrer">
-            {t("ui.googleAlbum")}
-          </a>
-        </p>
+      {canEdit || googleAlbumUrl ? (
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-3 px-4 pb-2 md:px-10 lg:px-16">
+          {googleAlbumUrl ? (
+            <a href={googleAlbumUrl} className="font-typewriter text-kicker tracking-wide text-lagoon-deep underline" target="_blank" rel="noreferrer">
+              {t("ui.googleAlbum")}
+            </a>
+          ) : null}
+          {canEdit ? (
+            <EditGear label={t("ui.albumSettings")}>
+              {(close) => (
+                <>
+                  {settingsHref() ? (
+                    <GearAction href={settingsHref()}>{t("ui.settings")}</GearAction>
+                  ) : null}
+                  <GearAction
+                    onClick={() => {
+                      addDay();
+                      close();
+                    }}
+                  >
+                    {t("ui.addDay")}
+                  </GearAction>
+                  <GearAction
+                    danger
+                    onClick={() => {
+                      close();
+                      setConfirmReset(true);
+                    }}
+                  >
+                    {t("ui.resetAlbum")}
+                  </GearAction>
+                </>
+              )}
+            </EditGear>
+          ) : null}
+        </div>
       ) : null}
       <MapInsert activeId={activeId} onSelect={openDay} />
 
@@ -109,17 +149,19 @@ export function AlbumPage({ mode = "demo", publicHash, editHash }: AlbumPageProp
               onSelect={openDay}
             />
           ))}
-          {canEdit ? (
-            <div className="mx-auto flex w-full max-w-7xl justify-center px-4 py-8">
-              <BulkImportButton />
-            </div>
-          ) : null}
         </div>
       </section>
 
       <PhotoLightbox />
-      {canEdit ? <AlbumEditor open={editorOpen} onClose={() => setEditorOpen(false)} /> : null}
+      <ConfirmDialog
+        open={confirmReset}
+        title={t("ui.confirmRemove")}
+        onCancel={() => setConfirmReset(false)}
+        onConfirm={() => {
+          setConfirmReset(false);
+          void reset();
+        }}
+      />
     </div>
-    </BulkImportRoot>
   );
 }

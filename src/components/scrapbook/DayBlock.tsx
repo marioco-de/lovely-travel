@@ -5,9 +5,10 @@ import { PLACES, placeCaption } from "@/lib/album/places";
 import { pairText, useAlbum } from "@/lib/album/store";
 import { useLocale, useT } from "@/lib/i18n/locale";
 import { BlockStack } from "./BlockStack";
-import { BulkImportButton } from "./BulkImport";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DayMark } from "./DayMark";
+import { DAY_CHOICES } from "./DayStarter";
+import { EditGear, GearAction } from "./EditGear";
 import { PaperLayer } from "./PaperLayer";
 import { PlaceField } from "./PlaceField";
 import { PortugalMap } from "./PortugalMap";
@@ -27,6 +28,7 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
   const setDayLabel = useAlbum((s) => s.setDayLabel);
   const setDayPlaceAt = useAlbum((s) => s.setDayPlaceAt);
   const setDayGeo = useAlbum((s) => s.setDayGeo);
+  const addBlock = useAlbum((s) => s.addBlock);
   const addDayPlace = useAlbum((s) => s.addDayPlace);
   const removeDayPlace = useAlbum((s) => s.removeDayPlace);
   const removeDay = useAlbum((s) => s.removeDay);
@@ -113,15 +115,6 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
                       ) : null}
                     </div>
                   ))}
-                  <button type="button" className="album-btn album-btn--ghost" onClick={() => addDayPlace(day.id)}>
-                    + {t("ui.addPlaceName")}
-                  </button>
-                  {day.id !== COVER_ID ? (
-                    <button type="button" className="album-btn album-btn--ghost" onClick={() => setConfirmDay(true)}>
-                      {t("ui.removeDay")}
-                    </button>
-                  ) : null}
-                  <BulkImportButton className="album-btn--ghost" />
                 </div>
               ) : placeLine ? (
                 <p className="day-place-line text-left font-typewriter text-kicker tracking-wide">
@@ -132,11 +125,49 @@ export function DayBlock({ day, index, active, onSelect }: DayBlockProps) {
           </div>
 
           <BlockStack day={day} reverse={reverse} />
-          <p className="mt-10 text-center">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <a href={`/d/${encodeURIComponent(publicHash || "album")}/${encodeURIComponent(day.id)}`} className="day-full-link">
               {t("ui.fullDay")}
             </a>
-          </p>
+            {canEdit ? (
+              <EditGear label={t("ui.daySettings")}>
+                {(close) => (
+                  <>
+                    {DAY_CHOICES.map((item) => (
+                      <GearAction
+                        key={item.kind}
+                        onClick={() => {
+                          addBlock(day.id, item.kind);
+                          close();
+                        }}
+                      >
+                        {t(item.key)}
+                      </GearAction>
+                    ))}
+                    <GearAction
+                      onClick={() => {
+                        addDayPlace(day.id);
+                        close();
+                      }}
+                    >
+                      + {t("ui.addPlaceName")}
+                    </GearAction>
+                    {day.id !== COVER_ID ? (
+                      <GearAction
+                        danger
+                        onClick={() => {
+                          close();
+                          setConfirmDay(true);
+                        }}
+                      >
+                        {t("ui.removeDay")}
+                      </GearAction>
+                    ) : null}
+                  </>
+                )}
+              </EditGear>
+            ) : null}
+          </div>
         </div>
       </div>
       <ConfirmDialog

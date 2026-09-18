@@ -5,6 +5,7 @@ import { useAlbum } from "@/lib/album/store";
 import { setTripPassword } from "@/lib/album/trips";
 import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { AlbumMenu } from "./AlbumMenu";
+import { EditGear, GearAction } from "./EditGear";
 import { GoogleImport } from "./GoogleImport";
 
 type AlbumSettingsProps = {
@@ -132,9 +133,17 @@ function SettingsPassword({ editHash, publicHash }: { editHash: string; publicHa
     <div className="grid gap-2">
       <span className="font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.editPassword")}</span>
       {publicHash ? (
-        <p className="font-typewriter text-kicker tracking-wide text-ink-soft">
-          {publicLink(publicHash)}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-typewriter text-kicker tracking-wide text-ink-soft">{publicLink(publicHash)}</p>
+          <EditGear label={t("ui.albumSettings")}>
+            {() => (
+              <>
+                <GearAction href={publicLink(publicHash)}>{t("ui.viewPublic")}</GearAction>
+                <GearAction href={`/e/${editHash}`}>{t("ui.edit")}</GearAction>
+              </>
+            )}
+          </EditGear>
+        </div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <input

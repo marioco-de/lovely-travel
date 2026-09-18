@@ -7,7 +7,6 @@ import { peekOwnerSession } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
 import { EditUnlock } from "./EditUnlock";
 import { LanguageToggle } from "./LanguageToggle";
-import { useBulkImport } from "./BulkImport";
 
 type AlbumMenuProps = {
   variant?: "album" | "home";
@@ -22,7 +21,6 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   const editHash = useAlbum((s) => s.editHash);
   const lockEdit = useAlbum((s) => s.lockEdit);
   const becomeOwner = useAlbum((s) => s.becomeOwner);
-  const { pick: pickBulk } = useBulkImport();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [unlock, setUnlock] = useState(false);
@@ -167,17 +165,6 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
                     onClick={onSettingsClick}
                   >
                     — {t("ui.settings")}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="menu-link flex min-h-11 w-full items-center"
-                    onClick={() => {
-                      setOpen(false);
-                      pickBulk();
-                    }}
-                  >
-                    — {t("ui.bulkUpload")}
                   </button>
                   <button
                     type="button"

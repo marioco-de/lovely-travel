@@ -8,6 +8,7 @@ import { useFormatDay, useT } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DayMark } from "./DayMark";
+import { EditGear, GearAction } from "./EditGear";
 
 const DAY_CAP = 20;
 const HIGHLIGHT_CAP = 12;
@@ -1039,15 +1040,34 @@ export function GoogleImport() {
                       {t("ui.mergePlace")}
                     </button>
                   ) : null}
-                  {day.hidden ? null : layoutDays.some((item) => item.id === day.id) ? (
-                    <a className="album-btn" href={`/e/${editHash}#day-${day.id}`}>
-                      {t("ui.editDay")}
-                    </a>
-                  ) : (
-                    <button type="button" className="album-btn" disabled={busy} onClick={() => void publishDay(day)}>
-                      {busy ? t("ui.googleImporting") : t("ui.createDay")}
-                    </button>
-                  )}
+                  <EditGear label={t("ui.daySettings")}>
+                    {(close) => (
+                      <>
+                        {day.hidden ? null : layoutDays.some((item) => item.id === day.id) ? (
+                          <GearAction href={`/e/${editHash}#day-${day.id}`}>{t("ui.editDay")}</GearAction>
+                        ) : (
+                          <GearAction
+                            onClick={() => {
+                              close();
+                              void publishDay(day);
+                            }}
+                          >
+                            {busy ? t("ui.googleImporting") : t("ui.createDay")}
+                          </GearAction>
+                        )}
+                        {dayIndex > 0 ? (
+                          <GearAction
+                            onClick={() => {
+                              mergePrev(day.id);
+                              close();
+                            }}
+                          >
+                            {t("ui.mergePlace")}
+                          </GearAction>
+                        ) : null}
+                      </>
+                    )}
+                  </EditGear>
                 </div>
                 <div className="curate-grid" data-density={density}>
                   {(hideOff ? day.photos.filter((photo) => day.selected.has(photo.id)) : day.photos).map((photo) => {
