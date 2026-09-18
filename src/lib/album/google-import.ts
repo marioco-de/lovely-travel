@@ -20,10 +20,14 @@ export type ImportPhoto = {
 export type ImportDayDraft = {
   id: string;
   dateKey: string;
+  name?: string;
   place: string;
+  lat?: number;
+  lng?: number;
   photos: ImportPhoto[];
   selectedIds?: string[];
   hidden?: boolean;
+  status?: 0 | 1 | 2;
 };
 
 const UNKNOWN = "Unbekannter Ort";
@@ -98,7 +102,10 @@ export const previewGoogleLink = createServerFn({ method: "POST" })
         days.push({
           id: newId("imp"),
           dateKey,
+          name: "",
           place: top || UNKNOWN,
+          lat: cluster.find((photo) => photo.lat != null)?.lat,
+          lng: cluster.find((photo) => photo.lng != null)?.lng,
           photos: cluster,
         });
       }
@@ -114,8 +121,12 @@ const draftSchema = z.object({
     z.object({
       id: z.string(),
       dateKey: z.string(),
+      name: z.string().max(160).optional(),
       place: z.string().max(160),
+      lat: z.number().optional(),
+      lng: z.number().optional(),
       hidden: z.boolean().optional(),
+      status: z.number().min(0).max(2).optional(),
       photos: z.array(
         z.object({
           id: z.string(),
@@ -299,10 +310,14 @@ export const loadCuration = createServerFn({ method: "POST" })
         return {
           id: day.id,
           dateKey: day.title,
+          name: day.name || "",
           place: day.placeLabel || UNKNOWN,
-          hidden: day.hidden,
+          lat: day.lat,
+          lng: day.lng,
+          hidden: day.hidden || day.status === 0,
+          status: day.status,
           photos: mapped,
-          selectedIds: mapped.filter((photo) => selected.has(photoKey(photo))).map((photo) => photo.id),
+          selectedIds: mapped.filter((photo) => selected.has(photoKey(photo)) || day.photos.some((member) => member.photoId === photo.id && (member.status ?? 0) >= 1)).map((photo) => photo.id),
         };
       });
     return {
@@ -439,11 +454,16 @@ export const saveCurationFlags = createServerFn({ method: "POST" })
         id: day.id,
         sortIndex: index,
         title: day.dateKey,
+        name: day.name || "",
         placeLabel: day.place,
+        lat: day.lat,
+        lng: day.lng,
         hidden: day.hidden,
+        status: (day.status ?? (day.hidden ? 0 : 1)) as 0 | 1 | 2,
         photos: day.photos.map((photo, sortIndex) => ({
           photoId: photo.id,
           inDayAlbum: photo.selected,
+          status: (data.highlights.includes(photo.id) ? 2 : photo.selected ? 1 : 0) as 0 | 1 | 2,
           sortIndex,
         })),
       })),

@@ -48,6 +48,9 @@ type AlbumState = {
   googleAlbumUrl: string;
   googleAlbumUrls: string[];
   allowUploads: boolean;
+  albumPlace: string;
+  albumLat?: number;
+  albumLng?: number;
   highlights: string[];
   dayAlbums: Record<string, { all: string[]; selected: string[] }>;
   layout: AlbumLayout;
@@ -116,6 +119,7 @@ type AlbumState = {
   setGoogleAlbumUrl: (url: string) => void;
   addGoogleAlbumUrl: (url: string) => void;
   removeGoogleAlbumUrl: (url: string) => void;
+  setAlbumPlace: (value: { name: string; lat?: number; lng?: number }) => void;
   setAllowUploads: (value: boolean) => void;
   placeEditId: string | null;
   setPlaceEditId: (id: string | null) => void;
@@ -479,6 +483,9 @@ export const useAlbum = create<AlbumState>((set, get) => ({
   googleAlbumUrl: "",
   googleAlbumUrls: [],
   allowUploads: true,
+  albumPlace: "",
+  albumLat: undefined,
+  albumLng: undefined,
   highlights: [],
   dayAlbums: {},
   layout: seedLayout(),
@@ -1165,6 +1172,9 @@ export const useAlbum = create<AlbumState>((set, get) => ({
       allowUploads,
       highlights,
       dayAlbums,
+      albumPlace: localTrip?.payload.place ?? remote?.payload.place ?? "",
+      albumLat: localTrip?.payload.lat ?? remote?.payload.lat,
+      albumLng: localTrip?.payload.lng ?? remote?.payload.lng,
       photos,
       saveStatus: "saved",
     });
@@ -1277,6 +1287,15 @@ export const useAlbum = create<AlbumState>((set, get) => ({
     });
     scheduleRemote(get);
   },
+  setAlbumPlace: (value) => {
+    set({
+      albumPlace: value.name,
+      albumLat: value.lat,
+      albumLng: value.lng,
+      saveStatus: "saving",
+    });
+    scheduleRemote(get);
+  },
   setAllowUploads: (value) => {
     set({ allowUploads: value, saveStatus: "saving" });
     scheduleRemote(get);
@@ -1318,6 +1337,9 @@ function persistLayout(
               allowUploads: state.allowUploads,
               highlights: state.highlights,
               dayAlbums: state.dayAlbums,
+              place: state.albumPlace || undefined,
+              lat: state.albumLat,
+              lng: state.albumLng,
             },
             createdAt: existing?.createdAt ?? new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -1400,6 +1422,9 @@ async function pushRemote(state: AlbumState) {
     allowUploads: state.allowUploads,
     highlights: state.highlights,
     dayAlbums: state.dayAlbums,
+    place: state.albumPlace || undefined,
+    lat: state.albumLat,
+    lng: state.albumLng,
   };
   if (state.publicHash) {
     try {

@@ -18,6 +18,9 @@ export type TripPayload = {
   allowUploads?: boolean;
   highlights?: string[];
   dayAlbums?: Record<string, { all: string[]; selected: string[] }>;
+  place?: string;
+  lat?: number;
+  lng?: number;
 };
 
 export type TripRecord = {
@@ -53,6 +56,9 @@ const payloadSchema = z.object({
   allowUploads: z.boolean().optional(),
   highlights: z.array(z.string()).optional(),
   dayAlbums: z.record(z.string(), z.object({ all: z.array(z.string()), selected: z.array(z.string()) })).optional(),
+  place: z.string().max(160).optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 });
 
 function newId() {

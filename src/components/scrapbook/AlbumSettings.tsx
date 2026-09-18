@@ -7,6 +7,7 @@ import { LocaleHydrator, useT } from "@/lib/i18n/locale";
 import { AlbumMenu } from "./AlbumMenu";
 import { EditGear, GearAction } from "./EditGear";
 import { GoogleImport } from "./GoogleImport";
+import { PlaceChip, PlacePicker } from "./PlacePicker";
 
 type AlbumSettingsProps = {
   editHash: string;
@@ -19,9 +20,14 @@ export function AlbumSettings({ editHash }: AlbumSettingsProps) {
   const ready = useAlbum((s) => s.ready);
   const saveStatus = useAlbum((s) => s.saveStatus);
   const setText = useAlbum((s) => s.setText);
+  const albumPlace = useAlbum((s) => s.albumPlace);
+  const albumLat = useAlbum((s) => s.albumLat);
+  const albumLng = useAlbum((s) => s.albumLng);
+  const setAlbumPlace = useAlbum((s) => s.setAlbumPlace);
   const titleDe = useAlbum((s) => s.texts.de?.["album.title"] ?? "");
   const titleEn = useAlbum((s) => s.texts.en?.["album.title"] ?? "");
   const [title, setTitle] = useState("");
+  const [placeOpen, setPlaceOpen] = useState(false);
 
   useEffect(() => {
     setTitle(titleDe || titleEn);
@@ -76,6 +82,10 @@ export function AlbumSettings({ editHash }: AlbumSettingsProps) {
                 placeholder={t("ui.title")}
               />
             </label>
+            <div>
+              <span className="mb-1 block font-display text-kicker tracking-widest text-ink-soft uppercase">{t("ui.albumPlace")}</span>
+              <PlaceChip label={albumPlace} onClick={() => setPlaceOpen(true)} />
+            </div>
             <SettingsPassword editHash={editHash} publicHash={publicHash} />
           </section>
         </header>
@@ -89,6 +99,15 @@ export function AlbumSettings({ editHash }: AlbumSettingsProps) {
           </div>
         </section>
       </main>
+      <PlacePicker
+        open={placeOpen}
+        value={{ name: albumPlace, lat: albumLat, lng: albumLng }}
+        onClose={() => setPlaceOpen(false)}
+        onSave={(hit) => {
+          setAlbumPlace(hit);
+          setPlaceOpen(false);
+        }}
+      />
     </div>
   );
 }

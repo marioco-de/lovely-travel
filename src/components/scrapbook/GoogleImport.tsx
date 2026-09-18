@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DayMark } from "./DayMark";
 import { EditGear, GearAction } from "./EditGear";
+import { PlaceChip, PlacePicker } from "./PlacePicker";
 
 const DAY_CAP = 20;
 const HIGHLIGHT_CAP = 12;
@@ -127,6 +128,7 @@ function fromDays(days: ImportDayDraft[], capNew: boolean): DayDraft[] {
         const selectedIds = new Set(day.selectedIds ?? (capNew ? photos.slice(0, DAY_CAP).map((photo) => photo.id) : []));
         return {
           ...day,
+          name: day.name || "",
           photos,
           selected: new Set(photos.filter((photo) => selectedIds.has(photo.id)).map((photo) => photo.id)),
         };
@@ -156,6 +158,7 @@ function mergeRefresh(current: DayDraft[], incoming: ImportDayDraft[]): DayDraft
     const created: DayDraft = {
       id: `imp-${Date.now().toString(36)}-${next.length}`,
       dateKey,
+      name: "",
       place,
       photos: [],
       selected: new Set(),
@@ -291,6 +294,7 @@ export function GoogleImport() {
   const [hideOff, setHideOff] = useState(false);
   const [freshIds, setFreshIds] = useState<Set<string>>(() => new Set());
   const [removeUrl, setRemoveUrl] = useState<string | null>(null);
+  const [placeEdit, setPlaceEdit] = useState<string | null>(null);
   const clickTimer = useRef(0);
   const lastTap = useRef<{ id: string; time: number } | null>(null);
   const dragRef = useRef<DragPhoto | null>(null);
@@ -305,6 +309,7 @@ export function GoogleImport() {
 
   daysRef.current = days;
   highlightsRef.current = highlights;
+  const editingPlace = days?.find((day) => day.id === placeEdit);
 
   useEffect(() => {
     setDensity(readDensity());
@@ -463,7 +468,11 @@ export function GoogleImport() {
       days: exclusiveDays((list ?? []).filter((day) => isDayKey(day.dateKey))).map((day) => ({
         id: day.id,
         dateKey: day.dateKey,
+        name: day.name || "",
         place: day.place,
+        lat: day.lat,
+        lng: day.lng,
+        status: day.hidden ? 0 : layoutDays.some((item) => item.id === day.id && item.id !== COVER_ID) ? 2 : 1,
         photos: day.photos.map((photo) => ({
           id: photo.id,
           uid: photo.uid,
@@ -1086,17 +1095,20 @@ export function GoogleImport() {
                     {formatDay(day.dateKey)}
                   </p>
                   <input
-                    value={day.place}
+                    value={day.name || ""}
                     onChange={(event) =>
                       setDays(
                         (current) =>
-                          current?.map((item) => (item.id === day.id ? { ...item, place: event.target.value } : item)) ??
+                          current?.map((item) => (item.id === day.id ? { ...item, name: event.target.value } : item)) ??
                           null,
                       )
                     }
+                    onBlur={() => persistFlags()}
                     className="album-field max-w-xs"
-                    aria-label={t("ui.place")}
+                    placeholder={t("ui.dayName")}
+                    aria-label={t("ui.dayName")}
                   />
+                  <PlaceChip label={day.place === UNKNOWN ? "" : day.place} onClick={() => setPlaceEdit(day.id)} />
                   <span className="font-typewriter text-[0.7rem] tracking-wide text-ink-soft">
                     {day.selected.size}/{day.photos.length}
                   </span>
@@ -1329,6 +1341,28 @@ export function GoogleImport() {
             document.body,
           )
         : null}
+      <PlacePicker
+        open={Boolean(placeEdit)}
+        value={{
+          name: editingPlace?.place && editingPlace.place !== UNKNOWN ? editingPlace.place : "",
+          lat: editingPlace?.lat,
+          lng: editingPlace?.lng,
+        }}
+        onClose={() => setPlaceEdit(null)}
+        onSave={(hit) => {
+          setDays((current) => {
+            const next =
+              current?.map((item) =>
+                item.id === placeEdit
+                  ? { ...item, place: hit.name.trim() || UNKNOWN, lat: hit.lat, lng: hit.lng }
+                  : item,
+              ) ?? null;
+            persistFlags(next);
+            return next;
+          });
+          setPlaceEdit(null);
+        }}
+      />
       <ConfirmDialog
         open={Boolean(removeUrl)}
         title={t("ui.confirmRemove")}

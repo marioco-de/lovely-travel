@@ -1,5 +1,8 @@
 import type { Sql } from "@/lib/db";
 
+export type PhotoStatus = 0 | 1 | 2;
+export type DayStatus = 0 | 1 | 2;
+
 export type CatalogPhoto = {
   id: string;
   blobUrl: string;
@@ -15,11 +18,13 @@ export type CatalogDay = {
   id: string;
   sortIndex: number;
   title: string;
+  name?: string;
   placeLabel: string;
   lat?: number;
   lng?: number;
   hidden?: boolean;
-  photos: { photoId: string; inDayAlbum: boolean; sortIndex: number }[];
+  status?: DayStatus;
+  photos: { photoId: string; inDayAlbum: boolean; status?: PhotoStatus; sortIndex: number }[];
 };
 
 export type Catalog = {
@@ -56,6 +61,20 @@ export async function ensureCatalog(sql: Sql) {
     )
   `);
   await sql.query(`alter table trip_days add column if not exists hidden boolean not null default false`);
+  await sql.query(`alter table trip_days add column if not exists name text not null default ''`);
+  await sql.query(`alter table trip_days add column if not exists status smallint not null default 1`);
+  await sql.query(`alter table trips add column if not exists place_label text not null default ''`);
+  await sql.query(`alter table trips add column if not exists lat double precision`);
+  await sql.query(`alter table trips add column if not exists lng double precision`);
+  await sql.query(`
+    update trip_days
+    set name = place_label, place_label = ''
+    where name = ''
+      and place_label <> ''
+      and place_label not like '%,%'
+      and lower(place_label) not in ('unbekannter ort', 'unknown place')
+  `);
+  await sql.query(`update trip_days set status = 0 where hidden = true and status = 1`);
   await sql.query(`
     create table if not exists day_photos (
       day_id text not null references trip_days (id) on delete cascade,
@@ -65,6 +84,8 @@ export async function ensureCatalog(sql: Sql) {
       primary key (day_id, photo_id)
     )
   `);
+  await sql.query(`alter table day_photos add column if not exists status smallint not null default 0`);
+  await sql.query(`update day_photos set status = 1 where in_day_album = true and status = 0`);
   await sql.query(`
     create table if not exists album_highlights (
       trip_id text not null references trips (id) on delete cascade,
@@ -72,6 +93,13 @@ export async function ensureCatalog(sql: Sql) {
       sort_index int not null default 0,
       primary key (trip_id, photo_id)
     )
+  `);
+  await sql.query(`
+    update day_photos dp
+    set status = 2
+    from album_highlights h
+    join trip_days d on d.id = dp.day_id
+    where h.photo_id = dp.photo_id and h.trip_id = d.trip_id and dp.status < 2
   `);
 }
 
@@ -94,21 +122,24 @@ export async function loadCatalog(sql: Sql, tripId: string): Promise<Catalog> {
     id: string;
     sort_index: number;
     title: string;
+    name: string;
     place_label: string;
     lat: number | null;
     lng: number | null;
     hidden: boolean;
+    status: number;
   }>`
-    select id, sort_index, title, place_label, lat, lng, hidden from trip_days
+    select id, sort_index, title, name, place_label, lat, lng, hidden, status from trip_days
     where trip_id = ${tripId} order by sort_index
   `;
   const members = await sql<{
     day_id: string;
     photo_id: string;
     in_day_album: boolean;
+    status: number;
     sort_index: number;
   }>`
-    select dp.day_id, dp.photo_id, dp.in_day_album, dp.sort_index
+    select dp.day_id, dp.photo_id, dp.in_day_album, dp.status, dp.sort_index
     from day_photos dp
     join trip_days d on d.id = dp.day_id
     where d.trip_id = ${tripId}
@@ -119,7 +150,12 @@ export async function loadCatalog(sql: Sql, tripId: string): Promise<Catalog> {
   const byDay = new Map<string, CatalogDay["photos"]>();
   for (const row of members) {
     const list = byDay.get(row.day_id) ?? [];
-    list.push({ photoId: row.photo_id, inDayAlbum: row.in_day_album, sortIndex: row.sort_index });
+    list.push({
+      photoId: row.photo_id,
+      inDayAlbum: row.in_day_album || row.status >= 1,
+      status: (row.status >= 2 ? 2 : row.status >= 1 || row.in_day_album ? 1 : 0) as PhotoStatus,
+      sortIndex: row.sort_index,
+    });
     byDay.set(row.day_id, list);
   }
   return {
@@ -137,10 +173,12 @@ export async function loadCatalog(sql: Sql, tripId: string): Promise<Catalog> {
       id: day.id,
       sortIndex: day.sort_index,
       title: day.title,
+      name: day.name || "",
       placeLabel: day.place_label,
       lat: day.lat ?? undefined,
       lng: day.lng ?? undefined,
-      hidden: day.hidden,
+      hidden: day.hidden || day.status === 0,
+      status: (day.status === 0 ? 0 : day.status === 2 ? 2 : 1) as DayStatus,
       photos: (byDay.get(day.id) ?? []).sort((a, b) => a.sortIndex - b.sortIndex),
     })),
     highlights: highlights.map((row) => ({ photoId: row.photo_id, sortIndex: row.sort_index })),
@@ -338,42 +376,58 @@ export async function syncCurationCatalog(sql: Sql, tripId: string, catalog: Cat
   }
   if (days.length) {
     await sql.query(
-      `insert into trip_days (id, trip_id, sort_index, title, place_label, hidden)
-       select id, $1, sort, title, place, hidden
-       from unnest($2::text[], $3::int[], $4::text[], $5::text[], $6::bool[])
-         as t(id, sort, title, place, hidden)
+      `insert into trip_days (id, trip_id, sort_index, title, name, place_label, lat, lng, hidden, status)
+       select id, $1, sort, title, name, place, nullif(lat, 0), nullif(lng, 0), hidden, status
+       from unnest($2::text[], $3::int[], $4::text[], $5::text[], $6::text[], $7::float8[], $8::float8[], $9::bool[], $10::int[])
+         as t(id, sort, title, name, place, lat, lng, hidden, status)
        on conflict (id) do update set
          sort_index = excluded.sort_index,
          title = excluded.title,
+         name = excluded.name,
          place_label = excluded.place_label,
-         hidden = excluded.hidden`,
+         lat = coalesce(excluded.lat, trip_days.lat),
+         lng = coalesce(excluded.lng, trip_days.lng),
+         hidden = excluded.hidden,
+         status = excluded.status`,
       [
         tripId,
         days.map((day) => day.id),
         days.map((day) => day.sortIndex),
         days.map((day) => day.title),
+        days.map((day) => day.name || ""),
         days.map((day) => day.placeLabel),
-        days.map((day) => Boolean(day.hidden)),
+        days.map((day) => day.lat ?? 0),
+        days.map((day) => day.lng ?? 0),
+        days.map((day) => Boolean(day.hidden) || day.status === 0),
+        days.map((day) => day.status ?? (day.hidden ? 0 : 1)),
       ],
     );
     const dayIds = days.map((day) => day.id);
     await sql.query(`delete from day_photos where day_id = any($1::text[])`, [dayIds]);
     const members = days.flatMap((day) =>
-      day.photos.map((photo) => ({ dayId: day.id, photoId: photo.photoId, on: photo.inDayAlbum, sort: photo.sortIndex })),
+      day.photos.map((photo) => ({
+        dayId: day.id,
+        photoId: photo.photoId,
+        on: (photo.status ?? 0) >= 1 || photo.inDayAlbum,
+        status: (photo.status ?? 0) >= 2 ? 2 : (photo.status ?? 0) >= 1 || photo.inDayAlbum ? 1 : 0,
+        sort: photo.sortIndex,
+      })),
     );
     if (members.length) {
       await sql.query(
-        `insert into day_photos (day_id, photo_id, in_day_album, sort_index)
-         select day_id, photo_id, chosen, sort_i
-         from unnest($1::text[], $2::text[], $3::bool[], $4::int[])
-           as t(day_id, photo_id, chosen, sort_i)
+        `insert into day_photos (day_id, photo_id, in_day_album, status, sort_index)
+         select day_id, photo_id, chosen, status, sort_i
+         from unnest($1::text[], $2::text[], $3::bool[], $4::int[], $5::int[])
+           as t(day_id, photo_id, chosen, status, sort_i)
          on conflict (day_id, photo_id) do update set
            in_day_album = excluded.in_day_album,
+           status = excluded.status,
            sort_index = excluded.sort_index`,
         [
           members.map((item) => item.dayId),
           members.map((item) => item.photoId),
           members.map((item) => item.on),
+          members.map((item) => item.status),
           members.map((item) => item.sort),
         ],
       );
