@@ -1290,6 +1290,10 @@ export function GoogleImport() {
             onBulkHide={() => setPickedInDay(false)}
             onBulkDate={(value) => applyPicked({ takenAt: value })}
             onBulkPlace={(value) => applyPicked({ place: value })}
+            onSave={async () => {
+              window.clearTimeout(flagTimer.current);
+              await flushFlags();
+            }}
             seedDate={(() => {
               const id = [...picked][0];
               if (!id || !days) return 0;
@@ -1473,6 +1477,7 @@ function CurateDock({
   onBulkPlace,
   seedDate,
   seedPlace,
+  onSave,
 }: {
   density: Density;
   wide: boolean;
@@ -1491,12 +1496,14 @@ function CurateDock({
   onBulkPlace: (value: string) => void;
   seedDate: number;
   seedPlace: string;
+  onSave: () => void | Promise<void>;
 }) {
   const t = useT();
   const [mounted, setMounted] = useState(false);
   const [bulkEdit, setBulkEdit] = useState<null | "date" | "place">(null);
   const [dateValue, setDateValue] = useState("");
   const [placeValue, setPlaceValue] = useState("");
+  const [saved, setSaved] = useState(false);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (pickedCount === 0) setBulkEdit(null);
@@ -1633,6 +1640,21 @@ function CurateDock({
             </button>
           </>
         )}
+        <span className="curate-dock-rule" aria-hidden="true" />
+        <button
+          type="button"
+          className={cn("curate-dock-btn", saved && "is-on")}
+          aria-label={t("ui.curateSave")}
+          title={t("ui.curateSave")}
+          onClick={() => {
+            void Promise.resolve(onSave()).then(() => {
+              setSaved(true);
+              window.setTimeout(() => setSaved(false), 1400);
+            });
+          }}
+        >
+          <FloppyIcon />
+        </button>
         </div>
       </div>
     </div>,
@@ -1717,6 +1739,17 @@ function StarIcon() {
         fill="currentColor"
         d="M12 3.4 14.4 9l6.1.5-4.7 3.9 1.5 5.9L12 16.2 6.7 19.3l1.5-5.9L3.5 9.5 9.6 9z"
       />
+    </svg>
+  );
+}
+
+function FloppyIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 4.6h11.2L19.4 8v11.4H5V4.6Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M8 4.6h8V9.4H8V4.6Z" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 14.2h8v5.2H8v-5.2Z" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M10 4.6v4.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
