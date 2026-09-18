@@ -2,11 +2,12 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { createPortal } from "react-dom";
 import { dayKey, isDayKey } from "@/lib/album/exif";
 import { addCurationPhoto, confirmGoogleLink, loadCuration, previewGoogleLink, saveCuration, saveCurationFlags, type ImportDayDraft, type ImportPhoto } from "@/lib/album/google-import";
-import { newId } from "@/lib/album/layout";
+import { COVER_ID, newId } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useFormatDay, useT } from "@/lib/i18n/locale";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { DayMark } from "./DayMark";
 
 const DAY_CAP = 20;
 const HIGHLIGHT_CAP = 12;
@@ -192,8 +193,9 @@ export function GoogleImport() {
   const allowUploads = useAlbum((s) => s.allowUploads);
   const addGoogleAlbumUrl = useAlbum((s) => s.addGoogleAlbumUrl);
   const removeGoogleAlbumUrl = useAlbum((s) => s.removeGoogleAlbumUrl);
-  const applyGoogleImport = useAlbum((s) => s.applyGoogleImport);
+  const publishCurationDay = useAlbum((s) => s.publishCurationDay);
   const syncCuration = useAlbum((s) => s.syncCuration);
+  const layoutDays = useAlbum((s) => s.layout.days);
   const [url, setUrl] = useState(savedUrl);
   const [days, setDays] = useState<DayDraft[] | null>(null);
   const [highlights, setHighlights] = useState<string[]>([]);
@@ -415,40 +417,37 @@ export function GoogleImport() {
     }, 400);
   }
 
-  async function confirm() {
-    if (!editHash || !days?.length) return;
+  async function publishDay(day: DayDraft) {
+    if (!editHash) return;
     setBusy(true);
     setError(false);
     try {
-      if (pendingPreview) {
-        const result = await confirmGoogleLink({ data: curationPayload() });
-        if (!result.ok) {
-          setError(true);
-          return;
-        }
-        applyGoogleImport({
-          photos: result.photos,
-          highlights: result.highlights,
-          days: result.days,
-        });
-        setPendingPreview(false);
-      } else {
-        const result = await saveCuration({ data: curationPayload() });
-        if (!result.ok) {
-          setError(true);
-          return;
-        }
-        syncCuration({
-          photos: result.photos,
-          highlights,
-          days: days.map((day) => ({
-            id: day.id,
-            place: day.place,
-            selected: [...day.selected],
-            all: day.photos.map((photo) => photo.id),
-          })),
-        });
+      const payload = curationPayload();
+      const uploaded = pendingPreview
+        ? await confirmGoogleLink({ data: payload })
+        : await saveCuration({ data: payload });
+      if (!uploaded.ok) {
+        setError(true);
+        return;
       }
+      const photos: Record<string, string> = { ...uploaded.photos };
+      for (const photo of day.photos) {
+        if (!photos[photo.id]) photos[photo.id] = photo.url || photo.thumb;
+      }
+      for (const star of highlights) {
+        if (photos[star]) continue;
+        const hit = days?.flatMap((item) => item.photos).find((item) => item.id === star);
+        if (hit) photos[star] = hit.url || hit.thumb;
+      }
+      publishCurationDay({
+        id: day.id,
+        place: day.place,
+        selected: [...day.selected],
+        all: day.photos.map((photo) => photo.id),
+        photos,
+        highlights,
+      });
+      setPendingPreview(false);
     } catch {
       setError(true);
     } finally {
@@ -954,6 +953,15 @@ export function GoogleImport() {
                 }}
               >
                 <div className="flex flex-wrap items-end gap-2">
+                  <DayMark
+                    index={
+                      layoutDays.some((item) => item.id === day.id)
+                        ? layoutDays.filter((item) => item.id !== COVER_ID).findIndex((item) => item.id === day.id)
+                        : layoutDays.filter((item) => item.id !== COVER_ID).length
+                    }
+                    size="sm"
+                    rotation={dayIndex % 2 === 0 ? -10 : 8}
+                  />
                   <p className="flex items-center gap-0.5 font-typewriter text-place font-bold text-ink">
                     {formatDay(day.dateKey)}
                     {dayIndex === 0 || days[dayIndex - 1]?.dateKey !== day.dateKey ? (
@@ -1013,6 +1021,15 @@ export function GoogleImport() {
                       {t("ui.mergePlace")}
                     </button>
                   ) : null}
+                  {day.hidden ? null : layoutDays.some((item) => item.id === day.id) ? (
+                    <a className="album-btn" href={`/e/${editHash}#day-${day.id}`}>
+                      {t("ui.editDay")}
+                    </a>
+                  ) : (
+                    <button type="button" className="album-btn" disabled={busy} onClick={() => void publishDay(day)}>
+                      {busy ? t("ui.googleImporting") : t("ui.createDay")}
+                    </button>
+                  )}
                 </div>
                 <div className="curate-grid" data-density={density}>
                   {day.photos.map((photo, photoIndex) => {
@@ -1094,9 +1111,6 @@ export function GoogleImport() {
             ))}
           </div>
           <p className="mt-3 font-script text-sm text-ink-soft">{t("ui.googleHighlightHint")}</p>
-          <button type="button" className="album-btn mt-3" disabled={busy} onClick={() => void confirm()}>
-            {pendingPreview ? t("ui.googleConfirm") : t("ui.googleSave")}
-          </button>
           <CurateDock
             density={density}
             wide={wide}
