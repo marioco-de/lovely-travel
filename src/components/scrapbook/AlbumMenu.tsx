@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { albumEditHref, albumPublicHref, albumSettingsHref } from "@/lib/album/featured";
+import { albumPublicHref, albumSettingsHref } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { peekOwnerSession } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -89,21 +89,11 @@ export function AlbumMenu({ variant = "album", onEdit, onSave }: AlbumMenuProps)
   }
 
   async function onEditClick() {
-    const href = albumEditHref(publicHash, editHash);
-    if (canEdit && href && window.location.pathname.startsWith(href)) {
-      onEdit?.();
-      setOpen(false);
-      return;
-    }
     const key = publicHash || editHash;
     if (key) {
       const session = await peekOwnerSession({ data: { hash: key } }).catch(() => null);
       if (session?.editHash) {
         becomeOwner(session.editHash);
-        if (href) {
-          window.location.href = href;
-          return;
-        }
         onEdit?.();
         setOpen(false);
         return;

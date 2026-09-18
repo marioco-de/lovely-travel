@@ -28,6 +28,8 @@ export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }
   const storePublicHash = useAlbum((s) => s.publicHash);
   const googleAlbumUrl = useAlbum((s) => s.googleAlbumUrl);
   const bindTrip = useAlbum((s) => s.bindTrip);
+  const enableEdit = useAlbum((s) => s.enableEdit);
+  const lockEdit = useAlbum((s) => s.lockEdit);
   const addDay = useAlbum((s) => s.addDay);
   const reset = useAlbum((s) => s.reset);
   const setPlaceEditId = useAlbum((s) => s.setPlaceEditId);
@@ -37,6 +39,10 @@ export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }
   useEffect(() => {
     void bindTrip({ mode, publicHash, editHash: routeEditHash });
   }, [bindTrip, mode, publicHash, routeEditHash]);
+
+  useEffect(() => {
+    if (mode === "edit") enableEdit();
+  }, [mode, enableEdit]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -95,7 +101,7 @@ export function AlbumPage({ mode = "demo", publicHash, editHash: routeEditHash }
         {t("ui.skipToMap")}
       </a>
 
-      <AlbumMenu />
+      <AlbumMenu onEdit={enableEdit} onSave={lockEdit} />
 
       <HeroCollage />
       {canEdit || googleAlbumUrl ? (
