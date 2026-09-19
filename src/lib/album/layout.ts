@@ -14,7 +14,7 @@ import { PLACES, type GeoHit } from "./places";
 
 export type I18nPair = { en: string; de: string } & Partial<Record<Locale, string>>;
 
-export type BlockKind = "collage" | "photo" | "polaroid" | "place" | "note" | "poi";
+export type BlockKind = "intro" | "collage" | "photo" | "polaroid" | "place" | "note" | "poi";
 
 export type PhotoFormat = "square" | "fourThree" | "original" | "oval";
 export const PHOTO_FORMATS: PhotoFormat[] = ["square", "fourThree", "original", "oval"];
@@ -340,18 +340,27 @@ export function unifyLayouts(...candidates: Array<AlbumLayout | undefined>): Alb
 
 export const COLLAGE_MIN = 2;
 export const COLLAGE_MAX = 10;
+export const POLAROID_MIN = 2;
 
 export function emptyBlock(kind: BlockKind, dayPlace: I18nPair): LayoutBlock {
-  const photoCount = kind === "collage" ? COLLAGE_MIN : kind === "photo" || kind === "polaroid" ? 1 : 0;
+  const photoCount = kind === "collage" || kind === "polaroid" ? COLLAGE_MIN : kind === "intro" ? 2 : kind === "photo" ? 1 : 0;
+  const photoIds = Array.from({ length: photoCount }, () => newId("pic"));
+  const notes =
+    kind === "intro" && photoIds[0] && photoIds[1]
+      ? {
+          [photoIds[0]]: { ...emptyPhotoNote(), format: "fourThree" as const },
+          [photoIds[1]]: { ...emptyPhotoNote(), format: "square" as const },
+        }
+      : {};
   return {
     id: newId("block"),
     kind,
-    photoIds: Array.from({ length: photoCount }, () => newId("pic")),
+    photoIds,
     place: { ...dayPlace },
     caption: emptyPair(),
     body: emptyPair(),
-    photoNotes: {},
-    writingPaper: kind === "note" ? "lined" : undefined,
+    photoNotes: notes,
+    writingPaper: kind === "note" || kind === "intro" ? "lined" : undefined,
     poi: kind === "poi" ? emptyPoi() : undefined,
   };
 }

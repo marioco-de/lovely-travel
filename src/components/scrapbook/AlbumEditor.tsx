@@ -17,6 +17,7 @@ type AlbumEditorProps = {
 };
 
 const BLOCK_KINDS: { kind: BlockKind; label: MessageKey }[] = [
+  { kind: "intro", label: "ui.addIntro" },
   { kind: "collage", label: "ui.addCollage" },
   { kind: "photo", label: "ui.addPhoto" },
   { kind: "polaroid", label: "ui.addPolaroid" },

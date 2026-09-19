@@ -388,7 +388,10 @@ function fillCoverHighlights(layout: AlbumLayout, highlights: string[], photos: 
     });
     if (queue.length && !blocks.some((block) => block.photoIds.length)) {
       const showcase = queue.slice(0, COLLAGE_MAX);
-      const block = emptyBlock(showcase.length >= COLLAGE_MIN ? "collage" : "photo", day.place);
+      const block = emptyBlock(
+        showcase.length >= 3 ? "collage" : showcase.length === 2 ? "intro" : "photo",
+        day.place,
+      );
       block.photoIds = showcase;
       block.photoNotes = Object.fromEntries(showcase.map((id) => [id, emptyPhotoNote()]));
       return { ...day, blocks: [block, ...blocks] };
@@ -445,7 +448,10 @@ function ensureCurationDay(
       block.photoIds.some((id) => !isCoverPlaceholder(id, photos)),
     );
     if (hasReal) return day;
-    const block = emptyBlock(showcase.length >= COLLAGE_MIN ? "collage" : "photo", place);
+    const block = emptyBlock(
+      showcase.length >= 3 ? "collage" : showcase.length === 2 ? "intro" : "photo",
+      place,
+    );
     block.photoIds = showcase;
     block.photoNotes = Object.fromEntries(showcase.map((id) => [id, emptyPhotoNote()]));
     return { ...day, blocks: [block, ...day.blocks.filter((item) => !item.photoIds.length)] };
@@ -1049,7 +1055,7 @@ export const useAlbum = create<AlbumState>((set, get) => ({
           if (block.id !== blockId) return block;
           const notes = { ...block.photoNotes };
           delete notes[photoId];
-          if (block.kind === "collage" && block.photoIds.length > COLLAGE_MIN) {
+          if ((block.kind === "collage" || block.kind === "polaroid") && block.photoIds.length > COLLAGE_MIN) {
             return { ...block, photoIds: block.photoIds.filter((id) => id !== photoId), photoNotes: notes };
           }
           return { ...block, photoNotes: notes };

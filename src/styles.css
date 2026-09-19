@@ -1776,6 +1776,175 @@ body {
   line-height: 1;
   color: var(--color-ink);
 }
+
+.photo-add {
+  display: grid;
+  height: 100%;
+  place-items: center;
+}
+
+.photo-add--split {
+  position: relative;
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+}
+
+.photo-add-star,
+.photo-add-file {
+  display: grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  color: var(--color-stamp);
+  cursor: pointer;
+}
+
+.photo-add-rule {
+  width: 0;
+  align-self: stretch;
+  max-height: 2.8rem;
+  margin: 0.4rem 0;
+  border-left: 1px dashed color-mix(in oklab, var(--color-stamp) 42%, transparent);
+}
+
+.photo-highlight-sheet {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 50%;
+  z-index: 8;
+  width: min(18rem, 90vw);
+  padding: 0.55rem 0.6rem 0.7rem;
+  transform: translateX(-50%);
+}
+
+.photo-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.28rem;
+  margin-top: 0.35rem;
+}
+
+.photo-highlight-pick {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--color-stamp) 28%, transparent);
+}
+
+.photo-highlight-pick img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.intro-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(9.5rem, 0.72fr);
+  gap: 0.4rem 1.1rem;
+  align-items: start;
+}
+
+.intro-shot {
+  position: relative;
+  z-index: 2;
+}
+
+.intro-note {
+  position: relative;
+  z-index: 1;
+  width: min(90%, 24rem);
+  margin: -1.7rem 0 0 0.85rem;
+}
+
+.intro-polaroid {
+  position: relative;
+  z-index: 3;
+  margin-top: 12%;
+  transform: rotate(4.5deg);
+}
+
+.collage-mosaic--auto {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  align-items: start;
+  gap: 1.15rem 0.85rem;
+}
+
+.collage-mosaic--auto .collage-tile {
+  min-width: 0;
+}
+
+.collage-mosaic--auto .collage-tile[data-span="wide"] {
+  grid-column: span 7;
+}
+
+.collage-mosaic--auto .collage-tile[data-span="square"] {
+  grid-column: span 5;
+}
+
+.collage-mosaic--auto .collage-tile[data-span="portrait"] {
+  grid-column: span 4;
+}
+
+.collage-mosaic--auto .collage-tile:nth-child(even)[data-span="wide"] {
+  grid-column: span 8;
+}
+
+.collage-mosaic--auto .collage-tile:nth-child(3n)[data-span="square"] {
+  margin-top: 8%;
+}
+
+.collage-mosaic--auto .collage-tile:nth-child(even)[data-span="portrait"] {
+  margin-top: 10%;
+}
+
+.polaroid-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  justify-items: center;
+  gap: 1.2rem 1rem;
+  max-width: 68rem;
+  margin-inline: auto;
+}
+
+.polaroid-strip-tile {
+  width: 100%;
+  max-width: 14.5rem;
+}
+
+@media (max-width: 700px) {
+  .intro-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .intro-polaroid {
+    margin-top: 0;
+    max-width: 14rem;
+    justify-self: end;
+  }
+
+  .intro-note {
+    margin-top: -1.2rem;
+  }
+
+  .collage-mosaic--auto {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .collage-mosaic--auto .collage-tile[data-span="wide"],
+  .collage-mosaic--auto .collage-tile:nth-child(even)[data-span="wide"] {
+    grid-column: span 6;
+  }
+
+  .collage-mosaic--auto .collage-tile[data-span="square"],
+  .collage-mosaic--auto .collage-tile[data-span="portrait"] {
+    grid-column: span 3;
+    margin-top: 0;
+  }
+}
 .menu-link {
   display: block;
   width: 100%;

@@ -6,10 +6,10 @@ import { BlockBar } from "./BlockBar";
 import { CollageBlock } from "./CollageBlock";
 import { DayStarter } from "./DayStarter";
 import { Frame } from "./Frame";
+import { IntroBlock } from "./IntroBlock";
 import { NoteCard } from "./NoteCard";
 import { PlaceCard } from "./PlaceCard";
 import { PoiCard } from "./PoiCard";
-import { Polaroid } from "./Polaroid";
 import { SlideIn } from "./SlideIn";
 
 type BlockStackProps = {
@@ -99,19 +99,26 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
               onCaptionChange={(value) => patchPair(block, "caption", value)}
             />
           );
-        } else if (block.kind === "polaroid") {
-          if (!photoId && !canEdit) inner = null;
-          else if (photoId) {
+        } else if (block.kind === "intro") {
+          const wideId = block.photoIds[0] ?? photoId;
+          const polaId = block.photoIds[1] ?? block.photoIds[0];
+          if (!wideId && !canEdit) inner = null;
+          else if (wideId) {
             inner = (
-              <SlideIn from={reverse ? "right" : "left"} className="w-3/4 max-w-xs self-end md:w-[42%] md:max-w-sm">
-                <Polaroid
-                  photo={{ ...printOf(photoId, 0), kind: "polaroid", rotate: "right" }}
-                  dayId={day.id}
-                  blockId={block.id}
-                />
-              </SlideIn>
+              <IntroBlock
+                dayId={day.id}
+                blockId={block.id}
+                wide={printOf(wideId, 0)}
+                polaroid={printOf(polaId ?? wideId, 1)}
+                body={body}
+                paper={block.writingPaper}
+              />
             );
           }
+        } else if (block.kind === "polaroid") {
+          const tiles = (canEdit ? block.photoIds : visibleIds).map((id, i) => printOf(id, i));
+          if (tiles.length === 0) inner = null;
+          else inner = <CollageBlock photos={tiles} variant="polaroids" dayId={day.id} blockId={block.id} />;
         } else if (block.kind === "collage") {
           const tiles = (canEdit ? block.photoIds : visibleIds).map((id, i) => printOf(id, i));
           if (tiles.length === 0) inner = null;
@@ -120,7 +127,7 @@ export function BlockStack({ day, reverse = false }: BlockStackProps) {
           }
         } else if (photoId) {
           inner = (
-            <SlideIn from="left" className="day-frame max-w-3xl">
+            <SlideIn from="left" className="day-frame w-full">
               <Frame photo={printOf(photoId, 0)} dayId={day.id} blockId={block.id} />
             </SlideIn>
           );

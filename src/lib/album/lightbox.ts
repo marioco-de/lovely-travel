@@ -75,6 +75,10 @@ export function slidesForDay(
         play: note.play,
       });
     }
+    if (block.kind === "intro") {
+      const body = pairText(block.body, locale).trim();
+      if (body) slides.push({ kind: "note", key: `note:${block.id}`, body, paper: block.writingPaper ?? "lined" });
+    }
   }
   return slides;
 }

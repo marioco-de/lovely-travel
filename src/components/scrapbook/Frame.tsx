@@ -9,6 +9,7 @@ import { isVideoSrc, nextPlay } from "@/lib/album/media";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoCorners } from "./PhotoCorners";
 import { PhotoEdgeStamp } from "./PhotoEdgeStamp";
+import { EmptyPhotoSlot } from "./EmptyPhotoSlot";
 import { PhotoEditTools } from "./PhotoEditTools";
 import { PhotoStage } from "./PhotoStage";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -105,7 +106,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
     <figure className={cn("photo-block relative", canEdit && src && "photo-block--tabs", className)}>
       <div className={cn("photo-print relative", rotateClass[photo.rotate])}>
         <div className={cn("photo-shadow photo-mat relative overflow-visible bg-mat p-1.5", oval && "photo-mat--oval")}>
-          <div className={cn("relative overflow-hidden bg-page-deep", aspect, oval && "rounded-[50%]")}>
+          <div className={cn("relative bg-page-deep", aspect, oval && "rounded-[50%]", src ? "overflow-hidden" : "overflow-visible")}>
             {src ? (
               <PhotoStage
                 src={src}
@@ -120,22 +121,7 @@ export function Frame({ photo, className, showCaption = true, priority = false, 
                 play={play}
               />
             ) : canEdit ? (
-              <label className="photo-add grid h-full cursor-pointer place-items-center">
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void setPhoto(photo.id, file);
-                    event.target.value = "";
-                  }}
-                />
-                <span className="photo-add-plus" aria-hidden="true">
-                  +
-                </span>
-                <span className="sr-only">{t("ui.addPhoto")}</span>
-              </label>
+              <EmptyPhotoSlot photoId={photo.id} />
             ) : (
               <div className="photo-add grid h-full place-items-center">
                 <span className="photo-add-plus">{t("ui.addPhoto")}</span>

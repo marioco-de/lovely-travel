@@ -4,10 +4,11 @@ import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-const KINDS: { kind: BlockKind; key: "ui.addCollage" | "ui.addPhoto" | "ui.addPolaroid" | "ui.addPlace" | "ui.addNote" | "ui.addPoi" }[] = [
-  { kind: "collage", key: "ui.addCollage" },
+const KINDS: { kind: BlockKind; key: "ui.addIntro" | "ui.addCollage" | "ui.addPhoto" | "ui.addPolaroid" | "ui.addPlace" | "ui.addNote" | "ui.addPoi" }[] = [
+  { kind: "intro", key: "ui.addIntro" },
   { kind: "photo", key: "ui.addPhoto" },
   { kind: "polaroid", key: "ui.addPolaroid" },
+  { kind: "collage", key: "ui.addCollage" },
   { kind: "place", key: "ui.addPlace" },
   { kind: "note", key: "ui.addNote" },
   { kind: "poi", key: "ui.addPoi" },

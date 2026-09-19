@@ -8,6 +8,7 @@ import { nextFrame, nextFormat, type PhotoFormat, type PrintPhoto } from "@/lib/
 import { isVideoSrc, nextPlay } from "@/lib/album/media";
 import { PhotoCaption } from "./PhotoCaption";
 import { PhotoCorners } from "./PhotoCorners";
+import { EmptyPhotoSlot } from "./EmptyPhotoSlot";
 import { PhotoEditTools } from "./PhotoEditTools";
 import { PhotoStage } from "./PhotoStage";
 import { Tape } from "./Tape";
@@ -100,7 +101,7 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
         <div className={cn("polaroid-shadow photo-mat relative w-full overflow-visible bg-mat", oval ? "photo-mat--oval rounded-[50%]" : "rounded-xs")}>
           {oval ? null : <Tape seed={photo.id} className="-top-3.5 left-1/2 w-[8.5rem] -translate-x-1/2" rotation={3} />}
           <div className={cn("relative", oval ? "p-1.5" : "p-2.5 pb-1.5")}>
-            <div className={cn("relative overflow-hidden bg-page-deep", aspect, oval && "rounded-[50%]")}>
+            <div className={cn("relative bg-page-deep", aspect, oval && "rounded-[50%]", src ? "overflow-hidden" : "overflow-visible")}>
               {src ? (
                 <PhotoStage
                   src={src}
@@ -114,22 +115,7 @@ export function Polaroid({ photo, className, onPlaceChange, onCaptionChange, day
                   play={play}
                 />
               ) : canEdit ? (
-                <label className="photo-add grid h-full cursor-pointer place-items-center">
-                  <input
-                    type="file"
-                    accept="image/*,video/*"
-                    className="sr-only"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) void setPhoto(photo.id, file);
-                      event.target.value = "";
-                    }}
-                  />
-                  <span className="photo-add-plus" aria-hidden="true">
-                    +
-                  </span>
-                  <span className="sr-only">{t("ui.addPhoto")}</span>
-                </label>
+                <EmptyPhotoSlot photoId={photo.id} />
               ) : (
                 <div className="photo-add grid h-full place-items-center">
                   <span className="photo-add-plus">{t("ui.addPhoto")}</span>

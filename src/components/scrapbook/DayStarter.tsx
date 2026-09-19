@@ -4,6 +4,7 @@ import { useT } from "@/lib/i18n/locale";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 export const DAY_CHOICES: { kind: BlockKind; key: MessageKey }[] = [
+  { kind: "intro", key: "ui.addIntro" },
   { kind: "photo", key: "ui.addPhoto" },
   { kind: "polaroid", key: "ui.addPolaroid" },
   { kind: "collage", key: "ui.addCollage" },

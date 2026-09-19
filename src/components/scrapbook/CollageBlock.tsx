@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { COLLAGE_MAX, COLLAGE_MIN, type PrintPhoto } from "@/lib/album/layout";
+import { COLLAGE_MAX, COLLAGE_MIN, type PhotoFormat, type PrintPhoto } from "@/lib/album/layout";
 import { useAlbum } from "@/lib/album/store";
 import { useT } from "@/lib/i18n/locale";
 import { Frame } from "./Frame";
@@ -11,13 +11,21 @@ type CollageBlockProps = {
   reverse?: boolean;
   dayId?: string;
   blockId?: string;
+  variant?: "collage" | "polaroids";
 };
+
+function spanFor(format?: PhotoFormat) {
+  if (format === "square") return "square";
+  if (format === "oval") return "portrait";
+  return "wide";
+}
 
 export function CollageBlock({
   photos,
   reverse = false,
   dayId,
   blockId,
+  variant = "collage",
 }: CollageBlockProps) {
   const t = useT();
   const canEdit = useAlbum((s) => s.canEdit);
@@ -26,27 +34,34 @@ export function CollageBlock({
   const count = Math.min(COLLAGE_MAX, Math.max(photos.length, 0));
   if (count === 0) return null;
   const showControls = canEdit && dayId && blockId;
+  const polaroids = variant === "polaroids";
 
   return (
     <div className="space-y-4">
-      <div className={cn("collage-mosaic", `collage-mosaic--n${count}`, reverse && "collage-mosaic--reverse")}>
-        {photos.slice(0, COLLAGE_MAX).map((photo, index) => {
-          const polaroid = index % 3 === 1;
-          return (
+      <div
+        className={cn(
+          polaroids ? "polaroid-strip" : "collage-mosaic collage-mosaic--auto",
+          reverse && !polaroids && "collage-mosaic--reverse",
+        )}
+      >
+        {photos.slice(0, COLLAGE_MAX).map((photo, index) =>
+          polaroids ? (
             <SlideIn
               key={photo.id}
               from={index % 2 === 0 ? "left" : "right"}
               delayMs={index * 50}
-              className={`collage-tile collage-tile--${index}`}
+              className="polaroid-strip-tile"
             >
-              {polaroid ? (
-                <Polaroid photo={{ ...photo, kind: "polaroid" }} dayId={dayId} blockId={blockId} />
-              ) : (
-                <Frame photo={photo} dayId={dayId} blockId={blockId} />
-              )}
+              <Polaroid photo={{ ...photo, kind: "polaroid" }} dayId={dayId} blockId={blockId} />
             </SlideIn>
-          );
-        })}
+          ) : (
+            <div key={photo.id} className="collage-tile" data-span={spanFor(photo.format)}>
+              <SlideIn from={index % 2 === 0 ? "left" : "right"} delayMs={index * 50}>
+                <Frame photo={photo} dayId={dayId} blockId={blockId} />
+              </SlideIn>
+            </div>
+          ),
+        )}
       </div>
       {showControls ? (
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
