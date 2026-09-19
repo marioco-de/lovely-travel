@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AlbumPage } from "@/components/scrapbook/AlbumPage";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { FEATURED_SLUG } from "@/lib/album/featured";
 import { ensureFeaturedTrip } from "@/lib/album/trips";
 
@@ -11,9 +10,5 @@ export const Route = createFileRoute("/portugal-urlaub")({
       return { publicHash: FEATURED_SLUG };
     }
   },
-  component: DemoAlbum,
+  component: () => <Outlet />,
 });
-
-function DemoAlbum() {
-  return <AlbumPage mode="view" publicHash={FEATURED_SLUG} />;
-}

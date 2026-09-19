@@ -15,8 +15,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PortugalMitMichaelRouteImport } from './routes/portugal-mit-michael'
 import { Route as PortugalUrlaubRouteImport } from './routes/portugal-urlaub'
 import { Route as EHashRouteImport } from './routes/e.$hash'
+import { Route as PortugalMitMichaelIndexRouteImport } from './routes/portugal-mit-michael.index'
 import { Route as PortugalMitMichaelEditRouteImport } from './routes/portugal-mit-michael.edit'
 import { Route as PortugalMitMichaelSettingsRouteImport } from './routes/portugal-mit-michael.settings'
+import { Route as PortugalUrlaubIndexRouteImport } from './routes/portugal-urlaub.index'
 import { Route as PortugalUrlaubEditRouteImport } from './routes/portugal-urlaub.edit'
 import { Route as PortugalUrlaubSettingsRouteImport } from './routes/portugal-urlaub.settings'
 import { Route as SHashRouteImport } from './routes/s.$hash'
@@ -30,6 +32,7 @@ import { Route as PortugalMitMichaelEditIndexRouteImport } from './routes/portug
 import { Route as PortugalMitMichaelEditSettingsRouteImport } from './routes/portugal-mit-michael.edit.settings'
 import { Route as PortugalUrlaubEditIndexRouteImport } from './routes/portugal-urlaub.edit.index'
 import { Route as PortugalUrlaubEditSettingsRouteImport } from './routes/portugal-urlaub.edit.settings'
+import { Route as THashIndexRouteImport } from './routes/t.$hash.index'
 import { Route as THashEditRouteImport } from './routes/t.$hash.edit'
 import { Route as THashSettingsRouteImport } from './routes/t.$hash.settings'
 import { Route as THashEditIndexRouteImport } from './routes/t.$hash.edit.index'
@@ -65,6 +68,11 @@ const EHashRoute = EHashRouteImport.update({
   path: '/e/$hash',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortugalMitMichaelIndexRoute = PortugalMitMichaelIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortugalMitMichaelRoute,
+} as any)
 const PortugalMitMichaelEditRoute = PortugalMitMichaelEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -76,6 +84,11 @@ const PortugalMitMichaelSettingsRoute =
     path: '/settings',
     getParentRoute: () => PortugalMitMichaelRoute,
   } as any)
+const PortugalUrlaubIndexRoute = PortugalUrlaubIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortugalUrlaubRoute,
+} as any)
 const PortugalUrlaubEditRoute = PortugalUrlaubEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -144,6 +157,11 @@ const PortugalUrlaubEditSettingsRoute =
     path: '/settings',
     getParentRoute: () => PortugalUrlaubEditRoute,
   } as any)
+const THashIndexRoute = THashIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => THashRoute,
+} as any)
 const THashEditRoute = THashEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -178,6 +196,8 @@ export interface FileRoutesByFullPath {
   '/portugal-urlaub/settings': typeof PortugalUrlaubSettingsRoute
   '/s/$hash': typeof SHashRoute
   '/t/$hash': typeof THashRouteWithChildren
+  '/portugal-mit-michael/': typeof PortugalMitMichaelIndexRoute
+  '/portugal-urlaub/': typeof PortugalUrlaubIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/google/start': typeof ApiGoogleStartRoute
@@ -189,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/t/$hash/settings': typeof THashSettingsRoute
   '/portugal-mit-michael/edit/': typeof PortugalMitMichaelEditIndexRoute
   '/portugal-urlaub/edit/': typeof PortugalUrlaubEditIndexRoute
+  '/t/$hash/': typeof THashIndexRoute
   '/t/$hash/edit/settings': typeof THashEditSettingsRoute
   '/t/$hash/edit/': typeof THashEditIndexRoute
 }
@@ -196,13 +217,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
-  '/portugal-mit-michael': typeof PortugalMitMichaelRouteWithChildren
-  '/portugal-urlaub': typeof PortugalUrlaubRouteWithChildren
   '/e/$hash': typeof EHashRoute
   '/portugal-mit-michael/settings': typeof PortugalMitMichaelSettingsRoute
   '/portugal-urlaub/settings': typeof PortugalUrlaubSettingsRoute
   '/s/$hash': typeof SHashRoute
-  '/t/$hash': typeof THashRouteWithChildren
+  '/portugal-mit-michael': typeof PortugalMitMichaelIndexRoute
+  '/portugal-urlaub': typeof PortugalUrlaubIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/google/start': typeof ApiGoogleStartRoute
@@ -213,6 +233,7 @@ export interface FileRoutesByTo {
   '/t/$hash/settings': typeof THashSettingsRoute
   '/portugal-mit-michael/edit': typeof PortugalMitMichaelEditIndexRoute
   '/portugal-urlaub/edit': typeof PortugalUrlaubEditIndexRoute
+  '/t/$hash': typeof THashIndexRoute
   '/t/$hash/edit/settings': typeof THashEditSettingsRoute
   '/t/$hash/edit': typeof THashEditIndexRoute
 }
@@ -230,6 +251,8 @@ export interface FileRoutesById {
   '/portugal-urlaub/settings': typeof PortugalUrlaubSettingsRoute
   '/s/$hash': typeof SHashRoute
   '/t/$hash': typeof THashRouteWithChildren
+  '/portugal-mit-michael/': typeof PortugalMitMichaelIndexRoute
+  '/portugal-urlaub/': typeof PortugalUrlaubIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
   '/api/google/start': typeof ApiGoogleStartRoute
@@ -241,6 +264,7 @@ export interface FileRoutesById {
   '/t/$hash/settings': typeof THashSettingsRoute
   '/portugal-mit-michael/edit/': typeof PortugalMitMichaelEditIndexRoute
   '/portugal-urlaub/edit/': typeof PortugalUrlaubEditIndexRoute
+  '/t/$hash/': typeof THashIndexRoute
   '/t/$hash/edit/settings': typeof THashEditSettingsRoute
   '/t/$hash/edit/': typeof THashEditIndexRoute
 }
@@ -259,6 +283,8 @@ export interface FileRouteTypes {
     | '/portugal-urlaub/settings'
     | '/s/$hash'
     | '/t/$hash'
+    | '/portugal-mit-michael/'
+    | '/portugal-urlaub/'
     | '/api/auth/$'
     | '/api/google/callback'
     | '/api/google/start'
@@ -270,6 +296,7 @@ export interface FileRouteTypes {
     | '/t/$hash/settings'
     | '/portugal-mit-michael/edit/'
     | '/portugal-urlaub/edit/'
+    | '/t/$hash/'
     | '/t/$hash/edit/settings'
     | '/t/$hash/edit/'
   fileRoutesByTo: FileRoutesByTo
@@ -277,13 +304,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
-    | '/portugal-mit-michael'
-    | '/portugal-urlaub'
     | '/e/$hash'
     | '/portugal-mit-michael/settings'
     | '/portugal-urlaub/settings'
     | '/s/$hash'
-    | '/t/$hash'
+    | '/portugal-mit-michael'
+    | '/portugal-urlaub'
     | '/api/auth/$'
     | '/api/google/callback'
     | '/api/google/start'
@@ -294,6 +320,7 @@ export interface FileRouteTypes {
     | '/t/$hash/settings'
     | '/portugal-mit-michael/edit'
     | '/portugal-urlaub/edit'
+    | '/t/$hash'
     | '/t/$hash/edit/settings'
     | '/t/$hash/edit'
   id:
@@ -310,6 +337,8 @@ export interface FileRouteTypes {
     | '/portugal-urlaub/settings'
     | '/s/$hash'
     | '/t/$hash'
+    | '/portugal-mit-michael/'
+    | '/portugal-urlaub/'
     | '/api/auth/$'
     | '/api/google/callback'
     | '/api/google/start'
@@ -321,6 +350,7 @@ export interface FileRouteTypes {
     | '/t/$hash/settings'
     | '/portugal-mit-michael/edit/'
     | '/portugal-urlaub/edit/'
+    | '/t/$hash/'
     | '/t/$hash/edit/settings'
     | '/t/$hash/edit/'
   fileRoutesById: FileRoutesById
@@ -385,6 +415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EHashRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portugal-mit-michael/': {
+      id: '/portugal-mit-michael/'
+      path: '/'
+      fullPath: '/portugal-mit-michael/'
+      preLoaderRoute: typeof PortugalMitMichaelIndexRouteImport
+      parentRoute: typeof PortugalMitMichaelRoute
+    }
     '/portugal-mit-michael/edit': {
       id: '/portugal-mit-michael/edit'
       path: '/edit'
@@ -398,6 +435,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portugal-mit-michael/settings'
       preLoaderRoute: typeof PortugalMitMichaelSettingsRouteImport
       parentRoute: typeof PortugalMitMichaelRoute
+    }
+    '/portugal-urlaub/': {
+      id: '/portugal-urlaub/'
+      path: '/'
+      fullPath: '/portugal-urlaub/'
+      preLoaderRoute: typeof PortugalUrlaubIndexRouteImport
+      parentRoute: typeof PortugalUrlaubRoute
     }
     '/portugal-urlaub/edit': {
       id: '/portugal-urlaub/edit'
@@ -490,6 +534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortugalUrlaubEditSettingsRouteImport
       parentRoute: typeof PortugalUrlaubEditRoute
     }
+    '/t/$hash/': {
+      id: '/t/$hash/'
+      path: '/'
+      fullPath: '/t/$hash/'
+      preLoaderRoute: typeof THashIndexRouteImport
+      parentRoute: typeof THashRoute
+    }
     '/t/$hash/edit': {
       id: '/t/$hash/edit'
       path: '/edit'
@@ -540,11 +591,13 @@ const PortugalMitMichaelEditRouteWithChildren =
 interface PortugalMitMichaelRouteChildren {
   PortugalMitMichaelEditRoute: typeof PortugalMitMichaelEditRouteWithChildren
   PortugalMitMichaelSettingsRoute: typeof PortugalMitMichaelSettingsRoute
+  PortugalMitMichaelIndexRoute: typeof PortugalMitMichaelIndexRoute
 }
 
 const PortugalMitMichaelRouteChildren: PortugalMitMichaelRouteChildren = {
   PortugalMitMichaelEditRoute: PortugalMitMichaelEditRouteWithChildren,
   PortugalMitMichaelSettingsRoute: PortugalMitMichaelSettingsRoute,
+  PortugalMitMichaelIndexRoute: PortugalMitMichaelIndexRoute,
 }
 
 const PortugalMitMichaelRouteWithChildren =
@@ -566,11 +619,13 @@ const PortugalUrlaubEditRouteWithChildren =
 interface PortugalUrlaubRouteChildren {
   PortugalUrlaubEditRoute: typeof PortugalUrlaubEditRouteWithChildren
   PortugalUrlaubSettingsRoute: typeof PortugalUrlaubSettingsRoute
+  PortugalUrlaubIndexRoute: typeof PortugalUrlaubIndexRoute
 }
 
 const PortugalUrlaubRouteChildren: PortugalUrlaubRouteChildren = {
   PortugalUrlaubEditRoute: PortugalUrlaubEditRouteWithChildren,
   PortugalUrlaubSettingsRoute: PortugalUrlaubSettingsRoute,
+  PortugalUrlaubIndexRoute: PortugalUrlaubIndexRoute,
 }
 
 const PortugalUrlaubRouteWithChildren = PortugalUrlaubRoute._addFileChildren(
@@ -594,11 +649,13 @@ const THashEditRouteWithChildren = THashEditRoute._addFileChildren(
 interface THashRouteChildren {
   THashEditRoute: typeof THashEditRouteWithChildren
   THashSettingsRoute: typeof THashSettingsRoute
+  THashIndexRoute: typeof THashIndexRoute
 }
 
 const THashRouteChildren: THashRouteChildren = {
   THashEditRoute: THashEditRouteWithChildren,
   THashSettingsRoute: THashSettingsRoute,
+  THashIndexRoute: THashIndexRoute,
 }
 
 const THashRouteWithChildren = THashRoute._addFileChildren(THashRouteChildren)

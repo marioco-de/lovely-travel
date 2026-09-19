@@ -32,23 +32,23 @@ export function writeFeaturedUnlock() {
 
 export function albumPublicHref(publicHash?: string) {
   if (!publicHash) return "/";
-  if (publicHash === PRIVATE_SLUG) return `/${PRIVATE_SLUG}`;
-  if (publicHash === FEATURED_SLUG) return `/${FEATURED_SLUG}`;
-  return `/t/${publicHash}`;
+  if (publicHash === PRIVATE_SLUG) return `/${PRIVATE_SLUG}/`;
+  if (publicHash === FEATURED_SLUG) return `/${FEATURED_SLUG}/`;
+  return `/t/${publicHash}/`;
 }
 
 export function albumEditHref(publicHash?: string, editHash?: string) {
-  if (publicHash === PRIVATE_SLUG || editHash === PRIVATE_EDIT_HASH) return `/${PRIVATE_SLUG}/edit`;
-  if (publicHash === FEATURED_SLUG || editHash === FEATURED_EDIT_HASH) return `/${FEATURED_SLUG}/edit`;
-  if (publicHash) return `/t/${publicHash}/edit`;
-  if (editHash) return `/e/${editHash}`;
+  if (publicHash === PRIVATE_SLUG || editHash === PRIVATE_EDIT_HASH) return `/${PRIVATE_SLUG}/edit/`;
+  if (publicHash === FEATURED_SLUG || editHash === FEATURED_EDIT_HASH) return `/${FEATURED_SLUG}/edit/`;
+  if (publicHash) return `/t/${publicHash}/edit/`;
+  if (editHash) return `/e/${editHash}/`;
   return "";
 }
 
 export function albumSettingsHref(publicHash?: string, editHash?: string) {
-  if (publicHash === PRIVATE_SLUG || editHash === PRIVATE_EDIT_HASH) return `/${PRIVATE_SLUG}/settings`;
-  if (publicHash === FEATURED_SLUG || editHash === FEATURED_EDIT_HASH) return `/${FEATURED_SLUG}/settings`;
-  if (publicHash) return `/t/${publicHash}/settings`;
-  if (editHash) return `/s/${editHash}`;
+  if (publicHash === PRIVATE_SLUG || editHash === PRIVATE_EDIT_HASH) return `/${PRIVATE_SLUG}/settings/`;
+  if (publicHash === FEATURED_SLUG || editHash === FEATURED_EDIT_HASH) return `/${FEATURED_SLUG}/settings/`;
+  if (publicHash) return `/t/${publicHash}/settings/`;
+  if (editHash) return `/s/${editHash}/`;
   return "";
 }

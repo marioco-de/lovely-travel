@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { RedirectToSignIn, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listTrips, type TripListItem } from "@/lib/album/trips";
@@ -49,12 +49,12 @@ function AdminPage() {
                 {trip.sourceLocale} · {trip.updatedAt.slice(0, 10)}
               </p>
               <div className="mt-3 flex flex-wrap gap-3 font-typewriter text-kicker tracking-wide">
-                <Link to="/t/$hash" params={{ hash: trip.publicHash }} className="underline-offset-4 hover:underline">
+                <a href={`/t/${trip.publicHash}/`} className="underline-offset-4 hover:underline">
                   Public /t/{trip.publicHash}
-                </Link>
-                <Link to="/e/$hash" params={{ hash: trip.editHash }} className="underline-offset-4 hover:underline">
+                </a>
+                <a href={`/e/${trip.editHash}/`} className="underline-offset-4 hover:underline">
                   Edit hash
-                </Link>
+                </a>
               </div>
             </li>
           ))}

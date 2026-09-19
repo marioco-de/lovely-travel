@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { albumSettingsHref } from "@/lib/album/featured";
+import { albumEditHref, albumSettingsHref } from "@/lib/album/featured";
 import { useAlbum } from "@/lib/album/store";
 import { unlockTrip } from "@/lib/album/trips";
 import { useT } from "@/lib/i18n/locale";
@@ -23,6 +23,7 @@ export function EditUnlock({ publicHash, autoOpen = false, to = "edit", onUnlock
     becomeOwner(editHash);
     onUnlocked?.(editHash);
     if (to === "settings") window.location.href = albumSettingsHref(publicHash, editHash);
+    else window.location.href = albumEditHref(publicHash, editHash);
   }
 
   async function onSubmit(event: FormEvent) {

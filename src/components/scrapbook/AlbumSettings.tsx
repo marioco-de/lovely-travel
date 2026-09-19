@@ -45,7 +45,7 @@ export function AlbumSettings({ editHash }: AlbumSettingsProps) {
     void import("@/lib/album/google-client").then(({ runGoogleImport }) => runGoogleImport(editHash));
   }, [editHash]);
 
-  const albumHref = albumPublicHref(publicHash);
+  const albumHref = albumEditHref(publicHash, editHash);
   const statusKey =
     saveStatus === "saving" ? "ui.storageSaving" : saveStatus === "error" ? "ui.storageError" : "ui.storageSaved";
 
