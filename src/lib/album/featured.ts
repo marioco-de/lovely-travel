@@ -46,6 +46,9 @@ export function albumEditHref(publicHash?: string, editHash?: string) {
 }
 
 export function albumSettingsHref(publicHash?: string, editHash?: string) {
-  const edit = albumEditHref(publicHash, editHash);
-  return edit ? `${edit}/settings` : "";
+  if (publicHash === PRIVATE_SLUG || editHash === PRIVATE_EDIT_HASH) return `/${PRIVATE_SLUG}/settings`;
+  if (publicHash === FEATURED_SLUG || editHash === FEATURED_EDIT_HASH) return `/${FEATURED_SLUG}/settings`;
+  if (publicHash) return `/t/${publicHash}/settings`;
+  if (editHash) return `/s/${editHash}`;
+  return "";
 }

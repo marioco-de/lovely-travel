@@ -1,12 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AlbumSettings } from "@/components/scrapbook/AlbumSettings";
-import { OwnerGate } from "@/components/scrapbook/OwnerGate";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/t/$hash/edit/settings")({
-  component: PublicSettings,
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: "/t/$hash/settings", params: { hash: params.hash } });
+  },
+  component: () => null,
 });
-
-function PublicSettings() {
-  const { hash } = Route.useParams();
-  return <OwnerGate hash={hash}>{(editHash) => <AlbumSettings editHash={editHash} />}</OwnerGate>;
-}

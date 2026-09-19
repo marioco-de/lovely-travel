@@ -14,7 +14,7 @@ Demoalbum (Seed-Layout erlaubt): `/portugal-urlaub`
 | Start | `/` | alle | Neues Album anlegen, Demo öffnen |
 | Öffentliche Albumansicht | `/{slug}` oder `/t/{hash}` | Gast: nur ansehen. Owner: Bearbeiten **in-place** nach Passwort | Scrapbook: Hero, Karte, Tage, Lightbox |
 | Dedicated Edit-URL | `/{slug}/edit` oder `/t/{hash}/edit` oder `/e/{hash}` | nur Owner (OwnerGate) | dieselbe Albumseite im Edit-Modus |
-| Settings / Curation | `/{slug}/edit/settings` oder `/s/{hash}` | nur Owner (OwnerGate) | Google-Import, Tage kuratieren, Highlights, Meta |
+| Settings / Curation | `/{slug}/settings` oder `/s/{hash}` | nur Owner (OwnerGate) | Google-Import, Tage kuratieren, Highlights, Meta |
 | Tagesalbum | `/d/{hash}/{dayId}` | Gast + Owner | alle im Tag ausgewählten Fotos |
 | Admin | `/admin` | intern | Liste digitaler Trips |
 

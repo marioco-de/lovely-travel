@@ -1,16 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AlbumPage } from "@/components/scrapbook/AlbumPage";
-import { OwnerGate } from "@/components/scrapbook/OwnerGate";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/t/$hash/edit")({
-  component: PublicEdit,
+  component: () => <Outlet />,
 });
-
-function PublicEdit() {
-  const { hash } = Route.useParams();
-  return (
-    <OwnerGate hash={hash}>
-      {(editHash) => <AlbumPage mode="edit" publicHash={hash} editHash={editHash} />}
-    </OwnerGate>
-  );
-}
